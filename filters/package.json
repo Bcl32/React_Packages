@@ -1,0 +1,72 @@
+{
+  "name": "@bcl32/filters",
+  "version": "1.1.7",
+  "description": "Custom filters for data pulled from servers",
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./AllFilters": "./dist/AllFilters.js",
+    "./FilterElement": "./dist/FilterElement.js",
+    "./ChartFilter": "./dist/ChartFilter.js",
+    "./FiltersSummary": "./dist/FiltersSummary.js",
+    "./SelectFilter": "./dist/SelectFilter.js",
+    "./TimeFilter": "./dist/TimeFilter.js",
+    "./FilterContext": "./dist/FilterContext.js",
+    "./BarChartFilter": "./dist/BarChartFilter.js",
+    "./BarChartSwitcher": "./dist/BarChartSwitcher.js",
+    "./StackedBarChart": "./dist/StackedBarChart.js",
+    "./LineChartFilter": "./dist/LineChartFilter.js",
+    "./PieChartFilter": "./dist/PieChartFilter.js",
+    "./Histogram": "./dist/Histogram.js",
+    "./ListFilter": "./dist/ListFilter.js",
+    "./DebouncedNumberFilter": "./dist/DebouncedNumberFilter.js",
+    "./DebouncedTextFilter": "./dist/DebouncedTextFilter.js",
+    "./TimeEditDialog": "./dist/TimeEditDialog.js",
+    "./GetSubkeyValues": "./dist/GetSubkeyValues.js",
+    "./ApplyFilters": "./dist/ApplyFilters.js",
+    "./GetActiveFilters": "./dist/GetActiveFilters.js",
+    "./InitializeFilters": "./dist/InitializeFilters.js",
+    "./GroupFilters": "./dist/GroupFilters.js",
+    "./ProcessDataset": "./dist/ProcessDataset.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bcl32/web-app-monorepo.git",
+    "directory": "react-packages/filters"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "dependencies": {
+    "@bcl32/utils": "^1.1.4",
+    "@bcl32/charts": "^1.1.0",
+    "recharts": "^2.12.1",
+    "dayjs": "^1.11.10",
+    "@headlessui/react": "2.1.1",
+    "@radix-ui/react-toggle-group": "^1.1.0",
+    "@radix-ui/react-slider": "^1.2.1",
+    "@mui/icons-material": "^5.15.7",
+    "@mui/material": "^5.15.7",
+    "@mui/x-date-pickers": "^6.19.3"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}

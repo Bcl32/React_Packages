@@ -1,0 +1,106 @@
+{
+  "background": {
+    "description": "Default background color of main components including the body",
+    "group": "main"
+  },
+  "foreground": {
+    "description": "Used for the text color for background coloured components",
+    "group": "main"
+  },
+  "muted": {
+    "description": "Muted backgrounds such as Tabs, Skeletons and Switches",
+    "group": "main"
+  },
+  "muted-foreground": {
+    "description": "Paired text colour for muted components",
+    "group": "main"
+  },
+  "popover": {
+    "description": "Background color for popovers such as DropdownMenus, HoverCards, and Popovers",
+    "group": "main"
+  },
+  "popover-foreground": {
+    "description": "Paired foreground colour for popover style",
+    "group": "main"
+  },
+  "card": {
+    "description": "Background color for Card components",
+    "group": "main"
+  },
+  "card-foreground": {
+    "description": "Foreground color for Card components",
+    "group": "main"
+  },
+  "border": { "description": "Default border color", "group": "main" },
+  "input": {
+    "description": "Border color for inputs such as <Input />, <Select />, <Textarea />",
+    "group": "main"
+  },
+  "primary": { "description": "Primary colors for Buttons", "group": "main" },
+  "primary-foreground": {
+    "description": "Foreground color for Buttons",
+    "group": "main"
+  },
+  "secondary": {
+    "description": "Secondary colors for Buttons",
+    "group": "main"
+  },
+  "secondary-foreground": {
+    "description": "Secondary foreground colors for Buttons",
+    "group": "main"
+  },
+  "accent": {
+    "description": "Used for accents such as hover effects on DropdownMenuItems and SelectItems",
+    "group": "main"
+  },
+  "accent-foreground": {
+    "description": "Paired foreground style for accent styling",
+    "group": "main"
+  },
+  "destructive": {
+    "description": "Used for destructive actions such as Delete Buttons",
+    "group": "main"
+  },
+  "destructive-foreground": {
+    "description": "Foreground used for destructive actions such as Delete Buttons",
+    "group": "main"
+  },
+  "ring": { "description": "Used for focus ring", "group": "main" },
+  "chart-1": { "description": "Main colour for charting", "group": "chart" },
+  "chart-2": {
+    "description": "Secondary colour for charting",
+    "group": "chart"
+  },
+  "chart-3": {
+    "description": "Extra colour for charts with many colours",
+    "group": "chart"
+  },
+  "chart-4": {
+    "description": "Extra colour for charting with many colours",
+    "group": "chart"
+  },
+  "chart-5": {
+    "description": "Extra colour for charting with many colours",
+    "group": "chart"
+  },
+  "sidebar-background": {
+    "description": "Defaults to background",
+    "group": "extra"
+  },
+  "sidebar-foreground": {
+    "description": "Defaults to foreground",
+    "group": "extra"
+  },
+  "sidebar-primary": { "description": "Defaults to primary", "group": "extra" },
+  "sidebar-primary-foreground": {
+    "description": "Defaults to primary-foreground",
+    "group": "extra"
+  },
+  "sidebar-accent": { "description": "Defaults to accent", "group": "extra" },
+  "sidebar-accent-foreground": {
+    "description": "Defaults to accent-foreground",
+    "group": "extra"
+  },
+  "sidebar-border": { "description": "Defaults to border", "group": "extra" },
+  "sidebar-ring": { "description": "Defaults to ring", "group": "extra" }
+}

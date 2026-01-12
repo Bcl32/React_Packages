@@ -1,0 +1,46 @@
+{
+  "name": "@bcl32/charts",
+  "version": "1.1.2",
+  "description": "Custom bokeh and recharts chart components",
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./BokehLineChart": "./dist/BokehLineChart.js",
+    "./Charts": "./dist/Charts.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bcl32/web-app-monorepo.git",
+    "directory": "react-packages/charts"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "dependencies": {
+    "@bcl32/utils": "^1.1.0",
+    "@bcl32/hooks": "^1.0.0",
+    "@mui/material": "^5.15.7",
+    "@bokeh/bokehjs": "^2.4.3",
+    "recharts": "^2.15.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}

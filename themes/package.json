@@ -1,0 +1,53 @@
+{
+  "name": "@bcl32/themes",
+  "version": "1.1.3",
+  "description": "Theme components and functions",
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./Theming": "./dist/Theming.js",
+    "./ThemeGenerator": "./dist/ThemeGenerator.js",
+    "./ThemeProvider": "./dist/ThemeProvider.js",
+    "./ThemePanel": "./dist/ThemePanel.js",
+    "./ThemeExample": "./dist/ThemeExample.js",
+    "./ThemeDropdownSelect": "./dist/ThemeDropdownSelect.js",
+    "./ColourControls": "./dist/ColourControls.js",
+    "./ColourConverter": "./dist/ColourConverter.js",
+    "./ColourPicker": "./dist/ColourPicker.js",
+    "./CopyTheme": "./dist/CopyTheme.js"
+  },
+  "files": [
+    "dist",
+    "src/themes.json",
+    "src/style_metadata.json"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bcl32/web-app-monorepo.git",
+    "directory": "react-packages/themes"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "dependencies": {
+    "@bcl32/utils": "^1.1.4",
+    "lucide-react": "^0.447.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}

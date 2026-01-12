@@ -1,0 +1,10 @@
+{
+  "name": "@repo/test-package",
+  "version": "1.0.0",
+  "exports": {
+    "./Test_package": "./src/Test_package.jsx"
+  },
+  "description": "Test package for the testing of the monorepo with docker",
+  "author": "",
+  "license": "ISC"
+}

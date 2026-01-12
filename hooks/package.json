@@ -1,0 +1,45 @@
+{
+  "name": "@bcl32/hooks",
+  "version": "1.0.2",
+  "description": "React hooks",
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./useDatabaseMutation": "./dist/useDatabaseMutation.js",
+    "./useGetRequest": "./dist/useGetRequest.js",
+    "./useBokehChart": "./dist/useBokehChart.js",
+    "./useDataLoader": "./dist/useDataLoader.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bcl32/web-app-monorepo.git",
+    "directory": "react-packages/hooks"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "dependencies": {
+    "dayjs": "^1.11.10",
+    "@tanstack/react-query": "^5.18.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "name": "@bcl32/forms",
+  "version": "1.0.2",
+  "description": "Forms to add new entities to the databases",
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./AddModelForm": "./dist/AddModelForm.js",
+    "./EditModelForm": "./dist/EditModelForm.js",
+    "./DeleteModelForm": "./dist/DeleteModelForm.js",
+    "./FormElement": "./dist/FormElement.js",
+    "./ButtonDatePicker": "./dist/ButtonDatePicker.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bcl32/web-app-monorepo.git",
+    "directory": "react-packages/forms"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "dependencies": {
+    "@bcl32/hooks": "^1.0.1",
+    "lucide-react": "^0.447.0",
+    "recharts": "^2.12.1",
+    "dayjs": "^1.11.10",
+    "@mui/icons-material": "^5.15.7",
+    "@mui/material": "^5.15.7",
+    "@mui/x-date-pickers": "^6.19.3"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}

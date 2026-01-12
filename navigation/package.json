@@ -1,0 +1,44 @@
+{
+  "name": "@bcl32/navigation",
+  "version": "1.1.2",
+  "description": "Navigation components including sidebar, breadcrumb, and navigation provider",
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./NavigationProvider": "./dist/NavigationProvider.js",
+    "./NavigationBreadcrumb": "./dist/NavigationBreadcrumb.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bcl32/web-app-monorepo.git",
+    "directory": "react-packages/navigation"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "dependencies": {
+    "@bcl32/utils": "^1.1.0",
+    "react-router-dom": "^6.22.0",
+    "lucide-react": "^0.447.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}

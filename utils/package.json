@@ -1,0 +1,92 @@
+{
+  "name": "@bcl32/utils",
+  "version": "1.1.9",
+  "description": "Utility functions and components",
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./Alert": "./dist/Alert.js",
+    "./AnimatedTabs": "./dist/AnimatedTabs.js",
+    "./AnimatedFileSystem": "./dist/AnimatedFileSystem.js",
+    "./ShowHeirarchy": "./dist/ShowHeirarchy.js",
+    "./ToggleGroup": "./dist/ToggleGroup.js",
+    "./Dialog": "./dist/Dialog.js",
+    "./DialogButton": "./dist/DialogButton.js",
+    "./Sidebar": "./dist/Sidebar.js",
+    "./Select": "./dist/Select.js",
+    "./Button": "./dist/Button.js",
+    "./Input": "./dist/Input.js",
+    "./Label": "./dist/Label.js",
+    "./Card": "./dist/Card.js",
+    "./Separator": "./dist/Separator.js",
+    "./Skeleton": "./dist/Skeleton.js",
+    "./Sheet": "./dist/Sheet.js",
+    "./Checkbox": "./dist/Checkbox.js",
+    "./Dropdown": "./dist/Dropdown.js",
+    "./Tooltip": "./dist/Tooltip.js",
+    "./RadioButton": "./dist/RadioButton.js",
+    "./Slider": "./dist/Slider.js",
+    "./Breadcrumb": "./dist/Breadcrumb.js",
+    "./UseIsMobile": "./dist/UseIsMobile.js",
+    "./FileSystem": "./dist/FileSystem.js",
+    "./cn": "./dist/cn.js",
+    "./ComputeTimeBounds": "./dist/ComputeTimeBounds.js",
+    "./ComputeGroupedStats": "./dist/ComputeGroupedStats.js",
+    "./CalculateFeatureStats": "./dist/CalculateFeatureStats.js",
+    "./PrintState": "./dist/PrintState.js",
+    "./StringFunctions": "./dist/StringFunctions.js",
+    "./dayjs_sorter": "./dist/dayjs_sorter.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bcl32/web-app-monorepo.git",
+    "directory": "react-packages/utils"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "dependencies": {
+    "framer-motion": "^11.0.0",
+    "@headlessui/react": "^2.1.1",
+    "@heroicons/react": "^2.1.0",
+    "@radix-ui/react-dialog": "^1.1.1",
+    "@radix-ui/react-slider": "^1.2.1",
+    "@radix-ui/react-toggle-group": "^1.1.0",
+    "clsx": "^2.1.0",
+    "dayjs": "^1.11.10",
+    "d3": "^7.9.0",
+    "lucide-react": "^0.447.0",
+    "tailwind-merge": "^2.5.2",
+    "class-variance-authority": "^0.2.2",
+    "@radix-ui/react-focus-scope": "^1.1.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-separator": "^1.1.0",
+    "@radix-ui/react-tooltip": "^1.1.3",
+    "@radix-ui/react-checkbox": "1.1.2",
+    "@radix-ui/react-label": "^2.1.0",
+    "@radix-ui/react-select": "^2.1.2",
+    "@radix-ui/react-dropdown-menu": "^2.1.2",
+    "@tanstack/react-query": "^5.18.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/d3": "^7.4.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}
