@@ -26,14 +26,22 @@ import TimeEditDialog from "./TimeEditDialog";
 export function TimeFilter({ name, ...props }) {
   var { filters, change_filters } = React.useContext(FilterContext);
 
+  // Safe access to filter data - handles React batching timing issues
+  const filterData = filters?.[name];
+
+  // Guard: don't render until filter data is available
+  if (!filterData) {
+    return null;
+  }
+
   function change_time_filter(name, timespan, value) {
-    var timespans = JSON.parse(JSON.stringify(filters[name]["value"])); //get current values
+    var timespans = JSON.parse(JSON.stringify(filterData["value"])); //get current values
     timespans[timespan] = value; //update the value for the selected timespan (begin or end)
     change_filters(name, "value", timespans);
   }
 
   function reset_value() {
-    change_filters(name, "value", filters[name]["filter_empty"]);
+    change_filters(name, "value", filterData["filter_empty"]);
   }
 
   return (
@@ -48,7 +56,7 @@ export function TimeFilter({ name, ...props }) {
           <h1>Start Time</h1>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <MobileDateTimePicker
-              value={dayjs(filters[name]["value"]["timespan_begin"])}
+              value={dayjs(filterData["value"]["timespan_begin"])}
               onChange={(newValue) =>
                 change_time_filter(name, "timespan_begin", newValue)
               }
@@ -60,7 +68,7 @@ export function TimeFilter({ name, ...props }) {
           <h1>End Time</h1>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <MobileDateTimePicker
-              value={dayjs(filters[name]["value"]["timespan_end"])}
+              value={dayjs(filterData["value"]["timespan_end"])}
               onChange={(newValue) =>
                 change_time_filter(name, "timespan_end", newValue)
               }

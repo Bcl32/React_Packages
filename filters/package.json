@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/filters",
-  "version": "1.1.7",
+  "version": "1.1.15",
   "description": "Custom filters for data pulled from servers",
   "author": "",
   "license": "ISC",
@@ -53,7 +53,7 @@
     "react-dom": "^18.2.0"
   },
   "dependencies": {
-    "@bcl32/utils": "^1.1.4",
+    "@bcl32/utils": "^1.1.10",
     "@bcl32/charts": "^1.1.0",
     "recharts": "^2.12.1",
     "dayjs": "^1.11.10",

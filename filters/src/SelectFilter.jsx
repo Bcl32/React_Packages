@@ -7,6 +7,15 @@ import TextField from "@mui/material/TextField";
 
 export function SelectFilter({ name, options, ...props }) {
   var { filters, change_filters } = React.useContext(FilterContext);
+
+  // Safe access to filter data - handles React batching timing issues
+  const filterData = filters?.[name];
+
+  // Guard: don't render until filter data is available
+  if (!filterData) {
+    return null;
+  }
+
   //special formData updater function for select comboboxes as input differs from other inputs are objects and multiple items can used
   function handleComboboxChange(name, value) {
     var entries = [];
@@ -34,7 +43,7 @@ export function SelectFilter({ name, options, ...props }) {
         freeSolo
         multiple
         options={options}
-        value={filters[name]["value"]}
+        value={filterData["value"]}
         onChange={(event, value) => handleComboboxChange(name, value)}
         renderInput={(params) => (
           <TextField
