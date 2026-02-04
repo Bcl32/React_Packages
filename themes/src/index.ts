@@ -8,3 +8,4 @@ export * from "./ColourControls";
 export * from "./ColourConverter";
 export * from "./ColourPicker";
 export * from "./CopyTheme";
+export * from "./colorUtils";

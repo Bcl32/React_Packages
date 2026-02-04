@@ -1,18 +1,26 @@
-import { useState, useEffect } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 
-//ui components
 import { Card } from "@bcl32/utils/Card";
 import { Dialog } from "@bcl32/utils/DialogButton";
 
 import { ColourControls } from "./ColourControls";
+import { hslToHex, type HSLColor } from "./colorUtils";
 
-import { hslToHex } from "./colorUtils";
+export interface ThemeColorConfig extends HSLColor {
+  description?: string;
+}
 
-export function ThemeGenerator({ colours, setColours, main_styles }) {
-  const [activeColor, setActiveColor] = useState(null);
-  const [includeAlpha, setIncludeAlpha] = useState(false);
+export interface ThemeGeneratorProps {
+  colours: Record<string, ThemeColorConfig>;
+  setColours: Dispatch<SetStateAction<Record<string, ThemeColorConfig>>>;
+  main_styles: Record<string, ThemeColorConfig>;
+}
 
-  const isValidColor = (config) => {
+export function ThemeGenerator({ colours, setColours, main_styles }: ThemeGeneratorProps) {
+  const [activeColor, setActiveColor] = useState<string | null>(null);
+  const [includeAlpha] = useState(false);
+
+  const isValidColor = (config: ThemeColorConfig): boolean => {
     return (
       !isNaN(config.hue) &&
       !isNaN(config.saturation) &&
@@ -21,7 +29,7 @@ export function ThemeGenerator({ colours, setColours, main_styles }) {
     );
   };
 
-  const updateCSSVariables = (themeColors) => {
+  const updateCSSVariables = (themeColors: Record<string, ThemeColorConfig>) => {
     const style = document.documentElement.style;
 
     Object.entries(themeColors).forEach(([name, setting]) => {
@@ -33,7 +41,7 @@ export function ThemeGenerator({ colours, setColours, main_styles }) {
     });
   };
 
-  const updateColor = (colorName, property, value) => {
+  const updateColor = (colorName: string, property: keyof HSLColor, value: number) => {
     setColours((prev) => {
       const newColors = {
         ...prev,
@@ -76,17 +84,17 @@ export function ThemeGenerator({ colours, setColours, main_styles }) {
                 <Card
                   key={name}
                   className={`
-          p-4 
-          flex 
-          flex-col 
-          items-center 
-          justify-center 
+          p-4
+          flex
+          flex-col
+          items-center
+          justify-center
           ${textColor}
-          transition 
-          duration-500 
+          transition
+          duration-500
           ease-in-out
-          hover:scale-105 
-          hover:shadow-xl 
+          hover:scale-105
+          hover:shadow-xl
           cursor-pointer
           active:scale-95
         `}
@@ -109,7 +117,7 @@ export function ThemeGenerator({ colours, setColours, main_styles }) {
         open={activeColor !== null}
         onOpenChange={(open) => !open && setActiveColor(null)}
         isModal={true}
-        title={activeColor}
+        title={activeColor ?? undefined}
       >
         {activeColor && (
           <div>

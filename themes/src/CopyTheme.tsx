@@ -3,13 +3,21 @@ import { Copy } from "lucide-react";
 import { DialogButton } from "@bcl32/utils/DialogButton";
 import { Button } from "@bcl32/utils/Button";
 import { ToggleGroup, ToggleGroupItem } from "@bcl32/utils/ToggleGroup";
+import type { HSLColor } from "./colorUtils";
 
-export function CopyTheme({ currentTheme, colours }) {
-  const [format, setFormat] = useState("json");
+type ExportFormat = "json" | "css";
 
-  const generateThemeCSS = () => {
+export interface CopyThemeProps {
+  currentTheme: string;
+  colours: Record<string, HSLColor>;
+}
+
+export function CopyTheme({ currentTheme, colours }: CopyThemeProps) {
+  const [format, setFormat] = useState<ExportFormat>("json");
+
+  const generateThemeCSS = (): string => {
     if (format === "css") {
-      const formatColor = ({ hue, saturation, lightness, alpha }) => {
+      const formatColor = ({ hue, saturation, lightness }: HSLColor): string => {
         return `${hue} ${saturation}% ${lightness}%`;
       };
 
@@ -21,7 +29,7 @@ export function CopyTheme({ currentTheme, colours }) {
     }
 
     if (format === "json") {
-      const formatColor = ({ hue, saturation, lightness, alpha }) => {
+      const formatColor = ({ hue, saturation, lightness }: HSLColor): string => {
         return `"hsl(${hue} ${saturation}% ${lightness}%)"`;
       };
 
@@ -31,6 +39,8 @@ export function CopyTheme({ currentTheme, colours }) {
 
       return `"${currentTheme}": {\n${Variables}\n}`;
     }
+
+    return "";
   };
 
   function copyTheme() {
@@ -53,7 +63,7 @@ export function CopyTheme({ currentTheme, colours }) {
         variant="outline"
         value={format}
         onValueChange={(value) => {
-          setFormat(value);
+          if (value) setFormat(value as ExportFormat);
         }}
       >
         <ToggleGroupItem value="json">{"json"}</ToggleGroupItem>

@@ -1,24 +1,62 @@
 {
   "name": "@bcl32/themes",
-  "version": "1.1.3",
+  "version": "2.0.0",
   "description": "Theme components and functions",
   "author": "",
   "license": "ISC",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./Theming": "./dist/Theming.js",
-    "./ThemeGenerator": "./dist/ThemeGenerator.js",
-    "./ThemeProvider": "./dist/ThemeProvider.js",
-    "./ThemePanel": "./dist/ThemePanel.js",
-    "./ThemeExample": "./dist/ThemeExample.js",
-    "./ThemeDropdownSelect": "./dist/ThemeDropdownSelect.js",
-    "./ColourControls": "./dist/ColourControls.js",
-    "./ColourConverter": "./dist/ColourConverter.js",
-    "./ColourPicker": "./dist/ColourPicker.js",
-    "./CopyTheme": "./dist/CopyTheme.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./Theming": {
+      "types": "./dist/Theming.d.ts",
+      "import": "./dist/Theming.js"
+    },
+    "./ThemeGenerator": {
+      "types": "./dist/ThemeGenerator.d.ts",
+      "import": "./dist/ThemeGenerator.js"
+    },
+    "./ThemeProvider": {
+      "types": "./dist/ThemeProvider.d.ts",
+      "import": "./dist/ThemeProvider.js"
+    },
+    "./ThemePanel": {
+      "types": "./dist/ThemePanel.d.ts",
+      "import": "./dist/ThemePanel.js"
+    },
+    "./ThemeExample": {
+      "types": "./dist/ThemeExample.d.ts",
+      "import": "./dist/ThemeExample.js"
+    },
+    "./ThemeDropdownSelect": {
+      "types": "./dist/ThemeDropdownSelect.d.ts",
+      "import": "./dist/ThemeDropdownSelect.js"
+    },
+    "./ColourControls": {
+      "types": "./dist/ColourControls.d.ts",
+      "import": "./dist/ColourControls.js"
+    },
+    "./ColourConverter": {
+      "types": "./dist/ColourConverter.d.ts",
+      "import": "./dist/ColourConverter.js"
+    },
+    "./ColourPicker": {
+      "types": "./dist/ColourPicker.d.ts",
+      "import": "./dist/ColourPicker.js"
+    },
+    "./CopyTheme": {
+      "types": "./dist/CopyTheme.d.ts",
+      "import": "./dist/CopyTheme.js"
+    },
+    "./colorUtils": {
+      "types": "./dist/colorUtils.d.ts",
+      "import": "./dist/colorUtils.js"
+    }
   },
   "files": [
     "dist",
@@ -27,6 +65,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "typecheck": "tsc --noEmit",
     "prepublishOnly": "pnpm run build"
   },
   "repository": {

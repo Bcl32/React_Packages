@@ -1,4 +1,19 @@
-export function hexToHSL(hex) {
+export interface HSLColor {
+  hue: number;
+  saturation: number;
+  lightness: number;
+  alpha: number;
+}
+
+export interface RGBColor {
+  r: number;
+  g: number;
+  b: number;
+}
+
+export type ColorFormat = "hex" | "rgb" | "rgba" | "hsl" | "hsla" | "custom";
+
+export function hexToHSL(hex: string): HSLColor {
   hex = hex.replace("#", "");
 
   const hasAlpha = hex.length === 8; // 8 characters for #RRGGBBAA
@@ -43,7 +58,7 @@ export function hexToHSL(hex) {
   };
 }
 
-export const rgbToHSL = (r, g, b) => {
+export const rgbToHSL = (r: number, g: number, b: number): HSLColor => {
   r /= 255;
   g /= 255;
   b /= 255;
@@ -78,13 +93,13 @@ export const rgbToHSL = (r, g, b) => {
   };
 };
 
-export function hslToHex(h, s, l, a) {
+export function hslToHex(h: number, s: number, l: number, a: number): string {
   h = ((h % 360) + 360) % 360;
   s = Math.min(Math.max(s, 0), 100);
   l = Math.min(Math.max(l, 0), 100);
   a = Math.min(Math.max(a, 0), 1);
   l /= 100;
-  const f = (n) => {
+  const f = (n: number): string => {
     const k = (n + h / 30) % 12;
     const color =
       l -
@@ -99,13 +114,12 @@ export function hslToHex(h, s, l, a) {
   return `#${f(0)}${f(8)}${f(4)}`;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const hslToRGB = ({ hue, saturation, lightness, alpha }) => {
+const hslToRGB = ({ hue, saturation, lightness }: HSLColor): RGBColor => {
   const s = saturation / 100;
   const l = lightness / 100;
-  const k = (n) => (n + hue / 30) % 12;
+  const k = (n: number) => (n + hue / 30) % 12;
   const a = s * Math.min(l, 1 - l);
-  const f = (n) =>
+  const f = (n: number) =>
     l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
 
   return {
@@ -115,13 +129,9 @@ const hslToRGB = ({ hue, saturation, lightness, alpha }) => {
   };
 };
 
-export const parseToHSL = (color) => {
+export const parseToHSL = (color: string): HSLColor | null => {
   const hslFunctionRegex =
     /^(?:hsl|hsla)\(\s*([\d.-]+)(?:deg)?\s*\s*([\d.]+)%\s*\s*([\d.]+)%\s*(?:\s*([\d.]+%?))?\s*\)$/i;
-
-  //old style with commas
-  //const hslFunctionRegex =
-  ///^(?:hsl|hsla)\(\s*([\d.-]+)(?:deg)?\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*(?:,\s*([\d.]+%?))?\s*\)$/i;
 
   const rgbFunctionRegex =
     /^(?:rgb|rgba)\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+%?))?\s*\)$/i;
@@ -151,19 +161,21 @@ export const parseToHSL = (color) => {
   }
 };
 
-export const convertColor = (color, outputFormat) => {
+export const convertColor = (color: string, outputFormat: ColorFormat): string | null => {
   const hsl = parseToHSL(color);
   if (!hsl) return null;
 
   switch (outputFormat) {
     case "hex":
       return hslToHex(hsl.hue, hsl.saturation, hsl.lightness, hsl.alpha ?? 1);
-    case "rgb":
+    case "rgb": {
       const { r, g, b } = hslToRGB(hsl);
       return `rgb(${r}, ${g}, ${b})`;
-    case "rgba":
+    }
+    case "rgba": {
       const rgba = hslToRGB(hsl);
       return `rgba(${rgba.r}, ${rgba.g}, ${rgba.b}, ${hsl.alpha})`;
+    }
     case "hsl":
       return `hsl(${hsl.hue}, ${hsl.saturation}%, ${hsl.lightness}%)`;
     case "hsla":
@@ -177,20 +189,16 @@ export const convertColor = (color, outputFormat) => {
   }
 };
 
-export const createColor = (baseHue, saturation, lightness, alpha = 1) => ({
+export const createColor = (baseHue: number, saturation: number, lightness: number, alpha = 1): HSLColor => ({
   hue: baseHue,
   saturation,
   lightness,
   alpha,
 });
 
-export const hslToObject = (color) => {
+export const hslToObject = (color: string): HSLColor | null => {
   const hslFunctionRegex =
     /^(?:hsl|hsla)\(\s*([\d.-]+)(?:deg)?\s*\s*([\d.]+)%\s*\s*([\d.]+)%\s*(?:\s*([\d.]+%?))?\s*\)$/i;
-
-  //old style with commas
-  //const hslFunctionRegex =
-  ///^(?:hsl|hsla)\(\s*([\d.-]+)(?:deg)?\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*(?:,\s*([\d.]+%?))?\s*\)$/i;
 
   let match;
   if ((match = color.match(hslFunctionRegex))) {

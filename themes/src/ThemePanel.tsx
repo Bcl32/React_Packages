@@ -1,17 +1,31 @@
-import React from "react";
-import { useTheme } from "@bcl32/themes/ThemeProvider";
-
-//ui components
+import { useTheme } from "./ThemeProvider";
 import { Card } from "@bcl32/utils/Card";
 
-export function ThemePanel({ name, styles }) {
+export interface ThemeStyles {
+  background: string;
+  foreground: string;
+  card: string;
+  primary: string;
+  "primary-foreground": string;
+  secondary: string;
+  "secondary-foreground": string;
+  border: string;
+  [key: string]: string;
+}
+
+export interface ThemePanelProps {
+  name: string;
+  styles: ThemeStyles;
+}
+
+export function ThemePanel({ name, styles }: ThemePanelProps) {
   const { setTheme } = useTheme();
 
   return (
     <div
-      className="duration-300 
+      className="duration-300
           ease-in-out
-          hover:scale-105 
+          hover:scale-105
           hover:shadow-xl "
       style={{
         backgroundColor: styles["background"],
@@ -26,13 +40,13 @@ export function ThemePanel({ name, styles }) {
       <Card
         key={name}
         className={`
-          p-4 
+          p-4
           mx-4
           my-1
-          flex 
-          flex-col 
-          items-center 
-          justify-center 
+          flex
+          flex-col
+          items-center
+          justify-center
         `}
         style={{ backgroundColor: styles["card"] }}
       >

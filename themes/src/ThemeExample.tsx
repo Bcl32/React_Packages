@@ -1,11 +1,20 @@
-import React from "react";
-
-//ui components
 import { Button } from "@bcl32/utils/Button";
-
 import { Palette } from "lucide-react";
 import { AnimatedTabs, TabContent } from "@bcl32/utils/AnimatedTabs";
 import { ShowHeirarchy } from "@bcl32/utils/ShowHeirarchy";
+
+interface ExampleJson {
+  [key: string]: string | boolean | number | ExampleJson | (string | number | boolean)[];
+}
+
+const example_json: ExampleJson = {
+  "attribute one": {
+    "sub attribute one": "Value",
+    "sub attribute two": false,
+  },
+  "attribute two": { "sub attribute one": "Value", "sub attribute two": true },
+  array: [1, 2, 3],
+};
 
 export function ThemeExample() {
   return (
@@ -33,11 +42,3 @@ export function ThemeExample() {
     </div>
   );
 }
-const example_json = {
-  "attribute one": {
-    "sub attribute one": "Value",
-    "sub attribute two": false,
-  },
-  "attribute two": { "sub attribute one": "Value", "sub attribute two": true },
-  array: [1, 2, 3],
-};

@@ -2,20 +2,21 @@ import { defineConfig } from "tsup";
 
 export default defineConfig({
   entry: [
-    "src/Theming.jsx",
-    "src/ThemeGenerator.jsx",
-    "src/ThemeProvider.jsx",
-    "src/ThemePanel.jsx",
-    "src/ThemeExample.jsx",
-    "src/ThemeDropdownSelect.jsx",
-    "src/ColourControls.jsx",
-    "src/ColourConverter.jsx",
-    "src/ColourPicker.jsx",
-    "src/CopyTheme.jsx",
-    "src/index.js"
+    "src/Theming.tsx",
+    "src/ThemeGenerator.tsx",
+    "src/ThemeProvider.tsx",
+    "src/ThemePanel.tsx",
+    "src/ThemeExample.tsx",
+    "src/ThemeDropdownSelect.tsx",
+    "src/ColourControls.tsx",
+    "src/ColourConverter.tsx",
+    "src/ColourPicker.tsx",
+    "src/CopyTheme.tsx",
+    "src/colorUtils.ts",
+    "src/index.ts"
   ],
   format: ["esm"],
-  dts: false,
+  dts: true,
   splitting: false,
   sourcemap: true,
   clean: true,

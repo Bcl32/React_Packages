@@ -1,11 +1,16 @@
-import React from "react";
 import { Label } from "@bcl32/utils/Label";
 import { Slider } from "@bcl32/utils/Slider";
 
 import { ColourPicker } from "./ColourPicker";
-import { hslToHex, hexToHSL } from "./colorUtils";
+import { hslToHex, hexToHSL, type HSLColor } from "./colorUtils";
 
-export function ColourControls({ color, onChange, onHexChange }) {
+export interface ColourControlsProps {
+  color: HSLColor;
+  onChange: (property: keyof HSLColor, value: number) => void;
+  onHexChange: (hex: string) => void;
+}
+
+export function ColourControls({ color, onChange, onHexChange }: ColourControlsProps) {
   const currentColorHex = hslToHex(
     color.hue,
     color.saturation,
@@ -18,7 +23,7 @@ export function ColourControls({ color, onChange, onHexChange }) {
   }%, ${(100 - color.alpha) / 100})`;
 
   const getHueGradient = () => {
-    const stops = [];
+    const stops: string[] = [];
     for (let i = 0; i <= 360; i += 60) {
       stops.push(`hsl(${i}, ${color.saturation}%, ${color.lightness}%)`);
     }
@@ -106,7 +111,7 @@ export function ColourControls({ color, onChange, onHexChange }) {
               }}
               className="h-2 w-full rounded-full"
               style={{
-                background: `linear-gradient(to right, 
+                background: `linear-gradient(to right,
                   hsl(${color.hue}, 0%, ${color.lightness}%),
                   hsl(${color.hue}, 50%, ${color.lightness}%),
                   hsl(${color.hue}, 100%, ${color.lightness}%))`,
@@ -139,7 +144,7 @@ export function ColourControls({ color, onChange, onHexChange }) {
               }}
               className="h-2 w-full rounded-full"
               style={{
-                background: `linear-gradient(to right, 
+                background: `linear-gradient(to right,
                   hsl(${color.hue}, ${color.saturation}%, 0%),
                   hsl(${color.hue}, ${color.saturation}%, 50%),
                   hsl(${color.hue}, ${color.saturation}%, 100%))`,

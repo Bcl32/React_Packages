@@ -1,20 +1,26 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ChangeEvent } from "react";
 import { cn } from "@bcl32/utils/cn";
 import { Input } from "@bcl32/utils/Input";
 
-export function ColourPicker({ color, onChange, className }) {
+export interface ColourPickerProps {
+  color: string;
+  onChange: (hex: string) => void;
+  className?: string;
+}
+
+export function ColourPicker({ color, onChange, className }: ColourPickerProps) {
   // Strip alpha channel if present for display
   const displayColor = color.length === 9 ? color.slice(0, 7) : color;
   const [inputColor, setInputColor] = useState(displayColor);
   const [isValidColor, setIsValidColor] = useState(true);
-  const colorInputRef = useRef(null);
+  const colorInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const newDisplayColor = color.length === 9 ? color.slice(0, 7) : color;
     setInputColor(newDisplayColor);
   }, [color]);
 
-  const handleColorChange = (newColor) => {
+  const handleColorChange = (newColor: string) => {
     setInputColor(newColor);
     if (/^#[0-9A-F]{6}$/i.test(newColor)) {
       setIsValidColor(true);
@@ -45,13 +51,13 @@ export function ColourPicker({ color, onChange, className }) {
         type="color"
         value={displayColor}
         ref={colorInputRef}
-        onChange={(e) => handleColorChange(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => handleColorChange(e.target.value)}
         className="hidden"
       />
       <Input
         type="text"
         value={inputColor}
-        onChange={(e) => handleColorChange(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => handleColorChange(e.target.value)}
         className={cn(
           "h-10 w-28 rounded-md border px-3 py-2 text-sm bg-white text-black",
           isValidColor ? "border-input" : "border-red-500"

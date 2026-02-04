@@ -11,7 +11,7 @@ import { useTheme } from "./ThemeProvider";
 export function ThemeDropdownSelect() {
   const { setTheme, theme_options } = useTheme();
 
-  var dropdown_items = theme_options.map((entry) => {
+  const dropdown_items = theme_options.map((entry) => {
     return (
       <DropdownMenuItem key={entry} onClick={() => setTheme(entry)}>
         {entry}

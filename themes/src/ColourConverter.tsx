@@ -1,15 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, type ChangeEvent } from "react";
 
 import { Input } from "@bcl32/utils/Input";
 import { DialogButton } from "@bcl32/utils/DialogButton";
 import { Button } from "@bcl32/utils/Button";
 
-import { convertColor } from "./colorUtils";
+import { convertColor, type ColorFormat } from "./colorUtils";
 
 export function ColourConverter() {
-  const [convertedColor, setConvertedColor] = useState(null);
+  const [convertedColor, setConvertedColor] = useState<string | null>(null);
   const [colorInput, setColorInput] = useState("");
-  const [selectedFormat, setSelectedFormat] = useState("hex");
+  const [selectedFormat, setSelectedFormat] = useState<ColorFormat>("hex");
 
   const handleConvert = () => {
     const result = convertColor(colorInput.trim(), selectedFormat);
@@ -41,13 +41,13 @@ export function ColourConverter() {
           <Input
             type="text"
             value={colorInput}
-            onChange={(e) => setColorInput(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setColorInput(e.target.value)}
             placeholder="Enter color value (e.g., hsl(255, 81%, 95%), #ff5733)"
             className="w-full p-2 border rounded"
           />
           <select
             value={selectedFormat}
-            onChange={(e) => setSelectedFormat(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedFormat(e.target.value as ColorFormat)}
             className="w-full p-2 border rounded text-primary-foreground"
           >
             <option value="hex">HEX</option>
