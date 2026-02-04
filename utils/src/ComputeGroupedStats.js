@@ -43,8 +43,11 @@ function groupByKey(data, key) {
   //  "key1":[{"item"},{"item2"}],
   //  "key2":[{"item"},{"item2"},{"item3"}]
   //   }
+  // Filter out entries where the key is undefined or null before grouping
+  const validData = data.filter(entry => entry && entry[key] != null);
+
   return Object.groupBy(
-    data,
+    validData,
     ({ [key]: string_title }) => string_title //[feature] converts variable 'feature' passed in to string
   );
 }

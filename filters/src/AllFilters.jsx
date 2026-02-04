@@ -6,13 +6,21 @@ import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { GroupFilters } from "./GroupFilters";
 import { AnimatedTabs, TabContent } from "@bcl32/utils/AnimatedTabs";
 import { FilterElement } from "@bcl32/filters/FilterElement";
+import { FilterContext } from "@bcl32/filters/FilterContext";
+
 export function AllFilters({
-  filters,
-  change_filters,
   ModelData,
   dataset,
   ...props
 }) {
+  // Get filters from Context (single source of truth)
+  const { filters } = React.useContext(FilterContext);
+
+  // Safety check: Don't render until filters are initialized
+  if (!filters || Object.keys(filters).length === 0) {
+    return <div className="p-2 text-sm text-muted-foreground">Initializing filters...</div>;
+  }
+
   let {
     string_filters,
     numeric_filters,

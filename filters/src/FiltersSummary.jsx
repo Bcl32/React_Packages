@@ -6,9 +6,18 @@ dayjs.extend(duration);
 
 //MONOREPO PACKAGE IMPORTS
 import { Button } from "@bcl32/utils/Button";
+import { FilterContext } from "./FilterContext";
 
-export function FiltersSummary(props) {
-  const hasActiveFilters = Object.entries(props.active_filters).length > 0;
+export function FiltersSummary({ active_filters }) {
+  // Get filters from Context (single source of truth)
+  const { filters } = React.useContext(FilterContext);
+
+  // Safety check: Don't render until filters are initialized
+  if (!filters || Object.keys(filters).length === 0) {
+    return null;
+  }
+
+  const hasActiveFilters = Object.entries(active_filters).length > 0;
 
   return (
     <div>
@@ -20,10 +29,15 @@ export function FiltersSummary(props) {
 
       {hasActiveFilters && (
         <>
-          {Object.entries(props.active_filters).map(([key, entry]) => {
+          {Object.entries(active_filters).map(([key, entry]) => {
+            // Safety check: ensure filter exists before accessing
+            if (!filters[key]) {
+              return null;
+            }
+
             if (entry["type"] === "datetime") {
-              var start = props.filters[key]["value"]["timespan_begin"];
-              var end = props.filters[key]["value"]["timespan_end"];
+              var start = filters[key]["value"]["timespan_begin"];
+              var end = filters[key]["value"]["timespan_end"];
 
               var filter_value =
                 "Start: " +
@@ -32,7 +46,7 @@ export function FiltersSummary(props) {
                 dayjs(end).format("MMM, D YYYY - h:mma");
             } else {
               var filter_value =
-                props.filters[key]["rule"] + " " + props.filters[key]["value"];
+                filters[key]["rule"] + " " + filters[key]["value"];
             }
 
             return (
@@ -41,9 +55,6 @@ export function FiltersSummary(props) {
                 name={key}
                 entry={entry}
                 filter_value={filter_value}
-                filters={props.filters}
-                test={"test"}
-                change_filters={props.change_filters}
               ></FiltersEntry>
             );
           })}
@@ -53,7 +64,15 @@ export function FiltersSummary(props) {
   );
 }
 
-function FiltersEntry({ name, entry, filters, filter_value, change_filters }) {
+function FiltersEntry({ name, entry, filter_value }) {
+  // Get filters and change_filters from Context
+  const { filters, change_filters } = React.useContext(FilterContext);
+
+  // Safety check
+  if (!filters || !filters[name]) {
+    return null;
+  }
+
   return (
     <div className="flex flex-row grid xl:grid-cols-12" key={name}>
       <span className="font-semibold col-span-4">

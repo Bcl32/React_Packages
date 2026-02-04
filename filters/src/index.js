@@ -20,3 +20,4 @@ export * from "./ApplyFilters";
 export * from "./GetActiveFilters";
 export * from "./InitializeFilters";
 export * from "./GroupFilters";
+export * from "./ProcessDataset";

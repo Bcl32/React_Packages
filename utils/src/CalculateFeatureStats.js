@@ -14,18 +14,23 @@ export function CalculateFeatureStats(metadata, dataset) {
     stats[name] = [];
 
     if (item["type"] === "number") {
+      // Filter out entries where the value is null or undefined
+      const validValues = dataset
+        .map((entry) => entry[name])
+        .filter((val) => val != null && !isNaN(val));
+
       var min = {
         name: "min",
         type: "number",
-        value: Math.min(...dataset.map((entry) => entry[name])),
+        value: validValues.length > 0 ? Math.min(...validValues) : 0,
       };
       var max = {
         name: "max",
         type: "number",
-        value: Math.max(...dataset.map((entry) => entry[name])),
+        value: validValues.length > 0 ? Math.max(...validValues) : 0,
       };
 
-      var bins = bin().value((d) => d[name])(dataset);
+      var bins = bin().value((d) => d[name] ?? 0)(dataset);
       var bins = bins.map((entry) => {
         return {
           x0: entry["x0"],
@@ -49,14 +54,17 @@ export function CalculateFeatureStats(metadata, dataset) {
 
       var options = new Set();
       dataset.map((entry) => {
-        entry[name].map((option) => {
-          if (counts[option]) {
-            counts[option] += 1;
-          } else {
-            counts[option] = 1;
-          }
-          options.add(option);
-        });
+        // Check if entry[name] exists and is an array before mapping
+        if (entry && entry[name] && Array.isArray(entry[name])) {
+          entry[name].map((option) => {
+            if (counts[option]) {
+              counts[option] += 1;
+            } else {
+              counts[option] = 1;
+            }
+            options.add(option);
+          });
+        }
       });
 
       var session_counts = [];

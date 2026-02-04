@@ -1,6 +1,10 @@
 export function ApplyFilters(data, filters) {
   //console.log(filters);
-  var filteredData = data;
+
+  // Always filter out null/undefined entries first
+  var filteredData = Array.isArray(data)
+    ? data.filter(entry => entry != null && typeof entry === 'object')
+    : [];
 
   // if (Object.keys(filters).length > 0) {
   //only run after filters have been initialized
