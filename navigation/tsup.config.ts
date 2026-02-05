@@ -2,12 +2,12 @@ import { defineConfig } from "tsup";
 
 export default defineConfig({
   entry: [
-    "src/NavigationProvider.jsx",
-    "src/NavigationBreadcrumb.jsx",
-    "src/index.js"
+    "src/NavigationProvider.tsx",
+    "src/NavigationBreadcrumb.tsx",
+    "src/index.ts"
   ],
   format: ["esm"],
-  dts: false,
+  dts: true,
   splitting: false,
   sourcemap: true,
   clean: true,

@@ -1,45 +1,142 @@
 {
   "name": "@bcl32/utils",
-  "version": "1.1.10",
+  "version": "2.0.0",
   "description": "Utility functions and components",
   "author": "",
   "license": "ISC",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./Alert": "./dist/Alert.js",
-    "./AnimatedTabs": "./dist/AnimatedTabs.js",
-    "./AnimatedFileSystem": "./dist/AnimatedFileSystem.js",
-    "./ShowHeirarchy": "./dist/ShowHeirarchy.js",
-    "./ToggleGroup": "./dist/ToggleGroup.js",
-    "./Dialog": "./dist/Dialog.js",
-    "./DialogButton": "./dist/DialogButton.js",
-    "./Sidebar": "./dist/Sidebar.js",
-    "./Select": "./dist/Select.js",
-    "./Button": "./dist/Button.js",
-    "./Input": "./dist/Input.js",
-    "./Label": "./dist/Label.js",
-    "./Card": "./dist/Card.js",
-    "./Separator": "./dist/Separator.js",
-    "./Skeleton": "./dist/Skeleton.js",
-    "./Sheet": "./dist/Sheet.js",
-    "./Checkbox": "./dist/Checkbox.js",
-    "./Dropdown": "./dist/Dropdown.js",
-    "./Tooltip": "./dist/Tooltip.js",
-    "./RadioButton": "./dist/RadioButton.js",
-    "./Slider": "./dist/Slider.js",
-    "./Breadcrumb": "./dist/Breadcrumb.js",
-    "./UseIsMobile": "./dist/UseIsMobile.js",
-    "./FileSystem": "./dist/FileSystem.js",
-    "./cn": "./dist/cn.js",
-    "./ComputeTimeBounds": "./dist/ComputeTimeBounds.js",
-    "./ComputeGroupedStats": "./dist/ComputeGroupedStats.js",
-    "./CalculateFeatureStats": "./dist/CalculateFeatureStats.js",
-    "./PrintState": "./dist/PrintState.js",
-    "./StringFunctions": "./dist/StringFunctions.js",
-    "./dayjs_sorter": "./dist/dayjs_sorter.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./Alert": {
+      "types": "./dist/Alert.d.ts",
+      "import": "./dist/Alert.js"
+    },
+    "./AnimatedTabs": {
+      "types": "./dist/AnimatedTabs.d.ts",
+      "import": "./dist/AnimatedTabs.js"
+    },
+    "./AnimatedFileSystem": {
+      "types": "./dist/AnimatedFileSystem.d.ts",
+      "import": "./dist/AnimatedFileSystem.js"
+    },
+    "./ShowHeirarchy": {
+      "types": "./dist/ShowHeirarchy.d.ts",
+      "import": "./dist/ShowHeirarchy.js"
+    },
+    "./ToggleGroup": {
+      "types": "./dist/ToggleGroup.d.ts",
+      "import": "./dist/ToggleGroup.js"
+    },
+    "./Dialog": {
+      "types": "./dist/Dialog.d.ts",
+      "import": "./dist/Dialog.js"
+    },
+    "./DialogButton": {
+      "types": "./dist/DialogButton.d.ts",
+      "import": "./dist/DialogButton.js"
+    },
+    "./Sidebar": {
+      "types": "./dist/Sidebar.d.ts",
+      "import": "./dist/Sidebar.js"
+    },
+    "./Select": {
+      "types": "./dist/Select.d.ts",
+      "import": "./dist/Select.js"
+    },
+    "./Button": {
+      "types": "./dist/Button.d.ts",
+      "import": "./dist/Button.js"
+    },
+    "./Input": {
+      "types": "./dist/Input.d.ts",
+      "import": "./dist/Input.js"
+    },
+    "./Label": {
+      "types": "./dist/Label.d.ts",
+      "import": "./dist/Label.js"
+    },
+    "./Card": {
+      "types": "./dist/Card.d.ts",
+      "import": "./dist/Card.js"
+    },
+    "./Separator": {
+      "types": "./dist/Separator.d.ts",
+      "import": "./dist/Separator.js"
+    },
+    "./Skeleton": {
+      "types": "./dist/Skeleton.d.ts",
+      "import": "./dist/Skeleton.js"
+    },
+    "./Sheet": {
+      "types": "./dist/Sheet.d.ts",
+      "import": "./dist/Sheet.js"
+    },
+    "./Checkbox": {
+      "types": "./dist/Checkbox.d.ts",
+      "import": "./dist/Checkbox.js"
+    },
+    "./Dropdown": {
+      "types": "./dist/Dropdown.d.ts",
+      "import": "./dist/Dropdown.js"
+    },
+    "./Tooltip": {
+      "types": "./dist/Tooltip.d.ts",
+      "import": "./dist/Tooltip.js"
+    },
+    "./RadioButton": {
+      "types": "./dist/RadioButton.d.ts",
+      "import": "./dist/RadioButton.js"
+    },
+    "./Slider": {
+      "types": "./dist/Slider.d.ts",
+      "import": "./dist/Slider.js"
+    },
+    "./Breadcrumb": {
+      "types": "./dist/Breadcrumb.d.ts",
+      "import": "./dist/Breadcrumb.js"
+    },
+    "./UseIsMobile": {
+      "types": "./dist/UseIsMobile.d.ts",
+      "import": "./dist/UseIsMobile.js"
+    },
+    "./FileSystem": {
+      "types": "./dist/FileSystem.d.ts",
+      "import": "./dist/FileSystem.js"
+    },
+    "./cn": {
+      "types": "./dist/cn.d.ts",
+      "import": "./dist/cn.js"
+    },
+    "./ComputeTimeBounds": {
+      "types": "./dist/ComputeTimeBounds.d.ts",
+      "import": "./dist/ComputeTimeBounds.js"
+    },
+    "./ComputeGroupedStats": {
+      "types": "./dist/ComputeGroupedStats.d.ts",
+      "import": "./dist/ComputeGroupedStats.js"
+    },
+    "./CalculateFeatureStats": {
+      "types": "./dist/CalculateFeatureStats.d.ts",
+      "import": "./dist/CalculateFeatureStats.js"
+    },
+    "./PrintState": {
+      "types": "./dist/PrintState.d.ts",
+      "import": "./dist/PrintState.js"
+    },
+    "./StringFunctions": {
+      "types": "./dist/StringFunctions.d.ts",
+      "import": "./dist/StringFunctions.js"
+    },
+    "./dayjs_sorter": {
+      "types": "./dist/dayjs_sorter.d.ts",
+      "import": "./dist/dayjs_sorter.js"
+    }
   },
   "files": [
     "dist"

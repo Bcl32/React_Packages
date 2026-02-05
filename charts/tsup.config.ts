@@ -2,12 +2,12 @@ import { defineConfig } from "tsup";
 
 export default defineConfig({
   entry: [
-    "src/BokehLineChart.jsx",
-    "src/Charts.jsx",
-    "src/index.js"
+    "src/BokehLineChart.tsx",
+    "src/Charts.tsx",
+    "src/index.ts"
   ],
   format: ["esm"],
-  dts: false,
+  dts: true,
   splitting: false,
   sourcemap: true,
   clean: true,

@@ -76,3 +76,9 @@ lerna-debug.log*
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# NPM config with tokens
+.npmrc
+
+# Local pnpm lock files (workspace uses root lockfile)
+*/pnpm-lock.yaml

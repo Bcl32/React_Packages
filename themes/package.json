@@ -81,7 +81,7 @@
     "react-dom": "^18.2.0"
   },
   "dependencies": {
-    "@bcl32/utils": "^1.1.4",
+    "@bcl32/utils": "^2.0.0",
     "lucide-react": "^0.447.0"
   },
   "devDependencies": {

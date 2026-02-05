@@ -2,17 +2,17 @@ import { defineConfig } from "tsup";
 
 export default defineConfig({
   entry: [
-    "src/DataTable.jsx",
-    "src/Table.jsx",
-    "src/KeyValueTable.jsx",
-    "src/StatsTable.jsx",
-    "src/ColumnGenerator.jsx",
-    "src/RowActions.jsx",
-    "src/TablePagination.jsx",
-        "src/index.js"
+    "src/DataTable.tsx",
+    "src/Table.tsx",
+    "src/KeyValueTable.tsx",
+    "src/StatsTable.tsx",
+    "src/ColumnGenerator.tsx",
+    "src/RowActions.tsx",
+    "src/TablePagination.tsx",
+    "src/index.ts"
   ],
   format: ["esm"],
-  dts: false,
+  dts: true,
   splitting: false,
   sourcemap: true,
   clean: true,

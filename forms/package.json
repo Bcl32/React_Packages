@@ -1,19 +1,38 @@
 {
   "name": "@bcl32/forms",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "description": "Forms to add new entities to the databases",
   "author": "",
   "license": "ISC",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./AddModelForm": "./dist/AddModelForm.js",
-    "./EditModelForm": "./dist/EditModelForm.js",
-    "./DeleteModelForm": "./dist/DeleteModelForm.js",
-    "./FormElement": "./dist/FormElement.js",
-    "./ButtonDatePicker": "./dist/ButtonDatePicker.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./AddModelForm": {
+      "types": "./dist/AddModelForm.d.ts",
+      "import": "./dist/AddModelForm.js"
+    },
+    "./EditModelForm": {
+      "types": "./dist/EditModelForm.d.ts",
+      "import": "./dist/EditModelForm.js"
+    },
+    "./DeleteModelForm": {
+      "types": "./dist/DeleteModelForm.d.ts",
+      "import": "./dist/DeleteModelForm.js"
+    },
+    "./FormElement": {
+      "types": "./dist/FormElement.d.ts",
+      "import": "./dist/FormElement.js"
+    },
+    "./ButtonDatePicker": {
+      "types": "./dist/ButtonDatePicker.d.ts",
+      "import": "./dist/ButtonDatePicker.js"
+    }
   },
   "files": [
     "dist"
@@ -35,7 +54,8 @@
     "react-dom": "^18.2.0"
   },
   "dependencies": {
-    "@bcl32/hooks": "^1.0.1",
+    "@bcl32/hooks": "^2.0.0",
+    "@bcl32/utils": "^2.0.0",
     "lucide-react": "^0.447.0",
     "recharts": "^2.12.1",
     "dayjs": "^1.11.10",

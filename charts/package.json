@@ -1,16 +1,26 @@
 {
   "name": "@bcl32/charts",
-  "version": "1.1.2",
+  "version": "2.0.0",
   "description": "Custom bokeh and recharts chart components",
   "author": "",
   "license": "ISC",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./BokehLineChart": "./dist/BokehLineChart.js",
-    "./Charts": "./dist/Charts.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./BokehLineChart": {
+      "types": "./dist/BokehLineChart.d.ts",
+      "import": "./dist/BokehLineChart.js"
+    },
+    "./Charts": {
+      "types": "./dist/Charts.d.ts",
+      "import": "./dist/Charts.js"
+    }
   },
   "files": [
     "dist"
@@ -32,8 +42,8 @@
     "react-dom": "^18.2.0"
   },
   "dependencies": {
-    "@bcl32/utils": "^1.1.0",
-    "@bcl32/hooks": "^1.0.0",
+    "@bcl32/utils": "^2.0.0",
+    "@bcl32/hooks": "^2.0.0",
     "@mui/material": "^5.15.7",
     "@bokeh/bokehjs": "^2.4.3",
     "recharts": "^2.15.0"

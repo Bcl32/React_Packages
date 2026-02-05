@@ -1,16 +1,26 @@
 {
   "name": "@bcl32/navigation",
-  "version": "1.1.2",
+  "version": "2.0.0",
   "description": "Navigation components including sidebar, breadcrumb, and navigation provider",
   "author": "",
   "license": "ISC",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./NavigationProvider": "./dist/NavigationProvider.js",
-    "./NavigationBreadcrumb": "./dist/NavigationBreadcrumb.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./NavigationProvider": {
+      "types": "./dist/NavigationProvider.d.ts",
+      "import": "./dist/NavigationProvider.js"
+    },
+    "./NavigationBreadcrumb": {
+      "types": "./dist/NavigationBreadcrumb.d.ts",
+      "import": "./dist/NavigationBreadcrumb.js"
+    }
   },
   "files": [
     "dist"
@@ -32,7 +42,7 @@
     "react-dom": "^18.2.0"
   },
   "dependencies": {
-    "@bcl32/utils": "^1.1.0",
+    "@bcl32/utils": "^2.0.0",
     "react-router-dom": "^6.22.0",
     "lucide-react": "^0.447.0"
   },

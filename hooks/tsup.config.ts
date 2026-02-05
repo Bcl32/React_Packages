@@ -2,14 +2,14 @@ import { defineConfig } from "tsup";
 
 export default defineConfig({
   entry: [
-    "src/useDatabaseMutation.js",
-    "src/useGetRequest.js",
-    "src/useBokehChart.js",
-    "src/useDataLoader.js",
-    "src/index.js"
+    "src/useDatabaseMutation.ts",
+    "src/useGetRequest.ts",
+    "src/useBokehChart.ts",
+    "src/useDataLoader.ts",
+    "src/index.ts"
   ],
   format: ["esm"],
-  dts: false,
+  dts: true,
   splitting: false,
   sourcemap: true,
   clean: true,

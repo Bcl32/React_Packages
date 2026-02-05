@@ -1,37 +1,114 @@
 {
   "name": "@bcl32/filters",
-  "version": "1.1.15",
+  "version": "2.0.0",
   "description": "Custom filters for data pulled from servers",
   "author": "",
   "license": "ISC",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./AllFilters": "./dist/AllFilters.js",
-    "./FilterElement": "./dist/FilterElement.js",
-    "./ChartFilter": "./dist/ChartFilter.js",
-    "./FiltersSummary": "./dist/FiltersSummary.js",
-    "./SelectFilter": "./dist/SelectFilter.js",
-    "./TimeFilter": "./dist/TimeFilter.js",
-    "./FilterContext": "./dist/FilterContext.js",
-    "./BarChartFilter": "./dist/BarChartFilter.js",
-    "./BarChartSwitcher": "./dist/BarChartSwitcher.js",
-    "./StackedBarChart": "./dist/StackedBarChart.js",
-    "./LineChartFilter": "./dist/LineChartFilter.js",
-    "./PieChartFilter": "./dist/PieChartFilter.js",
-    "./Histogram": "./dist/Histogram.js",
-    "./ListFilter": "./dist/ListFilter.js",
-    "./DebouncedNumberFilter": "./dist/DebouncedNumberFilter.js",
-    "./DebouncedTextFilter": "./dist/DebouncedTextFilter.js",
-    "./TimeEditDialog": "./dist/TimeEditDialog.js",
-    "./GetSubkeyValues": "./dist/GetSubkeyValues.js",
-    "./ApplyFilters": "./dist/ApplyFilters.js",
-    "./GetActiveFilters": "./dist/GetActiveFilters.js",
-    "./InitializeFilters": "./dist/InitializeFilters.js",
-    "./GroupFilters": "./dist/GroupFilters.js",
-    "./ProcessDataset": "./dist/ProcessDataset.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./AllFilters": {
+      "types": "./dist/AllFilters.d.ts",
+      "import": "./dist/AllFilters.js"
+    },
+    "./FilterElement": {
+      "types": "./dist/FilterElement.d.ts",
+      "import": "./dist/FilterElement.js"
+    },
+    "./ChartFilter": {
+      "types": "./dist/ChartFilter.d.ts",
+      "import": "./dist/ChartFilter.js"
+    },
+    "./FiltersSummary": {
+      "types": "./dist/FiltersSummary.d.ts",
+      "import": "./dist/FiltersSummary.js"
+    },
+    "./SelectFilter": {
+      "types": "./dist/SelectFilter.d.ts",
+      "import": "./dist/SelectFilter.js"
+    },
+    "./TimeFilter": {
+      "types": "./dist/TimeFilter.d.ts",
+      "import": "./dist/TimeFilter.js"
+    },
+    "./FilterContext": {
+      "types": "./dist/FilterContext.d.ts",
+      "import": "./dist/FilterContext.js"
+    },
+    "./BarChartFilter": {
+      "types": "./dist/BarChartFilter.d.ts",
+      "import": "./dist/BarChartFilter.js"
+    },
+    "./BarChartSwitcher": {
+      "types": "./dist/BarChartSwitcher.d.ts",
+      "import": "./dist/BarChartSwitcher.js"
+    },
+    "./StackedBarChart": {
+      "types": "./dist/StackedBarChart.d.ts",
+      "import": "./dist/StackedBarChart.js"
+    },
+    "./LineChartFilter": {
+      "types": "./dist/LineChartFilter.d.ts",
+      "import": "./dist/LineChartFilter.js"
+    },
+    "./PieChartFilter": {
+      "types": "./dist/PieChartFilter.d.ts",
+      "import": "./dist/PieChartFilter.js"
+    },
+    "./Histogram": {
+      "types": "./dist/Histogram.d.ts",
+      "import": "./dist/Histogram.js"
+    },
+    "./ListFilter": {
+      "types": "./dist/ListFilter.d.ts",
+      "import": "./dist/ListFilter.js"
+    },
+    "./DebouncedNumberFilter": {
+      "types": "./dist/DebouncedNumberFilter.d.ts",
+      "import": "./dist/DebouncedNumberFilter.js"
+    },
+    "./DebouncedTextFilter": {
+      "types": "./dist/DebouncedTextFilter.d.ts",
+      "import": "./dist/DebouncedTextFilter.js"
+    },
+    "./TimeEditDialog": {
+      "types": "./dist/TimeEditDialog.d.ts",
+      "import": "./dist/TimeEditDialog.js"
+    },
+    "./GetSubkeyValues": {
+      "types": "./dist/GetSubkeyValues.d.ts",
+      "import": "./dist/GetSubkeyValues.js"
+    },
+    "./ApplyFilters": {
+      "types": "./dist/ApplyFilters.d.ts",
+      "import": "./dist/ApplyFilters.js"
+    },
+    "./GetActiveFilters": {
+      "types": "./dist/GetActiveFilters.d.ts",
+      "import": "./dist/GetActiveFilters.js"
+    },
+    "./InitializeFilters": {
+      "types": "./dist/InitializeFilters.d.ts",
+      "import": "./dist/InitializeFilters.js"
+    },
+    "./GroupFilters": {
+      "types": "./dist/GroupFilters.d.ts",
+      "import": "./dist/GroupFilters.js"
+    },
+    "./ProcessDataset": {
+      "types": "./dist/ProcessDataset.d.ts",
+      "import": "./dist/ProcessDataset.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
+    }
   },
   "files": [
     "dist"
@@ -53,8 +130,8 @@
     "react-dom": "^18.2.0"
   },
   "dependencies": {
-    "@bcl32/utils": "^1.1.10",
-    "@bcl32/charts": "^1.1.0",
+    "@bcl32/utils": "^2.0.0",
+    "@bcl32/charts": "^2.0.0",
     "recharts": "^2.12.1",
     "dayjs": "^1.11.10",
     "@headlessui/react": "2.1.1",

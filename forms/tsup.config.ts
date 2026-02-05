@@ -2,15 +2,15 @@ import { defineConfig } from "tsup";
 
 export default defineConfig({
   entry: [
-    "src/AddModelForm.jsx",
-    "src/EditModelForm.jsx",
-    "src/DeleteModelForm.jsx",
-    "src/FormElement.jsx",
-    "src/ButtonDatePicker.jsx",
-    "src/index.js"
+    "src/AddModelForm.tsx",
+    "src/EditModelForm.tsx",
+    "src/DeleteModelForm.tsx",
+    "src/FormElement.tsx",
+    "src/ButtonDatePicker.tsx",
+    "src/index.ts"
   ],
   format: ["esm"],
-  dts: false,
+  dts: true,
   splitting: false,
   sourcemap: true,
   clean: true,

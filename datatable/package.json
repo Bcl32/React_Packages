@@ -1,21 +1,46 @@
 {
   "name": "@bcl32/datatable",
-  "version": "1.1.6",
+  "version": "2.0.0",
   "description": "Custom data table built using react query table",
   "author": "",
   "license": "ISC",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./DataTable": "./dist/DataTable.js",
-    "./Table": "./dist/Table.js",
-    "./KeyValueTable": "./dist/KeyValueTable.js",
-    "./StatsTable": "./dist/StatsTable.js",
-    "./ColumnGenerator": "./dist/ColumnGenerator.js",
-    "./RowActions": "./dist/RowActions.js",
-    "./TablePagination": "./dist/TablePagination.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./DataTable": {
+      "types": "./dist/DataTable.d.ts",
+      "import": "./dist/DataTable.js"
+    },
+    "./Table": {
+      "types": "./dist/Table.d.ts",
+      "import": "./dist/Table.js"
+    },
+    "./KeyValueTable": {
+      "types": "./dist/KeyValueTable.d.ts",
+      "import": "./dist/KeyValueTable.js"
+    },
+    "./StatsTable": {
+      "types": "./dist/StatsTable.d.ts",
+      "import": "./dist/StatsTable.js"
+    },
+    "./ColumnGenerator": {
+      "types": "./dist/ColumnGenerator.d.ts",
+      "import": "./dist/ColumnGenerator.js"
+    },
+    "./RowActions": {
+      "types": "./dist/RowActions.d.ts",
+      "import": "./dist/RowActions.js"
+    },
+    "./TablePagination": {
+      "types": "./dist/TablePagination.d.ts",
+      "import": "./dist/TablePagination.js"
+    }
   },
   "files": [
     "dist"
@@ -37,8 +62,9 @@
     "react-dom": "^18.2.0"
   },
   "dependencies": {
-    "@bcl32/utils": "^1.1.9",
-    "@bcl32/hooks": "^1.0.0",
+    "@bcl32/utils": "^2.0.0",
+    "@bcl32/hooks": "^2.0.0",
+    "@bcl32/forms": "^2.0.0",
     "@radix-ui/react-dialog": "^1.1.1",
     "@radix-ui/react-icons": "^1.3.0",
     "@tanstack/react-table": "^8.11.8",

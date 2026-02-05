@@ -1,24 +1,41 @@
 {
   "name": "@bcl32/hooks",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "description": "React hooks",
   "author": "",
   "license": "ISC",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./useDatabaseMutation": "./dist/useDatabaseMutation.js",
-    "./useGetRequest": "./dist/useGetRequest.js",
-    "./useBokehChart": "./dist/useBokehChart.js",
-    "./useDataLoader": "./dist/useDataLoader.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./useDatabaseMutation": {
+      "types": "./dist/useDatabaseMutation.d.ts",
+      "import": "./dist/useDatabaseMutation.js"
+    },
+    "./useGetRequest": {
+      "types": "./dist/useGetRequest.d.ts",
+      "import": "./dist/useGetRequest.js"
+    },
+    "./useBokehChart": {
+      "types": "./dist/useBokehChart.d.ts",
+      "import": "./dist/useBokehChart.js"
+    },
+    "./useDataLoader": {
+      "types": "./dist/useDataLoader.d.ts",
+      "import": "./dist/useDataLoader.js"
+    }
   },
   "files": [
     "dist"
   ],
   "scripts": {
     "build": "tsup",
+    "typecheck": "tsc --noEmit",
     "prepublishOnly": "pnpm run build"
   },
   "repository": {

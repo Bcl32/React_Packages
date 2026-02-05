@@ -1,7 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 
 import { Card } from "@bcl32/utils/Card";
-import { Dialog } from "@bcl32/utils/DialogButton";
+import { SimpleDialog } from "@bcl32/utils";
 
 import { ColourControls } from "./ColourControls";
 import { hslToHex, type HSLColor } from "./colorUtils";
@@ -113,7 +113,7 @@ export function ThemeGenerator({ colours, setColours, main_styles }: ThemeGenera
       </div>
 
       {/* Color Control Dialog */}
-      <Dialog
+      <SimpleDialog
         open={activeColor !== null}
         onOpenChange={(open) => !open && setActiveColor(null)}
         isModal={true}
@@ -135,7 +135,7 @@ export function ThemeGenerator({ colours, setColours, main_styles }: ThemeGenera
             />
           </div>
         )}
-      </Dialog>
+      </SimpleDialog>
     </div>
   );
 }
