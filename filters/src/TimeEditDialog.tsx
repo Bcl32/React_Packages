@@ -165,7 +165,6 @@ function TimeEditDialog({
         ].map((interval) => (
           <RadioButton
             key={interval.interval_name + name}
-            filter={name}
             interval_name={interval.interval_name}
             value={interval.value}
             handleRadioChange={handleRadioChange}

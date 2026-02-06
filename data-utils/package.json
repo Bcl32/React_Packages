@@ -1,0 +1,63 @@
+{
+  "name": "@bcl32/data-utils",
+  "version": "2.1.0",
+  "description": "Data utility functions for computing statistics, sorting, and string manipulation",
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./ComputeTimeBounds": {
+      "types": "./dist/ComputeTimeBounds.d.ts",
+      "import": "./dist/ComputeTimeBounds.js"
+    },
+    "./ComputeGroupedStats": {
+      "types": "./dist/ComputeGroupedStats.d.ts",
+      "import": "./dist/ComputeGroupedStats.js"
+    },
+    "./CalculateFeatureStats": {
+      "types": "./dist/CalculateFeatureStats.d.ts",
+      "import": "./dist/CalculateFeatureStats.js"
+    },
+    "./StringFunctions": {
+      "types": "./dist/StringFunctions.d.ts",
+      "import": "./dist/StringFunctions.js"
+    },
+    "./dayjs_sorter": {
+      "types": "./dist/dayjs_sorter.d.ts",
+      "import": "./dist/dayjs_sorter.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bcl32/web-app-monorepo.git",
+    "directory": "react-packages/data-utils"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "peerDependencies": {
+    "dayjs": "^1.11.10"
+  },
+  "dependencies": {
+    "d3": "^7.9.0"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}

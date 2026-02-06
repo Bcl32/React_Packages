@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "./Table";
-import { Capitalize, Truncate } from "@bcl32/utils/StringFunctions";
+import { Capitalize, Truncate } from "@bcl32/data-utils/StringFunctions";
 
 interface StatItem {
   name: string;

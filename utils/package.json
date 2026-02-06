@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/utils",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Utility functions and components",
   "author": "",
   "license": "ISC",
@@ -25,9 +25,9 @@
       "types": "./dist/AnimatedFileSystem.d.ts",
       "import": "./dist/AnimatedFileSystem.js"
     },
-    "./ShowHeirarchy": {
-      "types": "./dist/ShowHeirarchy.d.ts",
-      "import": "./dist/ShowHeirarchy.js"
+    "./ShowHierarchy": {
+      "types": "./dist/ShowHierarchy.d.ts",
+      "import": "./dist/ShowHierarchy.js"
     },
     "./ToggleGroup": {
       "types": "./dist/ToggleGroup.d.ts",
@@ -101,9 +101,9 @@
       "types": "./dist/Breadcrumb.d.ts",
       "import": "./dist/Breadcrumb.js"
     },
-    "./UseIsMobile": {
-      "types": "./dist/UseIsMobile.d.ts",
-      "import": "./dist/UseIsMobile.js"
+    "./useIsMobile": {
+      "types": "./dist/useIsMobile.d.ts",
+      "import": "./dist/useIsMobile.js"
     },
     "./FileSystem": {
       "types": "./dist/FileSystem.d.ts",
@@ -112,30 +112,6 @@
     "./cn": {
       "types": "./dist/cn.d.ts",
       "import": "./dist/cn.js"
-    },
-    "./ComputeTimeBounds": {
-      "types": "./dist/ComputeTimeBounds.d.ts",
-      "import": "./dist/ComputeTimeBounds.js"
-    },
-    "./ComputeGroupedStats": {
-      "types": "./dist/ComputeGroupedStats.d.ts",
-      "import": "./dist/ComputeGroupedStats.js"
-    },
-    "./CalculateFeatureStats": {
-      "types": "./dist/CalculateFeatureStats.d.ts",
-      "import": "./dist/CalculateFeatureStats.js"
-    },
-    "./PrintState": {
-      "types": "./dist/PrintState.d.ts",
-      "import": "./dist/PrintState.js"
-    },
-    "./StringFunctions": {
-      "types": "./dist/StringFunctions.d.ts",
-      "import": "./dist/StringFunctions.js"
-    },
-    "./dayjs_sorter": {
-      "types": "./dist/dayjs_sorter.d.ts",
-      "import": "./dist/dayjs_sorter.js"
     }
   },
   "files": [
@@ -165,8 +141,6 @@
     "@radix-ui/react-slider": "^1.2.1",
     "@radix-ui/react-toggle-group": "^1.1.0",
     "clsx": "^2.1.0",
-    "dayjs": "^1.11.10",
-    "d3": "^7.9.0",
     "lucide-react": "^0.447.0",
     "tailwind-merge": "^2.5.2",
     "class-variance-authority": "^0.2.2",
@@ -182,7 +156,6 @@
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
-    "@types/d3": "^7.4.0",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2"
   }

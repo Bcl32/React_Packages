@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/forms",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Forms to add new entities to the databases",
   "author": "",
   "license": "ISC",
@@ -51,14 +51,13 @@
   },
   "peerDependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "dayjs": "^1.11.10"
   },
   "dependencies": {
-    "@bcl32/hooks": "^2.0.0",
-    "@bcl32/utils": "^2.0.0",
+    "@bcl32/hooks": "workspace:^2.0.0",
+    "@bcl32/utils": "workspace:^2.0.0",
     "lucide-react": "^0.447.0",
-    "recharts": "^2.12.1",
-    "dayjs": "^1.11.10",
     "@mui/icons-material": "^5.15.7",
     "@mui/material": "^5.15.7",
     "@mui/x-date-pickers": "^6.19.3"

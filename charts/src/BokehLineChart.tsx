@@ -68,14 +68,14 @@ export function BokehLineChart(props: BokehLineChartProps) {
       if (graphContainer) {
         const g = graphContainer.appendChild(document.createElement("div"));
         g.setAttribute("id", "myplot");
-        embed.embed_item(bokeh_obj);
+        embed.embed_item(bokeh_obj as Parameters<typeof embed.embed_item>[0]);
       }
     }
   }
 
   if (graphData.isSuccess) {
     console.log("updating graph");
-    update_bokeh_graph(JSON.parse(graphData.data.bokeh_graph));
+    update_bokeh_graph(JSON.parse(graphData.data.bokeh_graph as string));
   }
 
   function handleChange(event: React.ChangeEvent<HTMLSelectElement>) {

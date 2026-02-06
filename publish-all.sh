@@ -47,6 +47,7 @@ fi
 # List of packages to build and publish (in dependency order)
 PACKAGES=(
     "utils"
+    "data-utils"
     "themes"
     "hooks"
     "filters"

@@ -140,7 +140,7 @@ export function DataTable<TData extends RowData>(
           <AddModelForm
             key={"entryform_add_data_entry"}
             add_api_url={props.add_api_url || ""}
-            ModelData={props.ModelData}
+            ModelData={props.ModelData as Parameters<typeof AddModelForm>[0]["ModelData"]}
             query_invalidation={props.query_invalidation || []}
           />
         </DialogButton>

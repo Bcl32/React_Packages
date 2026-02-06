@@ -1,7 +1,7 @@
 import { Button } from "@bcl32/utils/Button";
 import { Palette } from "lucide-react";
 import { AnimatedTabs, TabContent } from "@bcl32/utils/AnimatedTabs";
-import { ShowHeirarchy } from "@bcl32/utils/ShowHeirarchy";
+import { ShowHierarchy } from "@bcl32/utils/ShowHierarchy";
 
 interface ExampleJson {
   [key: string]: string | boolean | number | ExampleJson | (string | number | boolean)[];
@@ -36,7 +36,7 @@ export function ThemeExample() {
 
         <div className="flex">
           {" "}
-          <ShowHeirarchy json_data={example_json}></ShowHeirarchy>
+          <ShowHierarchy json_data={example_json}></ShowHierarchy>
         </div>
       </div>
     </div>

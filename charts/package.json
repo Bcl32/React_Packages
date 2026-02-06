@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/charts",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Custom bokeh and recharts chart components",
   "author": "",
   "license": "ISC",
@@ -39,14 +39,14 @@
   },
   "peerDependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "recharts": "^2.12.0"
   },
   "dependencies": {
-    "@bcl32/utils": "^2.0.0",
-    "@bcl32/hooks": "^2.0.0",
+    "@bcl32/utils": "workspace:^2.0.0",
+    "@bcl32/hooks": "workspace:^2.0.0",
     "@mui/material": "^5.15.7",
-    "@bokeh/bokehjs": "^2.4.3",
-    "recharts": "^2.15.0"
+    "@bokeh/bokehjs": "^2.4.3"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

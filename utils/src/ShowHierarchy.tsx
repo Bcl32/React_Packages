@@ -26,11 +26,11 @@ function jsonToTree(obj: Record<string, unknown>): TreeNode[] {
   return result;
 }
 
-interface ShowHeirarchyProps {
+interface ShowHierarchyProps {
   json_data: Record<string, unknown>;
 }
 
-export function ShowHeirarchy({ json_data }: ShowHeirarchyProps) {
+export function ShowHierarchy({ json_data }: ShowHierarchyProps) {
   const treeData = jsonToTree(json_data);
 
   return (

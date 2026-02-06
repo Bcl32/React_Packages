@@ -11,12 +11,13 @@ import { EditModelForm } from "@bcl32/forms/EditModelForm";
 import { DialogButton } from "@bcl32/utils/DialogButton";
 import { Button } from "@bcl32/utils/Button";
 
-import { dayjs_sorter } from "@bcl32/utils/dayjs_sorter";
+import { dayjs_sorter } from "@bcl32/data-utils/dayjs_sorter";
 
 interface ModelData {
   model_name: string;
   model_attributes: unknown[];
   add_api_url?: string;
+  update_api_url?: string;
   delete_api_url?: string;
   [key: string]: unknown;
 }
@@ -63,10 +64,9 @@ export function ColumnGenerator({
           >
             <EditModelForm
               key={"entryform_edit_data_entry"}
-              add_api_url={ModelData.add_api_url || ""}
-              ModelData={ModelData}
+              ModelData={ModelData as Parameters<typeof EditModelForm>[0]["ModelData"]}
               query_invalidation={query_invalidation}
-              obj_data={row.original as unknown as Record<string, unknown>}
+              obj_data={row.original as Parameters<typeof EditModelForm>[0]["obj_data"]}
             />
           </DialogButton>
         </div>
@@ -132,10 +132,10 @@ export function ColumnGenerator({
     },
   };
 
-  const time_created = columnHelper.accessor((row) => row.time_created, {
+  const time_created: ColumnDef<RowData, unknown> = columnHelper.accessor((row) => row.time_created as unknown, {
     id: "time_created",
     cell: (info) => {
-      const value = info.getValue();
+      const value = info.getValue() as string | undefined;
       if (!value) return <span className="text-muted-foreground">-</span>;
       const date = dayjs(value);
       if (!date.isValid()) return <span className="text-muted-foreground">Invalid Date</span>;
@@ -146,10 +146,10 @@ export function ColumnGenerator({
     header: () => <span>Time Created</span>,
   });
 
-  const time_updated = columnHelper.accessor((row) => row.time_updated, {
+  const time_updated: ColumnDef<RowData, unknown> = columnHelper.accessor((row) => row.time_updated as unknown, {
     id: "time_updated",
     cell: (info) => {
-      const value = info.getValue();
+      const value = info.getValue() as string | undefined;
       if (!value) return <span className="text-muted-foreground">-</span>;
       const date = dayjs(value);
       if (!date.isValid()) return <span className="text-muted-foreground">Invalid Date</span>;

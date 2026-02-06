@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/filters",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Custom filters for data pulled from servers",
   "author": "",
   "license": "ISC",
@@ -127,13 +127,14 @@
   },
   "peerDependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "dayjs": "^1.11.10",
+    "recharts": "^2.12.0"
   },
   "dependencies": {
-    "@bcl32/utils": "^2.0.0",
-    "@bcl32/charts": "^2.0.0",
-    "recharts": "^2.12.1",
-    "dayjs": "^1.11.10",
+    "@bcl32/utils": "workspace:^2.0.0",
+    "@bcl32/data-utils": "workspace:^2.0.0",
+    "@bcl32/charts": "workspace:^2.0.0",
     "@headlessui/react": "2.1.1",
     "@radix-ui/react-toggle-group": "^1.1.0",
     "@radix-ui/react-slider": "^1.2.1",
