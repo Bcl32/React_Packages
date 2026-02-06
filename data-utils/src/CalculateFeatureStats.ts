@@ -9,6 +9,7 @@ interface FeatureMetadata {
   name: string;
   type: "number" | "list" | "string" | "select" | "datetime";
   stats?: boolean;
+  groupBy?: string;
 }
 
 interface BinEntry {
@@ -141,14 +142,6 @@ export function CalculateFeatureStats(metadata: FeatureMetadata[], dataset: Data
         let monthly = ComputeGroupedStats(processedDataset, name + "-month");
         monthly = monthly.sort(sort_dates("name"));
 
-        const monthly_severity = DoubleGroupStats(processedDataset, name + "-month", "severity");
-
-        const stat_monthly_severity: StatEntry = {
-          name: "monthly-severity",
-          type: "count",
-          value: monthly_severity,
-        };
-
         const stat_daily: StatEntry = {
           name: "daily",
           type: "count",
@@ -164,7 +157,17 @@ export function CalculateFeatureStats(metadata: FeatureMetadata[], dataset: Data
           type: "count",
           value: monthly,
         };
-        stats[name].push(stat_daily, stat_weekly, stat_monthly, stat_monthly_severity);
+        stats[name].push(stat_daily, stat_weekly, stat_monthly);
+
+        if (item.groupBy) {
+          const monthlyGrouped = DoubleGroupStats(processedDataset, name + "-month", item.groupBy);
+          const stat_monthly_grouped: StatEntry = {
+            name: "monthly-" + item.groupBy,
+            type: "count",
+            value: monthlyGrouped,
+          };
+          stats[name].push(stat_monthly_grouped);
+        }
       }
     }
   });
