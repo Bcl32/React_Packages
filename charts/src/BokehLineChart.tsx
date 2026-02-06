@@ -74,7 +74,6 @@ export function BokehLineChart(props: BokehLineChartProps) {
   }
 
   if (graphData.isSuccess) {
-    console.log("updating graph");
     update_bokeh_graph(JSON.parse(graphData.data.bokeh_graph as string));
   }
 

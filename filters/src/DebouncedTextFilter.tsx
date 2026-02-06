@@ -62,7 +62,6 @@ function DebouncedTextFilter({ name }: DebouncedTextFilterProps): JSX.Element | 
         variant="outline"
         value={filterData["rule"]}
         onValueChange={(value) => {
-          console.log(name, "rule", value);
           context?.change_filters(name, "rule", value);
         }}
       >

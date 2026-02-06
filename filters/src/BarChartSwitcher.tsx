@@ -28,7 +28,6 @@ export function BarChartSwitcher({ chart_data, subkeys }: BarChartSwitcherProps)
     colour_idx = colour_idx + 1;
   });
 
-  console.log(chartConfig);
   const [activeChart, setActiveChart] = React.useState(subkeys[0]);
 
   return (

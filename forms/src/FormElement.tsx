@@ -151,7 +151,6 @@ export function FormElement({
       );
 
     case "boolean":
-      console.log(formData[name]);
       return (
         <div className="flex items-center space-x-3 col-2">
           <Checkbox

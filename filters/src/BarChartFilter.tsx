@@ -87,7 +87,6 @@ export function BarChartFilter({ name, chart_data }: BarChartFilterProps): JSX.E
           }}
           onClick={(data: ChartClickEvent) => {
             if (data && data.activePayload && data.activePayload.length > 0) {
-              console.log(data.activePayload[0]);
               const value = data.activePayload[0]["payload"]["name"];
               bar_click(value);
             }

@@ -13,7 +13,6 @@ interface DatetimeFilterEmpty {
 export function InitializeFilters(model_data: ModelAttribute[], datasetStats: DatasetStats): Filters {
   // Early return if datasetStats is not ready (race condition during initial load)
   if (!datasetStats || Object.keys(datasetStats).length === 0) {
-    console.log("InitializeFilters: datasetStats not ready yet, skipping initialization");
     return {};
   }
 

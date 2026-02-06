@@ -42,18 +42,14 @@ export function RowActions<TData extends { id: string | number }>({
   const focusRef = React.useRef<HTMLButtonElement | null>(null);
 
   function handleDialogItemSelect() {
-    console.log("handleDialogItemSelect");
     focusRef.current = dropdownTriggerRef.current;
   }
 
   function handleDialogItemOpenChange(open: boolean) {
-    console.log("handleDialogItemOpenChange", open);
     setHasOpenDialog(open);
     if (open === false) {
       setDropdownOpen(false);
     }
-
-    console.log(row);
   }
 
   return (

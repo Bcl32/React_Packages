@@ -95,7 +95,6 @@ export function ListFilter({ name, options }: ListFilterProps): JSX.Element | nu
         variant="outline"
         value={filterData["rule"]}
         onValueChange={(value) => {
-          console.log(name, "rule", value);
           context?.change_filters(name, "rule", value);
         }}
       >

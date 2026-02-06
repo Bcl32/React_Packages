@@ -26,8 +26,6 @@ interface ChartClickEvent {
 }
 
 export function Histogram({ chart_data }: HistogramProps): JSX.Element {
-  console.log(chart_data);
-
   const chartConfig = {
     count: {
       label: "Count",
@@ -45,7 +43,7 @@ export function Histogram({ chart_data }: HistogramProps): JSX.Element {
         data={chart_data}
         onClick={(data: ChartClickEvent) => {
           if (data && data.activePayload && data.activePayload.length > 0) {
-            console.log(data.activePayload[0]);
+            // click handler available for future use
           }
         }}
       >

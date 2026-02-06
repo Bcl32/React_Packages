@@ -58,7 +58,6 @@ const fetch_bokeh_chart = async <T = BokehChartData>(
     throw new Error("Status Code 404 -- Message: " + errorResult.detail);
   }
 
-  console.log(result);
   return result as T;
 };
 

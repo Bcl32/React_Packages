@@ -53,7 +53,6 @@ function DebouncedNumberFilter({ name }: DebouncedNumberFilterProps): JSX.Elemen
   };
 
   const handleSliderChange = (newValues: number[]) => {
-    console.log(newValues);
     update_filters(name, newValues);
   };
 

@@ -59,7 +59,6 @@ function TimeEditDialog({
       1,
       timeChange as dayjs.ManipulateType
     );
-    console.log(new_value);
     change_time_filter(name, timespan, new_value);
   }
 

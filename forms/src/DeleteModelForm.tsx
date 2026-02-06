@@ -20,8 +20,6 @@ export function DeleteModelForm({
   query_invalidation,
   rowSelection,
 }: DeleteModelFormProps) {
-  console.log(query_invalidation);
-
   const mutation_delete_entry = useDatabaseMutation(
     delete_api_url,
     Object.keys(rowSelection),
@@ -29,7 +27,6 @@ export function DeleteModelForm({
   );
 
   async function delete_entries() {
-    console.log(Object.keys(rowSelection));
     await mutation_delete_entry.mutate();
   }
 

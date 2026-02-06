@@ -107,8 +107,8 @@ export function DataTable<TData extends RowData>(
     },
   });
 
-  const handleRowClick = props.rowClickFunction || ((data: TData) => {
-    console.log(data);
+  const handleRowClick = props.rowClickFunction || ((_data: TData) => {
+    // no-op default
   });
 
   const renderSubComponent = props.renderSubComponent || (({ row }: { row: Row<TData> }) => (

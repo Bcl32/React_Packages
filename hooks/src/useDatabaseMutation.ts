@@ -15,8 +15,6 @@ interface ErrorResponse {
 }
 
 const post_api = async <TData, TResponse>(url: string, formData: TData): Promise<TResponse> => {
-  console.log(formData);
-
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -28,7 +26,6 @@ const post_api = async <TData, TResponse>(url: string, formData: TData): Promise
 
   if (status === 422) {
     const errorResult = result as ValidationErrorResponse;
-    console.log(errorResult);
     throw new Error(
       "Status Code 422 - Attribute: " +
         errorResult.detail[0]["loc"][1] +
@@ -60,7 +57,6 @@ export const useDatabaseMutation = <TData = unknown, TResponse = unknown>(
   return useMutation<TResponse, Error, void>({
     mutationFn: () => post_api<TData, TResponse>(url, formData),
     onSuccess: () => {
-      console.log("success callback");
       // refetch the data
       queryClient.invalidateQueries({
         queryKey: key_to_invalidate,

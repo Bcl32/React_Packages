@@ -42,8 +42,6 @@ export function StackedBarChart({ chart_data, subkeys }: StackedBarChartProps): 
     );
   });
 
-  console.log(chartConfig);
-
   return (
     <ChartContainer config={chartConfig}>
       <BarChart accessibilityLayer data={chart_data}>

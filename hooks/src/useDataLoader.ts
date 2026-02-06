@@ -46,7 +46,6 @@ const fetch_data = async <T>(url: string, file_url: string): Promise<T> => {
     throw new Error("Status Code 404 -- Message: " + errorResult.detail);
   }
 
-  console.log(result);
   return result as T;
 };
 

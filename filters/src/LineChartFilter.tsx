@@ -53,7 +53,7 @@ export function LineChartFilter({ name, chart_data }: LineChartFilterProps): JSX
           }}
           onClick={(data: ChartClickEvent) => {
             if (data && data.activePayload && data.activePayload.length > 0) {
-              console.log(data.activePayload[0]);
+              // click handler available for future use
             }
           }}
         >

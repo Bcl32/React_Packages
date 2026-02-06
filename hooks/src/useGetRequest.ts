@@ -21,7 +21,6 @@ const getRequest = async <T>(url: string): Promise<T> => {
 
   if (status === 422) {
     const errorResult = result as ValidationErrorResponse;
-    console.log(errorResult);
     throw new Error(
       "Status Code 422 - Attribute: " +
         errorResult.detail[0]["loc"][1] +
