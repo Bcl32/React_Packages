@@ -26,6 +26,7 @@ export default defineConfig({
     "src/Breadcrumb.tsx",
     "src/useIsMobile.tsx",
     "src/FileSystem.tsx",
+    "src/StatusBanner.tsx",
     "src/cn.ts",
     "src/index.ts"
   ],

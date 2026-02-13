@@ -109,6 +109,10 @@
       "types": "./dist/FileSystem.d.ts",
       "import": "./dist/FileSystem.js"
     },
+    "./StatusBanner": {
+      "types": "./dist/StatusBanner.d.ts",
+      "import": "./dist/StatusBanner.js"
+    },
     "./cn": {
       "types": "./dist/cn.d.ts",
       "import": "./dist/cn.js"

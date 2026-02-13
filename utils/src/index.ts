@@ -24,5 +24,7 @@ export * from "./Breadcrumb";
 export * from "./useIsMobile";
 export * from "./FileSystem";
 
+export * from "./StatusBanner";
+
 // Functions
 export * from "./cn";
