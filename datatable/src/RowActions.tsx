@@ -15,19 +15,11 @@ import {
 
 import { DialogButton } from "@bcl32/utils/DialogButton";
 import { EditModelForm } from "@bcl32/forms/EditModelForm";
-
-interface ModelData {
-  model_name: string;
-  model_attributes: unknown[];
-  add_api_url?: string;
-  update_api_url?: string;
-  delete_api_url?: string;
-  [key: string]: unknown;
-}
+import type { ModelData } from "@bcl32/data-utils";
 
 interface RowActionsProps<TData extends { id: string | number }> {
   row: Row<TData>;
-  ModelData: ModelData;
+  ModelData: ModelData & { update_api_url: string };
   query_invalidation: string[];
 }
 
@@ -94,9 +86,9 @@ export function RowActions<TData extends { id: string | number }>({
         >
           <EditModelForm
             key={"entryform_edit_data_entry"}
-            ModelData={ModelData as Parameters<typeof EditModelForm>[0]["ModelData"]}
+            ModelData={ModelData}
             query_invalidation={query_invalidation}
-            obj_data={row.original as unknown as Parameters<typeof EditModelForm>[0]["obj_data"]}
+            obj_data={row.original}
           />
         </DialogButton>
 

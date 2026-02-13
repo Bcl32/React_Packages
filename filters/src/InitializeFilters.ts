@@ -30,7 +30,7 @@ export function InitializeFilters(model_data: ModelAttribute[], datasetStats: Da
       filter_start[title] = filter;
 
       if (item["options"]) {
-        filter_start[title]["options"] = item["options"];
+        filter_start[title]["options"] = item["options"] as string[];
       }
 
       if (item["type"] === "number") {

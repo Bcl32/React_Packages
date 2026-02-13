@@ -38,19 +38,7 @@ import { DialogButton } from "@bcl32/utils/DialogButton";
 import { Button } from "@bcl32/utils/Button";
 import { AddModelForm } from "@bcl32/forms/AddModelForm";
 import { DeleteModelForm } from "@bcl32/forms/DeleteModelForm";
-
-interface ModelData {
-  model_name: string;
-  model_attributes: unknown[];
-  add_api_url?: string;
-  delete_api_url?: string;
-  [key: string]: unknown;
-}
-
-interface RowData {
-  id: string | number;
-  [key: string]: unknown;
-}
+import type { ModelData, RowData } from "@bcl32/data-utils";
 
 interface DataTableProps<TData extends RowData> {
   title: string;
@@ -140,7 +128,7 @@ export function DataTable<TData extends RowData>(
           <AddModelForm
             key={"entryform_add_data_entry"}
             add_api_url={props.add_api_url || ""}
-            ModelData={props.ModelData as Parameters<typeof AddModelForm>[0]["ModelData"]}
+            ModelData={props.ModelData}
             query_invalidation={props.query_invalidation || []}
           />
         </DialogButton>

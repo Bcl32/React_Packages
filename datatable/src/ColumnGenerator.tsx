@@ -12,27 +12,12 @@ import { DialogButton } from "@bcl32/utils/DialogButton";
 import { Button } from "@bcl32/utils/Button";
 
 import { dayjs_sorter } from "@bcl32/data-utils/dayjs_sorter";
-
-interface ModelData {
-  model_name: string;
-  model_attributes: unknown[];
-  add_api_url?: string;
-  update_api_url?: string;
-  delete_api_url?: string;
-  [key: string]: unknown;
-}
-
-interface RowData {
-  id: string | number;
-  time_created?: string;
-  time_updated?: string;
-  [key: string]: unknown;
-}
+import type { ModelData, RowData } from "@bcl32/data-utils";
 
 interface ColumnGeneratorProps {
   custom_columns: ColumnDef<RowData, unknown>[];
   query_invalidation: string[];
-  ModelData: ModelData;
+  ModelData: ModelData & { update_api_url: string };
   add_edit?: boolean;
 }
 
@@ -64,9 +49,9 @@ export function ColumnGenerator({
           >
             <EditModelForm
               key={"entryform_edit_data_entry"}
-              ModelData={ModelData as Parameters<typeof EditModelForm>[0]["ModelData"]}
+              ModelData={ModelData}
               query_invalidation={query_invalidation}
-              obj_data={row.original as Parameters<typeof EditModelForm>[0]["obj_data"]}
+              obj_data={row.original}
             />
           </DialogButton>
         </div>

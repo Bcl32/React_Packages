@@ -12,11 +12,11 @@ export function ProcessDataset(
   const filteredData = ApplyFilters(dataset, active_filters);
 
   const datasetStats = CalculateFeatureStats(
-    ModelData.model_attributes as Parameters<typeof CalculateFeatureStats>[0],
+    ModelData.model_attributes,
     dataset
   );
   const filteredStats = CalculateFeatureStats(
-    ModelData.model_attributes as Parameters<typeof CalculateFeatureStats>[0],
+    ModelData.model_attributes,
     filteredData
   );
 

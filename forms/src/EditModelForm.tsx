@@ -9,24 +9,18 @@ dayjs.extend(timezone);
 
 import { useDatabaseMutation } from "@bcl32/hooks/useDatabaseMutation";
 import { Button } from "@bcl32/utils/Button";
+import type { ModelData } from "@bcl32/data-utils";
 
-import { FormElement, type EntryData, type FormData } from "./FormElement";
+import { FormElement, type FormData } from "./FormElement";
 
-interface ModelAttribute extends EntryData {
-  default: unknown;
-}
-
-interface ModelData {
-  model_attributes: ModelAttribute[];
-  update_api_url: string;
-}
+type EditModelData = ModelData & { update_api_url: string };
 
 interface ObjData extends FormData {
   id: string | number;
 }
 
 interface EditModelFormProps {
-  ModelData: ModelData;
+  ModelData: EditModelData;
   query_invalidation: string[];
   obj_data: ObjData;
   processing_function?: () => void;

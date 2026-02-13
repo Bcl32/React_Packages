@@ -50,19 +50,7 @@ export interface ChartDataEntry {
   [key: string]: unknown;
 }
 
-export interface ModelAttribute {
-  name: string;
-  type: string;
-  filter?: boolean;
-  filter_empty?: unknown;
-  filter_rule?: string;
-  options?: string[];
-  [key: string]: unknown;
-}
-
-export interface ModelData {
-  model_attributes: ModelAttribute[];
-}
+export type { ModelAttribute, ModelData } from "@bcl32/data-utils";
 
 export interface StatValue {
   name: string;

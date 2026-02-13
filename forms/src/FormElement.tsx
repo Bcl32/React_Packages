@@ -19,6 +19,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 
+import type { ModelAttribute } from "@bcl32/data-utils";
 import ButtonDatePicker from "./ButtonDatePicker";
 
 interface LabelWithHelpProps {
@@ -49,22 +50,15 @@ interface ComboboxOption {
   label?: string;
 }
 
-export interface EntryData {
-  name: string;
-  type: "string" | "number" | "boolean" | "list" | "select" | "datetime";
-  help_text?: string;
-  description?: string;
-  options?: SelectOption[] | ComboboxOption[];
-  default?: unknown;
-  editable?: boolean;
-}
+/** @deprecated Use ModelAttribute from @bcl32/data-utils instead */
+export type EntryData = ModelAttribute;
 
 export interface FormData {
   [key: string]: unknown;
 }
 
 export interface FormElementProps {
-  entry_data: EntryData;
+  entry_data: ModelAttribute;
   formData: FormData;
   setFormData: React.Dispatch<React.SetStateAction<FormData>>;
   change_datetime: (value: Dayjs | null, name: string) => void;

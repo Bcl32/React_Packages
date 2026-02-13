@@ -9,16 +9,9 @@ dayjs.extend(timezone);
 
 import { useDatabaseMutation } from "@bcl32/hooks/useDatabaseMutation";
 import { Button } from "@bcl32/utils/Button";
+import type { ModelData } from "@bcl32/data-utils";
 
-import { FormElement, type EntryData, type FormData } from "./FormElement";
-
-interface ModelAttribute extends EntryData {
-  default: unknown;
-}
-
-interface ModelData {
-  model_attributes: ModelAttribute[];
-}
+import { FormElement, type FormData } from "./FormElement";
 
 interface AddModelFormProps {
   ModelData: ModelData;

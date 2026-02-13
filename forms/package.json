@@ -55,6 +55,7 @@
     "dayjs": "^1.11.10"
   },
   "dependencies": {
+    "@bcl32/data-utils": "workspace:^2.0.0",
     "@bcl32/hooks": "workspace:^2.0.0",
     "@bcl32/utils": "workspace:^2.0.0",
     "lucide-react": "^0.447.0",
