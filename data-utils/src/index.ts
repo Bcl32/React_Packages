@@ -1,3 +1,4 @@
+export * from "./types";
 export * from "./ComputeTimeBounds";
 export * from "./ComputeGroupedStats";
 export * from "./CalculateFeatureStats";

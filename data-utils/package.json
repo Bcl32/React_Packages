@@ -32,6 +32,10 @@
     "./dayjs_sorter": {
       "types": "./dist/dayjs_sorter.d.ts",
       "import": "./dist/dayjs_sorter.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
     }
   },
   "files": [

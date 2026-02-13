@@ -2,15 +2,9 @@ import dayjs from "dayjs";
 import { bin } from "d3";
 import { ComputeTimeBounds } from "./ComputeTimeBounds";
 import { ComputeGroupedStats, DoubleGroupStats, type GroupCount, type DoubleGroupEntry } from "./ComputeGroupedStats";
+import type { ModelAttribute } from "./types";
 
 type DataEntry = Record<string, unknown>;
-
-interface FeatureMetadata {
-  name: string;
-  type: "number" | "list" | "string" | "select" | "datetime";
-  stats?: boolean;
-  groupBy?: string;
-}
 
 interface BinEntry {
   x0: number | undefined;
@@ -27,7 +21,7 @@ interface StatEntry {
 
 type FeatureStats = Record<string, StatEntry[]>;
 
-export function CalculateFeatureStats(metadata: FeatureMetadata[], dataset: DataEntry[]): FeatureStats {
+export function CalculateFeatureStats(metadata: ModelAttribute[], dataset: DataEntry[]): FeatureStats {
   const stats: FeatureStats = {};
 
   metadata.forEach((item) => {
