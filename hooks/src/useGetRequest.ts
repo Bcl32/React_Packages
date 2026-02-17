@@ -10,17 +10,18 @@ interface ValidationErrorResponse {
   detail: ValidationErrorDetail[];
 }
 
-const getRequest = async <T>(url: string): Promise<T> => {
+interface UseGetRequestOptions {
+  queryKey?: string[];
+  enabled?: boolean;
+  staleTime?: number;
+  responseType?: "json" | "text";
+}
+
+const getRequest = async <T>(url: string, responseType?: "json" | "text"): Promise<T> => {
   const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error("Network response was not ok");
-  }
 
-  const status = response.status;
-  const result = await response.json();
-
-  if (status === 422) {
-    const errorResult = result as ValidationErrorResponse;
+  if (response.status === 422) {
+    const errorResult = (await response.json()) as ValidationErrorResponse;
     throw new Error(
       "Status Code 422 - Attribute: " +
         errorResult.detail[0]["loc"][1] +
@@ -29,12 +30,24 @@ const getRequest = async <T>(url: string): Promise<T> => {
     );
   }
 
-  return result as T;
+  if (!response.ok) {
+    throw new Error(`Error fetching data: ${response.statusText}`);
+  }
+
+  if (responseType === "text") {
+    return (await response.text()) as T;
+  }
+  return (await response.json()) as T;
 };
 
-export const useGetRequest = <T = unknown>(url: string): UseQueryResult<T, Error> => {
+export const useGetRequest = <T = unknown>(
+  url: string,
+  options?: UseGetRequestOptions
+): UseQueryResult<T, Error> => {
   return useQuery<T, Error>({
-    queryKey: [url],
-    queryFn: () => getRequest<T>(url),
+    queryKey: options?.queryKey ?? [url],
+    queryFn: () => getRequest<T>(url, options?.responseType),
+    enabled: options?.enabled,
+    staleTime: options?.staleTime,
   });
 };

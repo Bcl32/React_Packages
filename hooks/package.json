@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/hooks",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "React hooks",
   "author": "",
   "license": "ISC",
@@ -24,6 +24,10 @@
     "./useBokehChart": {
       "types": "./dist/useBokehChart.d.ts",
       "import": "./dist/useBokehChart.js"
+    },
+    "./useApiMutation": {
+      "types": "./dist/useApiMutation.d.ts",
+      "import": "./dist/useApiMutation.js"
     },
     "./useDataLoader": {
       "types": "./dist/useDataLoader.d.ts",

@@ -4,6 +4,7 @@ export default defineConfig({
   entry: [
     "src/useDatabaseMutation.ts",
     "src/useGetRequest.ts",
+    "src/useApiMutation.ts",
     "src/useBokehChart.ts",
     "src/useDataLoader.ts",
     "src/index.ts"
