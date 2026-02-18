@@ -72,21 +72,40 @@ echo ""
 
 cd "$PACKAGE_DIR"
 
+# Check for clean working tree
+if [ -n "$(git -C "$PACKAGE_DIR" status --porcelain)" ]; then
+    echo -e "${RED}Error: Working tree is not clean. Commit or stash changes before publishing.${NC}"
+    git -C "$PACKAGE_DIR" status --short
+    exit 1
+fi
+
 # Get current version
 CURRENT_VERSION=$(node -p "require('./package.json').version")
+TAG_NAME="@bcl32/${PACKAGE_NAME}@${CURRENT_VERSION}"
 echo -e "${YELLOW}Current version: $CURRENT_VERSION${NC}"
 echo ""
 
 # Step 1: Build the package
-echo -e "${YELLOW}Step 1/2: Building package...${NC}"
+echo -e "${YELLOW}Step 1/3: Building package...${NC}"
 pnpm run build
 echo -e "${GREEN}✓ Build complete${NC}"
 echo ""
 
 # Step 2: Publish to GitHub Package Registry
-echo -e "${YELLOW}Step 2/2: Publishing to GitHub Package Registry...${NC}"
-pnpm publish --no-git-checks
+echo -e "${YELLOW}Step 2/3: Publishing to GitHub Package Registry...${NC}"
+pnpm publish
 echo -e "${GREEN}✓ Package published successfully${NC}"
+echo ""
+
+# Step 3: Tag the commit in Git
+echo -e "${YELLOW}Step 3/3: Creating Git tag...${NC}"
+if git -C "$PACKAGE_DIR" tag "$TAG_NAME" 2>/dev/null; then
+    echo -e "${GREEN}✓ Tagged as $TAG_NAME${NC}"
+    git -C "$PACKAGE_DIR" push origin "$TAG_NAME"
+    echo -e "${GREEN}✓ Pushed tag to remote${NC}"
+else
+    echo -e "${YELLOW}⚠ Tag $TAG_NAME already exists — skipping${NC}"
+fi
 echo ""
 
 echo -e "${BLUE}================================${NC}"
@@ -95,6 +114,7 @@ echo -e "${BLUE}================================${NC}"
 echo ""
 echo -e "${GREEN}Package:${NC} @bcl32/$PACKAGE_NAME"
 echo -e "${GREEN}Version:${NC} $CURRENT_VERSION"
+echo -e "${GREEN}Git Tag:${NC} $TAG_NAME"
 echo ""
 echo -e "Install with:"
 echo -e "  ${YELLOW}npm install @bcl32/$PACKAGE_NAME@^$CURRENT_VERSION${NC}"

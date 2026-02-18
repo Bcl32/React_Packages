@@ -36,6 +36,13 @@ fi
 
 MONOREPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
+# Check for clean working tree
+if [ -n "$(git -C "$SCRIPT_DIR" status --porcelain)" ]; then
+    echo "❌ Error: Working tree is not clean. Commit or stash changes before publishing."
+    git -C "$SCRIPT_DIR" status --short
+    exit 1
+fi
+
 # First, install all workspace dependencies from the monorepo root
 echo "📦 Installing workspace dependencies..."
 cd "$MONOREPO_ROOT"
@@ -95,11 +102,20 @@ for pkg in "${PACKAGES[@]}"; do
 
     # Publish to GitHub Package Registry
     echo "   Publishing to GitHub Package Registry..."
-    publish_output=$(pnpm publish --no-git-checks 2>&1)
+    publish_output=$(pnpm publish 2>&1)
     publish_exit_code=$?
 
     if [ $publish_exit_code -eq 0 ]; then
         echo "   ✅ Published successfully"
+        # Tag the commit in Git
+        tag_name="@bcl32/${pkg}@${local_version}"
+        if git -C "$SCRIPT_DIR" tag "$tag_name" 2>/dev/null; then
+            echo "   🏷️  Tagged as $tag_name"
+            git -C "$SCRIPT_DIR" push origin "$tag_name"
+            echo "   🏷️  Pushed tag to remote"
+        else
+            echo "   ⚠️  Tag $tag_name already exists — skipping"
+        fi
         SUCCESS+=("$pkg")
     elif echo "$publish_output" | grep -q "EPUBLISHCONFLICT\|Cannot publish over existing version"; then
         echo "   ⏭️  Version already exists - skipping"
@@ -144,6 +160,16 @@ if [ ${#FAILED[@]} -gt 0 ]; then
     echo "   - Check for build errors in the package"
     echo "   - Verify GITHUB_TOKEN has write:packages permission"
     exit 1
+fi
+
+# Write published package names for pipeline consumption
+MANIFEST="/tmp/pai-published-packages.txt"
+rm -f "$MANIFEST"
+if [ ${#SUCCESS[@]} -gt 0 ]; then
+  for pkg in "${SUCCESS[@]}"; do
+    echo "@bcl32/$pkg" >> "$MANIFEST"
+  done
+  echo "📝 Wrote ${#SUCCESS[@]} published packages to $MANIFEST"
 fi
 
 echo ""
