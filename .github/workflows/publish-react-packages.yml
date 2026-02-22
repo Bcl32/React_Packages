@@ -3,6 +3,10 @@ name: Publish React Packages
 on:
   push:
     paths:
+      - '.github/workflows/**'
+      - 'package.json'
+      - 'pnpm-workspace.yaml'
+      - 'pnpm-lock.yaml'
       - 'utils/**'
       - 'data-utils/**'
       - 'hooks/**'
