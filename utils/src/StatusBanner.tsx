@@ -8,6 +8,7 @@ const statusBannerVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground",
+        info: "bg-blue-600 text-white",
         alert: "bg-red-600 text-white",
       },
     },
