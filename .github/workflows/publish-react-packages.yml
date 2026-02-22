@@ -135,6 +135,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Build tier-0 dependencies
+        run: |
+          pnpm --filter @bcl32/utils build
+          pnpm --filter @bcl32/data-utils build
+          pnpm --filter @bcl32/hooks build
+
       - name: Build and publish themes
         if: needs.detect-changes.outputs.themes == 'true' || github.event_name == 'workflow_dispatch'
         working-directory: themes
@@ -193,6 +199,16 @@ jobs:
         run: pnpm install --frozen-lockfile
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build tier-0 and tier-1 dependencies
+        run: |
+          pnpm --filter @bcl32/utils build
+          pnpm --filter @bcl32/data-utils build
+          pnpm --filter @bcl32/hooks build
+          pnpm --filter @bcl32/themes build
+          pnpm --filter @bcl32/forms build
+          pnpm --filter @bcl32/charts build
+          pnpm --filter @bcl32/navigation build
 
       - name: Build and publish datatable
         if: needs.detect-changes.outputs.datatable == 'true' || github.event_name == 'workflow_dispatch'
