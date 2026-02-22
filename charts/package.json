@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/charts",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Custom bokeh and recharts chart components",
   "author": "",
   "license": "ISC",
