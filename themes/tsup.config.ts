@@ -17,7 +17,7 @@ export default defineConfig({
   ],
   format: ["esm"],
   dts: true,
-  splitting: false,
+  splitting: true,
   sourcemap: true,
   clean: true,
   external: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", /^@bcl32\//],

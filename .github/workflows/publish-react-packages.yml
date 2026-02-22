@@ -1,0 +1,215 @@
+name: Publish React Packages
+
+on:
+  push:
+    paths:
+      - 'utils/**'
+      - 'data-utils/**'
+      - 'hooks/**'
+      - 'themes/**'
+      - 'forms/**'
+      - 'charts/**'
+      - 'navigation/**'
+      - 'datatable/**'
+      - 'filters/**'
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      utils: ${{ steps.filter.outputs.utils }}
+      data-utils: ${{ steps.filter.outputs.data-utils }}
+      hooks: ${{ steps.filter.outputs.hooks }}
+      themes: ${{ steps.filter.outputs.themes }}
+      forms: ${{ steps.filter.outputs.forms }}
+      charts: ${{ steps.filter.outputs.charts }}
+      navigation: ${{ steps.filter.outputs.navigation }}
+      datatable: ${{ steps.filter.outputs.datatable }}
+      filters: ${{ steps.filter.outputs.filters }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            utils:
+              - 'utils/**'
+            data-utils:
+              - 'data-utils/**'
+            hooks:
+              - 'hooks/**'
+            themes:
+              - 'themes/**'
+            forms:
+              - 'forms/**'
+            charts:
+              - 'charts/**'
+            navigation:
+              - 'navigation/**'
+            datatable:
+              - 'datatable/**'
+            filters:
+              - 'filters/**'
+
+  publish-tier-0:
+    needs: detect-changes
+    if: |
+      always() &&
+      (needs.detect-changes.outputs.utils == 'true' || needs.detect-changes.outputs.data-utils == 'true' || needs.detect-changes.outputs.hooks == 'true' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          registry-url: https://npm.pkg.github.com
+          scope: '@bcl32'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish utils
+        if: needs.detect-changes.outputs.utils == 'true' || github.event_name == 'workflow_dispatch'
+        working-directory: utils
+        run: |
+          pnpm run build
+          pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish data-utils
+        if: needs.detect-changes.outputs.data-utils == 'true' || github.event_name == 'workflow_dispatch'
+        working-directory: data-utils
+        run: |
+          pnpm run build
+          pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish hooks
+        if: needs.detect-changes.outputs.hooks == 'true' || github.event_name == 'workflow_dispatch'
+        working-directory: hooks
+        run: |
+          pnpm run build
+          pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-tier-1:
+    needs: [detect-changes, publish-tier-0]
+    if: |
+      always() &&
+      (needs.publish-tier-0.result == 'success' || needs.publish-tier-0.result == 'skipped') &&
+      (needs.detect-changes.outputs.themes == 'true' || needs.detect-changes.outputs.forms == 'true' || needs.detect-changes.outputs.charts == 'true' || needs.detect-changes.outputs.navigation == 'true' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          registry-url: https://npm.pkg.github.com
+          scope: '@bcl32'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish themes
+        if: needs.detect-changes.outputs.themes == 'true' || github.event_name == 'workflow_dispatch'
+        working-directory: themes
+        run: |
+          pnpm run build
+          pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish forms
+        if: needs.detect-changes.outputs.forms == 'true' || github.event_name == 'workflow_dispatch'
+        working-directory: forms
+        run: |
+          pnpm run build
+          pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish charts
+        if: needs.detect-changes.outputs.charts == 'true' || github.event_name == 'workflow_dispatch'
+        working-directory: charts
+        run: |
+          pnpm run build
+          pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish navigation
+        if: needs.detect-changes.outputs.navigation == 'true' || github.event_name == 'workflow_dispatch'
+        working-directory: navigation
+        run: |
+          pnpm run build
+          pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-tier-2:
+    needs: [detect-changes, publish-tier-1]
+    if: |
+      always() &&
+      (needs.publish-tier-1.result == 'success' || needs.publish-tier-1.result == 'skipped') &&
+      (needs.detect-changes.outputs.datatable == 'true' || needs.detect-changes.outputs.filters == 'true' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          registry-url: https://npm.pkg.github.com
+          scope: '@bcl32'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish datatable
+        if: needs.detect-changes.outputs.datatable == 'true' || github.event_name == 'workflow_dispatch'
+        working-directory: datatable
+        run: |
+          pnpm run build
+          pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish filters
+        if: needs.detect-changes.outputs.filters == 'true' || github.event_name == 'workflow_dispatch'
+        working-directory: filters
+        run: |
+          pnpm run build
+          pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

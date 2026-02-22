@@ -1,0 +1,10 @@
+packages:
+  - "utils"
+  - "data-utils"
+  - "hooks"
+  - "charts"
+  - "datatable"
+  - "filters"
+  - "forms"
+  - "navigation"
+  - "themes"
