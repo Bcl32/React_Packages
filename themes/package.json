@@ -70,8 +70,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Bcl32/web-app-monorepo.git",
-    "directory": "react-packages/themes"
+    "url": "https://github.com/Bcl32/React_Packages.git",
+    "directory": "themes"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"

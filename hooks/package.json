@@ -44,8 +44,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Bcl32/web-app-monorepo.git",
-    "directory": "react-packages/hooks"
+    "url": "https://github.com/Bcl32/React_Packages.git",
+    "directory": "hooks"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"

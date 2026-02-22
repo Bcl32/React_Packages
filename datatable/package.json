@@ -47,12 +47,13 @@
   ],
   "scripts": {
     "build": "tsup",
+    "typecheck": "tsc --noEmit",
     "prepublishOnly": "pnpm run build"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Bcl32/web-app-monorepo.git",
-    "directory": "react-packages/datatable"
+    "url": "https://github.com/Bcl32/React_Packages.git",
+    "directory": "datatable"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
