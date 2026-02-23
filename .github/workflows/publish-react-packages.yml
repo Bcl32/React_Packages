@@ -90,7 +90,14 @@ jobs:
         working-directory: utils
         run: |
           pnpm run build
-          pnpm publish --no-git-checks
+          if ! output=$(pnpm publish --no-git-checks 2>&1); then
+            echo "$output"
+            if echo "$output" | grep -q 'Cannot publish over existing version'; then
+              echo "Version already published — skipping"
+            else
+              exit 1
+            fi
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -99,7 +106,14 @@ jobs:
         working-directory: data-utils
         run: |
           pnpm run build
-          pnpm publish --no-git-checks
+          if ! output=$(pnpm publish --no-git-checks 2>&1); then
+            echo "$output"
+            if echo "$output" | grep -q 'Cannot publish over existing version'; then
+              echo "Version already published — skipping"
+            else
+              exit 1
+            fi
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -108,7 +122,14 @@ jobs:
         working-directory: hooks
         run: |
           pnpm run build
-          pnpm publish --no-git-checks
+          if ! output=$(pnpm publish --no-git-checks 2>&1); then
+            echo "$output"
+            if echo "$output" | grep -q 'Cannot publish over existing version'; then
+              echo "Version already published — skipping"
+            else
+              exit 1
+            fi
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -146,7 +167,14 @@ jobs:
         working-directory: themes
         run: |
           pnpm run build
-          pnpm publish --no-git-checks
+          if ! output=$(pnpm publish --no-git-checks 2>&1); then
+            echo "$output"
+            if echo "$output" | grep -q 'Cannot publish over existing version'; then
+              echo "Version already published — skipping"
+            else
+              exit 1
+            fi
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -155,7 +183,14 @@ jobs:
         working-directory: forms
         run: |
           pnpm run build
-          pnpm publish --no-git-checks
+          if ! output=$(pnpm publish --no-git-checks 2>&1); then
+            echo "$output"
+            if echo "$output" | grep -q 'Cannot publish over existing version'; then
+              echo "Version already published — skipping"
+            else
+              exit 1
+            fi
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -164,7 +199,14 @@ jobs:
         working-directory: charts
         run: |
           pnpm run build
-          pnpm publish --no-git-checks
+          if ! output=$(pnpm publish --no-git-checks 2>&1); then
+            echo "$output"
+            if echo "$output" | grep -q 'Cannot publish over existing version'; then
+              echo "Version already published — skipping"
+            else
+              exit 1
+            fi
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -173,7 +215,14 @@ jobs:
         working-directory: navigation
         run: |
           pnpm run build
-          pnpm publish --no-git-checks
+          if ! output=$(pnpm publish --no-git-checks 2>&1); then
+            echo "$output"
+            if echo "$output" | grep -q 'Cannot publish over existing version'; then
+              echo "Version already published — skipping"
+            else
+              exit 1
+            fi
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -215,7 +264,14 @@ jobs:
         working-directory: datatable
         run: |
           pnpm run build
-          pnpm publish --no-git-checks
+          if ! output=$(pnpm publish --no-git-checks 2>&1); then
+            echo "$output"
+            if echo "$output" | grep -q 'Cannot publish over existing version'; then
+              echo "Version already published — skipping"
+            else
+              exit 1
+            fi
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -224,6 +280,13 @@ jobs:
         working-directory: filters
         run: |
           pnpm run build
-          pnpm publish --no-git-checks
+          if ! output=$(pnpm publish --no-git-checks 2>&1); then
+            echo "$output"
+            if echo "$output" | grep -q 'Cannot publish over existing version'; then
+              echo "Version already published — skipping"
+            else
+              exit 1
+            fi
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
