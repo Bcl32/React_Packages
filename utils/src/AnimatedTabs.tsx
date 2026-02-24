@@ -10,12 +10,14 @@ interface AnimatedTabsProps {
   tab_titles: string[];
   children: React.ReactNode;
   theme_type?: "dark" | "light";
+  size?: "sm" | "lg";
 }
 
 export function AnimatedTabs({
   tab_titles,
   children,
   theme_type = "dark",
+  size = "sm",
 }: AnimatedTabsProps) {
   const test = tab_titles[0] + tab_titles[1]; //unique value for layoutid
   const motion_style = clsx("colouring", {
@@ -35,7 +37,7 @@ export function AnimatedTabs({
               onClick={() => setActiveTab(index)}
               className={`${
                 activeTab === index ? "" : "hover:text-foreground/60"
-              } relative rounded-full px-3 py-1.5 text-sm font-medium text-foreground outline-sky-400 transition focus-visible:outline-2`}
+              } relative rounded-full ${size === "lg" ? "px-4 py-2 text-lg" : "px-3 py-1.5 text-sm"} font-medium text-foreground outline-sky-400 transition focus-visible:outline-2`}
               style={{
                 WebkitTapHighlightColor: "transparent",
               }}
