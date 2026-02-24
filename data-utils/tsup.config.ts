@@ -11,7 +11,7 @@ export default defineConfig({
   ],
   format: ["esm"],
   dts: true,
-  splitting: false,
+  splitting: true,
   sourcemap: true,
   clean: true,
   external: [/^@bcl32\//]
