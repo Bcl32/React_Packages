@@ -51,13 +51,13 @@ export function AddModelForm(props: AddModelFormProps) {
 
   const mutation_add_entry = useDatabaseMutation(
     props.add_api_url,
-    { payload: formData },
+    formData,
     props.query_invalidation
   );
 
   return (
-    <div className="space-y-6">
-      <form className="space-y-3">
+    <div className="space-y-6 max-h-[70vh] overflow-y-auto">
+      <form className="grid grid-cols-2 gap-x-6 gap-y-3">
         {ModelData.model_attributes.map((entry) => {
           if (entry.editable) {
             return (

@@ -126,7 +126,7 @@ export function FormElement({
     case "number":
       return (
         <div className="flex">
-          <div className="w-48">
+          <div>
             <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
               {name[0].toUpperCase() + name.slice(1)}:
             </LabelWithHelp>
@@ -214,7 +214,7 @@ export function FormElement({
     case "select":
       return (
         <div className="flex col-2">
-          <div className="w-48">
+          <div>
             <LabelWithHelp htmlFor={name} helpText={helpText}>
               {name[0].toUpperCase() + name.slice(1)}:
             </LabelWithHelp>

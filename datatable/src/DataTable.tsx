@@ -116,6 +116,7 @@ export function DataTable<TData extends RowData>(
         <DialogButton
           className="display: inline-block"
           key={"dialog-add-entry"}
+          size="medium"
           button={
             <Button>
               <AddIcon />

@@ -39,6 +39,7 @@ export function ColumnGenerator({
         <div>
           <DialogButton
             key={"dialog-" + row.original.id}
+            size="medium"
             button={
               <Button size="icon">
                 <EditIcon />
