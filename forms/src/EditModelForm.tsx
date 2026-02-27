@@ -54,9 +54,10 @@ export function EditModelForm({
   }
 
   const mutation_update_entry = useDatabaseMutation(
-    ModelData.update_api_url + "?id=" + obj_data.id,
+    ModelData.update_api_url + "/" + obj_data.id,
     formData,
-    query_invalidation
+    query_invalidation,
+    "PATCH"
   );
 
   return (

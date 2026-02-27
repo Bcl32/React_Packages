@@ -45,7 +45,7 @@ export function DeleteModelForm({
       {mutation_delete_entry.isSuccess && (
         <div style={{ color: "green" }}>
           Success! <p>Number of Records Deleted from the database:</p>
-          <p>{mutation_delete_entry.data as React.ReactNode}</p>
+          <p>{(mutation_delete_entry.data as any)?.deleted ?? mutation_delete_entry.data as React.ReactNode}</p>
         </div>
       )}
 

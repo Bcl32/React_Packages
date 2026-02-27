@@ -14,9 +14,9 @@ interface ErrorResponse {
   detail: string;
 }
 
-const post_api = async <TData, TResponse>(url: string, formData: TData): Promise<TResponse> => {
+const post_api = async <TData, TResponse>(url: string, formData: TData, method: string = "POST"): Promise<TResponse> => {
   const response = await fetch(url, {
-    method: "POST",
+    method,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(formData),
   });
@@ -51,11 +51,12 @@ const post_api = async <TData, TResponse>(url: string, formData: TData): Promise
 export const useDatabaseMutation = <TData = unknown, TResponse = unknown>(
   url: string,
   formData: TData,
-  key_to_invalidate: string[]
+  key_to_invalidate: string[],
+  method: "POST" | "PATCH" = "POST"
 ): UseMutationResult<TResponse, Error, void> => {
   const queryClient = useQueryClient();
   return useMutation<TResponse, Error, void>({
-    mutationFn: () => post_api<TData, TResponse>(url, formData),
+    mutationFn: () => post_api<TData, TResponse>(url, formData, method),
     onSuccess: () => {
       // refetch the data
       queryClient.invalidateQueries({
