@@ -19,7 +19,8 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 
-import type { ModelAttribute } from "@bcl32/data-utils";
+import { useGetRequest } from "@bcl32/hooks/useGetRequest";
+import type { ModelAttribute, ReferenceInfo } from "@bcl32/data-utils";
 import ButtonDatePicker from "./ButtonDatePicker";
 
 interface LabelWithHelpProps {
@@ -62,6 +63,89 @@ export interface FormElementProps {
   formData: FormData;
   setFormData: React.Dispatch<React.SetStateAction<FormData>>;
   change_datetime: (value: Dayjs | null, name: string) => void;
+}
+
+interface ReferenceOption {
+  id: string;
+  label: string;
+}
+
+function IdReferenceField({
+  entry_data,
+  formData,
+  setFormData,
+}: {
+  entry_data: ModelAttribute;
+  formData: FormData;
+  setFormData: React.Dispatch<React.SetStateAction<FormData>>;
+}) {
+  const reference = entry_data.reference as ReferenceInfo;
+  const name = entry_data.name;
+  const helpText = entry_data.help_text || entry_data.description || null;
+
+  const { data, isLoading } = useGetRequest<{ items: Record<string, unknown>[] }>(
+    reference.get_api_url,
+    { staleTime: 5 * 60 * 1000 }
+  );
+
+  const options: ReferenceOption[] = React.useMemo(() => {
+    if (!data?.items) return [];
+    return data.items.map((item) => ({
+      id: String(item.id),
+      label: String(item[reference.display_field] ?? item.id),
+    }));
+  }, [data, reference.display_field]);
+
+  const selectedOption = options.find((opt) => opt.id === formData[name]) ?? null;
+
+  return (
+    <div className="py-2">
+      <LabelWithHelp htmlFor={name} helpText={helpText}>
+        {name[0].toUpperCase() + name.slice(1).replace(/_/g, " ")}:
+      </LabelWithHelp>
+      <Autocomplete
+        options={options}
+        loading={isLoading}
+        value={selectedOption}
+        onChange={(_event, value) => {
+          setFormData((prev) => ({
+            ...prev,
+            [name]: value?.id ?? "",
+          }));
+        }}
+        getOptionLabel={(opt) => opt.label}
+        isOptionEqualToValue={(opt, val) => opt.id === val.id}
+        sx={{
+          "& .MuiInputBase-root": {
+            backgroundColor: "hsl(var(--background))",
+            color: "hsl(var(--foreground))",
+            borderRadius: "0.375rem",
+            borderColor: "hsl(var(--input))",
+            "&:hover": {
+              borderColor: "hsl(var(--ring))",
+            },
+            "&.Mui-focused": {
+              borderColor: "hsl(var(--ring))",
+              boxShadow: "0 0 0 2px hsl(var(--ring) / 0.2)",
+            },
+          },
+          "& .MuiInputBase-input": {
+            color: "hsl(var(--foreground))",
+          },
+          "& .MuiInputLabel-root": {
+            color: "hsl(var(--muted-foreground))",
+          },
+        }}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            variant="outlined"
+            placeholder={`Select ${name.replace(/_id$/, "").replace(/_/g, " ")}...`}
+          />
+        )}
+      />
+    </div>
+  );
 }
 
 export function FormElement({
@@ -220,10 +304,11 @@ export function FormElement({
             </LabelWithHelp>
             <Select
               name={name}
-              value={formData[name] as string}
+              value={formData[name] as string ?? ""}
               onChange={handleChange}
               id={"input_" + name}
             >
+              <option value="" disabled>Select…</option>
               {(entry_data.options as SelectOption[]).map((entry) => (
                 <option key={entry.value} value={entry.value}>
                   {entry.label}
@@ -254,6 +339,17 @@ export function FormElement({
           </LocalizationProvider>
         </div>
       );
+    case "id":
+      if (entry_data.reference) {
+        return (
+          <IdReferenceField
+            entry_data={entry_data}
+            formData={formData}
+            setFormData={setFormData}
+          />
+        );
+      }
+      return null;
     default:
       return null;
   }

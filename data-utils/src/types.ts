@@ -1,3 +1,9 @@
+/** FK reference metadata for "id" type fields */
+export interface ReferenceInfo {
+  get_api_url: string;
+  display_field: string;
+}
+
 /** Base attribute definition for a model field */
 export interface ModelAttribute {
   name: string;
@@ -12,6 +18,7 @@ export interface ModelAttribute {
   filter_rule?: string;
   stats?: boolean;
   groupBy?: string;
+  reference?: ReferenceInfo;
   [key: string]: unknown;
 }
 

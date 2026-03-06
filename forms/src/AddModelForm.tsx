@@ -25,7 +25,11 @@ export function AddModelForm(props: AddModelFormProps) {
 
   const form_defaults: FormData = {};
   ModelData.model_attributes.forEach((item) => {
-    form_defaults[item.name] = item.default;
+    if (item.type === "id" && item.editable) {
+      form_defaults[item.name] = null;
+    } else {
+      form_defaults[item.name] = item.default;
+    }
   });
 
   const [formData, setFormData] = React.useState<FormData>(form_defaults);

@@ -52,6 +52,10 @@ interface DataTableProps<TData extends RowData> {
   query_invalidation?: string[];
   rowClickFunction?: (data: TData) => void;
   renderSubComponent?: (props: { row: Row<TData> }) => React.ReactNode;
+  expandOnRowClick?: boolean;
+  cellClassName?: string;
+  maxCellHeight?: number;
+  pageSize?: number;
 }
 
 export function DataTable<TData extends RowData>(
@@ -90,7 +94,7 @@ export function DataTable<TData extends RowData>(
     getPaginationRowModel: getPaginationRowModel(),
     initialState: {
       pagination: {
-        pageSize: 10,
+        pageSize: props.pageSize || 10,
       },
     },
   });
@@ -228,19 +232,37 @@ export function DataTable<TData extends RowData>(
               <Fragment key={row.id}>
                 <TableRow
                   data-state={row.getIsSelected() && "selected"}
-                  onClick={() => handleRowClick(row.original)}
+                  className={props.expandOnRowClick ? "cursor-pointer" : undefined}
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (target.closest("a, input, button, label")) return;
+                    if (props.expandOnRowClick) {
+                      row.toggleExpanded();
+                    }
+                    handleRowClick(row.original);
+                  }}
                 >
                   {row.getVisibleCells().map((cell) => {
                     return (
                       <TableCell
                         key={cell.id}
+                        className={props.cellClassName}
                         style={{
                           width: cell.column.getSize(),
                         }}
                       >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
+                        {props.maxCellHeight && !(cell.column.columnDef.meta as Record<string, unknown>)?.noMaxHeight ? (
+                          <div style={{ maxHeight: props.maxCellHeight, overflowY: "auto" }}>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </div>
+                        ) : (
+                          flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )
                         )}
                       </TableCell>
                     );
@@ -285,7 +307,7 @@ export function DataTable<TData extends RowData>(
         </TableFooter>
       </Table>
 
-      <DataTablePagination table={tableInstance} />
+      {tableInstance.getPageCount() > 1 && <DataTablePagination table={tableInstance} />}
     </div>
   );
 }
