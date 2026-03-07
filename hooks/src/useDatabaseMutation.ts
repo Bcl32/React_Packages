@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useMutation, useQueryClient, UseMutationResult } from "@tanstack/react-query";
 
 interface ValidationErrorDetail {
@@ -55,8 +56,11 @@ export const useDatabaseMutation = <TData = unknown, TResponse = unknown>(
   method: "POST" | "PATCH" = "POST"
 ): UseMutationResult<TResponse, Error, void> => {
   const queryClient = useQueryClient();
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
+
   return useMutation<TResponse, Error, void>({
-    mutationFn: () => post_api<TData, TResponse>(url, formData, method),
+    mutationFn: () => post_api<TData, TResponse>(url, formDataRef.current, method),
     onSuccess: () => {
       // refetch the data
       queryClient.invalidateQueries({

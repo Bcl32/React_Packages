@@ -9,7 +9,7 @@ dayjs.extend(timezone);
 
 import { useDatabaseMutation } from "@bcl32/hooks/useDatabaseMutation";
 import { Button } from "@bcl32/utils/Button";
-import type { ModelData } from "@bcl32/data-utils";
+import { getFormDefault, type ModelData } from "@bcl32/data-utils";
 
 import { FormElement, type FormData } from "./FormElement";
 
@@ -25,11 +25,7 @@ export function AddModelForm(props: AddModelFormProps) {
 
   const form_defaults: FormData = {};
   ModelData.model_attributes.forEach((item) => {
-    if (item.type === "id" && item.editable) {
-      form_defaults[item.name] = null;
-    } else {
-      form_defaults[item.name] = item.default;
-    }
+    form_defaults[item.name] = getFormDefault(item);
   });
 
   const [formData, setFormData] = React.useState<FormData>(form_defaults);

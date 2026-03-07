@@ -7,6 +7,7 @@ export default defineConfig({
     "src/CalculateFeatureStats.ts",
     "src/StringFunctions.ts",
     "src/dayjs_sorter.ts",
+    "src/getFormDefault.ts",
     "src/index.ts"
   ],
   format: ["esm"],

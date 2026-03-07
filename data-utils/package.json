@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/data-utils",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "description": "Data utility functions for computing statistics, sorting, and string manipulation",
   "author": "",
   "license": "ISC",
@@ -36,6 +36,10 @@
     "./types": {
       "types": "./dist/types.d.ts",
       "import": "./dist/types.js"
+    },
+    "./getFormDefault": {
+      "types": "./dist/getFormDefault.d.ts",
+      "import": "./dist/getFormDefault.js"
     }
   },
   "files": [
