@@ -199,7 +199,7 @@ export function FormElement({
               size="default"
               id={"input_" + name}
               name={name}
-              value={formData[name] as string}
+              value={(formData[name] as string) ?? ""}
               onChange={handleChange}
               type="text"
               placeholder=""
