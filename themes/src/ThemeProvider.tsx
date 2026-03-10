@@ -53,7 +53,7 @@ export function ThemeProvider({
   }, [theme]);
 
   const theme_options = Object.keys(Themes);
-  const theme_type: ThemeType = ["light", "light-green"].includes(theme as string)
+  const theme_type: ThemeType = ["light", "light-green", "light-blue", "light-gold"].includes(theme as string)
     ? "light"
     : "dark";
 
