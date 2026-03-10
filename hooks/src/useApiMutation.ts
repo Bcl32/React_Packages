@@ -31,7 +31,15 @@ const apiMutate = async <TData, TResponse>(
   });
 
   const status = response.status;
-  const result = await response.json();
+  let result: any;
+  try {
+    result = await response.json();
+  } catch {
+    if (!response.ok) {
+      throw new Error(`Error(${status}): ${response.statusText}`);
+    }
+    throw new Error(`Failed to parse response as JSON (status ${status})`);
+  }
 
   if (status === 422) {
     const errorResult = result as ValidationErrorResponse;
@@ -51,6 +59,26 @@ const apiMutate = async <TData, TResponse>(
   if (status === 404) {
     const errorResult = result as ErrorResponse;
     throw new Error("Status Code 404 -- Message: " + errorResult.detail);
+  }
+
+  if (status === 500) {
+    const detail = result?.detail;
+    const message = typeof detail === "string"
+      ? detail
+      : typeof detail === "object"
+        ? JSON.stringify(detail)
+        : "Internal Server Error";
+    throw new Error(`Server Error(500): ${message}`);
+  }
+
+  if (!response.ok) {
+    const detail = result?.detail;
+    const message = typeof detail === "string"
+      ? detail
+      : typeof detail === "object"
+        ? JSON.stringify(detail)
+        : response.statusText;
+    throw new Error(`Error(${status}): ${message}`);
   }
 
   return result as TResponse;
