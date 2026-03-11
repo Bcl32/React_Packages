@@ -5,9 +5,9 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  type ChartConfig,
 } from "@bcl32/charts/Charts";
 import type { ChartDataEntry } from "./types";
+import { buildChartConfig } from "./utils";
 
 interface BarChartSwitcherProps {
   name: string;
@@ -16,17 +16,7 @@ interface BarChartSwitcherProps {
 }
 
 export function BarChartSwitcher({ chart_data, subkeys }: BarChartSwitcherProps): JSX.Element {
-  const chartConfig: ChartConfig = {};
-  let colour_idx = 1;
-
-  subkeys.forEach((entry) => {
-    const entryName = entry;
-    chartConfig[entryName] = {
-      label: entryName,
-      color: "hsl(var(--chart-" + colour_idx + "))",
-    };
-    colour_idx = colour_idx + 1;
-  });
+  const chartConfig = buildChartConfig(subkeys);
 
   const [activeChart, setActiveChart] = React.useState(subkeys[0]);
 

@@ -5,15 +5,11 @@ dayjs.extend(duration);
 
 import { Button } from "@bcl32/utils/Button";
 import { FilterContext } from "./FilterContext";
-import type { Filters, FilterContextValue } from "./types";
+import type { Filters, FilterContextValue, DatetimeFilterValue } from "./types";
+import { capitalize } from "./utils";
 
 interface FiltersSummaryProps {
   active_filters: Filters;
-}
-
-interface DatetimeFilterValue {
-  timespan_begin: string;
-  timespan_end: string;
 }
 
 export function FiltersSummary({ active_filters }: FiltersSummaryProps): JSX.Element | null {
@@ -90,8 +86,7 @@ function FiltersEntry({ name, filter_value }: FiltersEntryProps): JSX.Element | 
   return (
     <div className="flex flex-row grid xl:grid-cols-12" key={name}>
       <span className="font-semibold col-span-4">
-        {/* capitalizes the string */}
-        {name[0].toUpperCase() + name.slice(1)}:
+        {capitalize(name)}:
       </span>
 
       <span className="whitespace-pre-line col-span-6">{filter_value}</span>

@@ -1,9 +1,4 @@
-import type { Filters, FilterValue } from "./types";
-
-interface DatetimeFilterValue {
-  timespan_begin: string;
-  timespan_end: string;
-}
+import type { Filters, FilterValue, DatetimeFilterValue } from "./types";
 
 export function GetActiveFilters(filters: Filters): Filters {
   const active_filters: Filters = {};

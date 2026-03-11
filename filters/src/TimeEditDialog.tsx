@@ -19,7 +19,7 @@ import { RadioButton } from "@bcl32/utils/RadioButton";
 import IconButton from "@mui/material/IconButton";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
-import type { Filters } from "./types";
+import type { Filters, DatetimeFilterValue } from "./types";
 
 interface TimeEditDialogProps {
   filters: Filters;
@@ -28,12 +28,7 @@ interface TimeEditDialogProps {
   change_filters: (name: string, key: string, value: unknown) => void;
 }
 
-interface DatetimeFilterValue {
-  timespan_begin: string;
-  timespan_end: string;
-}
-
-function TimeEditDialog({
+export function TimeEditDialog({
   filters,
   name,
   change_time_filter,
@@ -208,5 +203,3 @@ function TimeEditDialog({
     </div>
   );
 }
-
-export default TimeEditDialog;

@@ -6,14 +6,11 @@ import TextField from "@mui/material/TextField";
 
 import { ToggleGroup, ToggleGroupItem } from "@bcl32/utils/ToggleGroup";
 import type { FilterContextValue } from "./types";
-
-interface ListOption {
-  label: string;
-}
+import { extractLabels, capitalize } from "./utils";
 
 interface ListFilterProps {
   name: string;
-  options: (string | ListOption)[];
+  options: (string | { label: string })[];
 }
 
 export function ListFilter({ name, options }: ListFilterProps): JSX.Element | null {
@@ -27,27 +24,14 @@ export function ListFilter({ name, options }: ListFilterProps): JSX.Element | nu
     return null;
   }
 
-  //special formData updater function for select comboboxes as input differs from other inputs are objects and multiple items can used
-  function handleComboboxChange(fieldName: string, value: (string | ListOption)[]) {
-    const entries: string[] = [];
-    value.forEach(function (item) {
-      //get labels from each selected object in array
-      if (typeof item === "string") {
-        //custom entries don't have label key
-        entries.push(item);
-      } else if (item.label) {
-        entries.push(item.label);
-      }
-    });
-
-    context?.change_filters(fieldName, "value", entries);
+  function handleComboboxChange(fieldName: string, value: (string | { label: string })[]) {
+    context?.change_filters(fieldName, "value", extractLabels(value));
   }
 
   return (
     <div>
       <span className="font-semibold">
-        {/* capitalizes the string */}
-        {name[0].toUpperCase() + name.slice(1)}:
+        {capitalize(name)}:
       </span>
 
       <Autocomplete
@@ -55,7 +39,7 @@ export function ListFilter({ name, options }: ListFilterProps): JSX.Element | nu
         multiple
         options={options}
         value={filterData["value"] as string[]}
-        onChange={(_event, value) => handleComboboxChange(name, value as (string | ListOption)[])}
+        onChange={(_event, value) => handleComboboxChange(name, value as (string | { label: string })[])}
         sx={{
           '& .MuiInputBase-root': {
             backgroundColor: 'hsl(var(--background))',

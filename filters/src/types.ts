@@ -67,3 +67,24 @@ export interface ProcessedDataset {
   datasetStats: DatasetStats;
   filteredStats: DatasetStats;
 }
+
+export interface DatetimeFilterValue {
+  timespan_begin: string;
+  timespan_end: string;
+}
+
+export interface NumberRange {
+  min: number;
+  max: number;
+}
+
+export interface ClickPayload {
+  payload: {
+    name: string;
+    [key: string]: unknown;
+  };
+}
+
+export interface ChartClickEvent {
+  activePayload?: ClickPayload[];
+}

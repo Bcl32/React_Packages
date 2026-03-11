@@ -1,5 +1,5 @@
-import DebouncedTextFilter from "./DebouncedTextFilter";
-import DebouncedNumberFilter from "./DebouncedNumberFilter";
+import { DebouncedTextFilter } from "./DebouncedTextFilter";
+import { DebouncedNumberFilter } from "./DebouncedNumberFilter";
 import { SelectFilter } from "./SelectFilter";
 import { ListFilter } from "./ListFilter";
 import { TimeFilter } from "./TimeFilter";

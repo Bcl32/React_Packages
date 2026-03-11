@@ -6,9 +6,9 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  type ChartConfig,
 } from "@bcl32/charts/Charts";
 import type { ChartDataEntry } from "./types";
+import { buildChartConfig } from "./utils";
 
 interface StackedBarChartProps {
   name: string;
@@ -17,17 +17,7 @@ interface StackedBarChartProps {
 }
 
 export function StackedBarChart({ chart_data, subkeys }: StackedBarChartProps): JSX.Element {
-  const chartConfig: ChartConfig = {};
-  let colour_idx = 1;
-
-  subkeys.forEach((entry) => {
-    const entryName = entry;
-    chartConfig[entryName] = {
-      label: entryName,
-      color: "hsl(var(--chart-" + colour_idx + "))",
-    };
-    colour_idx = colour_idx + 1;
-  });
+  const chartConfig = buildChartConfig(subkeys);
 
   const bars: React.ReactElement[] = [];
   Object.entries(chartConfig).forEach(([key]) => {

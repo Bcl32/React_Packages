@@ -16,22 +16,12 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@bcl32/charts/Charts";
-import type { FilterContextValue, ChartDataEntry } from "./types";
+import type { FilterContextValue, ChartDataEntry, ChartClickEvent } from "./types";
+import { capitalize } from "./utils";
 
 interface BarChartFilterProps {
   name: string;
   chart_data: ChartDataEntry[];
-}
-
-interface ClickPayload {
-  payload: {
-    name: string;
-    [key: string]: unknown;
-  };
-}
-
-interface ChartClickEvent {
-  activePayload?: ClickPayload[];
 }
 
 export function BarChartFilter({ name, chart_data }: BarChartFilterProps): JSX.Element {
@@ -63,7 +53,7 @@ export function BarChartFilter({ name, chart_data }: BarChartFilterProps): JSX.E
       <div className="flex flex-row justify-between">
         <div></div>
         <h1 className="inline-block justify-center text-2xl text-blue-600 dark:text-blue-500">
-          {name[0].toUpperCase() + name.slice(1)}
+          {capitalize(name)}
         </h1>
 
         <Button

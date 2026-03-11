@@ -4,14 +4,11 @@ import { FilterContext } from "./FilterContext";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import type { FilterContextValue } from "./types";
-
-interface SelectOption {
-  label: string;
-}
+import { extractLabels, capitalize } from "./utils";
 
 interface SelectFilterProps {
   name: string;
-  options: (string | SelectOption)[];
+  options: (string | { label: string })[];
 }
 
 export function SelectFilter({ name, options }: SelectFilterProps): JSX.Element | null {
@@ -25,27 +22,14 @@ export function SelectFilter({ name, options }: SelectFilterProps): JSX.Element 
     return null;
   }
 
-  //special formData updater function for select comboboxes as input differs from other inputs are objects and multiple items can used
-  function handleComboboxChange(fieldName: string, value: (string | SelectOption)[]) {
-    const entries: string[] = [];
-    value.forEach(function (item) {
-      //get labels from each selected object in array
-      if (typeof item === "string") {
-        //custom entries don't have label key
-        entries.push(item);
-      } else if (item.label) {
-        entries.push(item.label);
-      }
-    });
-
-    context?.change_filters(fieldName, "value", entries);
+  function handleComboboxChange(fieldName: string, value: (string | { label: string })[]) {
+    context?.change_filters(fieldName, "value", extractLabels(value));
   }
 
   return (
     <div>
       <span className="font-semibold">
-        {/* capitalizes the string */}
-        {name[0].toUpperCase() + name.slice(1)}:
+        {capitalize(name)}:
       </span>
 
       <Autocomplete
@@ -53,7 +37,7 @@ export function SelectFilter({ name, options }: SelectFilterProps): JSX.Element 
         multiple
         options={options}
         value={filterData["value"] as string[]}
-        onChange={(_event, value) => handleComboboxChange(name, value as (string | SelectOption)[])}
+        onChange={(_event, value) => handleComboboxChange(name, value as (string | { label: string })[])}
         renderInput={(params) => (
           <TextField
             {...params}

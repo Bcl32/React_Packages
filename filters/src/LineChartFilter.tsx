@@ -8,21 +8,11 @@ import {
   ChartTooltipContent,
 } from "@bcl32/charts/Charts";
 import type { ChartDataEntry } from "./types";
+import { capitalize } from "./utils";
 
 interface LineChartFilterProps {
   name: string;
   chart_data: ChartDataEntry[];
-}
-
-interface ClickPayload {
-  payload: {
-    name: string;
-    [key: string]: unknown;
-  };
-}
-
-interface ChartClickEvent {
-  activePayload?: ClickPayload[];
 }
 
 export function LineChartFilter({ name, chart_data }: LineChartFilterProps): JSX.Element {
@@ -39,7 +29,7 @@ export function LineChartFilter({ name, chart_data }: LineChartFilterProps): JSX
   return (
     <div>
       <h1 className="inline-block justify-center text-2xl text-blue-600 dark:text-blue-500">
-        {name[0].toUpperCase() + name.slice(1)}
+        {capitalize(name)}
       </h1>
 
       <ChartContainer config={chartConfig}>
@@ -50,11 +40,6 @@ export function LineChartFilter({ name, chart_data }: LineChartFilterProps): JSX
             top: 20,
             left: 12,
             right: 12,
-          }}
-          onClick={(data: ChartClickEvent) => {
-            if (data && data.activePayload && data.activePayload.length > 0) {
-              // click handler available for future use
-            }
           }}
         >
           <CartesianGrid vertical={false} />

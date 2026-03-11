@@ -12,9 +12,9 @@ export * from "./LineChartFilter";
 export * from "./PieChartFilter";
 export * from "./Histogram";
 export * from "./ListFilter";
-export { default as DebouncedNumberFilter } from "./DebouncedNumberFilter";
-export { default as DebouncedTextFilter } from "./DebouncedTextFilter";
-export { default as TimeEditDialog } from "./TimeEditDialog";
+export * from "./DebouncedNumberFilter";
+export * from "./DebouncedTextFilter";
+export * from "./TimeEditDialog";
 export * from "./GetSubkeyValues";
 export * from "./ApplyFilters";
 export * from "./GetActiveFilters";
@@ -34,4 +34,8 @@ export type {
   StatValue,
   DatasetStats,
   ProcessedDataset,
+  DatetimeFilterValue,
+  NumberRange,
+  ClickPayload,
+  ChartClickEvent,
 } from "./types";

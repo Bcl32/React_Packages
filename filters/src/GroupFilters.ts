@@ -9,33 +9,23 @@ export function GroupFilters(filters: Filters): GroupedFilters {
 
   Object.keys(filters).forEach((key) => {
     if (filters[key]["type"] === "string") {
-      const entry = JSON.parse(JSON.stringify(filters[key])) as FilterData;
-      entry["name"] = key;
-      string_filters.push(entry);
+      string_filters.push({ ...filters[key], name: key } as FilterData);
     }
 
     if (filters[key]["type"] === "number") {
-      const entry = JSON.parse(JSON.stringify(filters[key])) as FilterData;
-      entry["name"] = key;
-      numeric_filters.push(entry);
+      numeric_filters.push({ ...filters[key], name: key } as FilterData);
     }
 
     if (filters[key]["type"] === "select") {
-      const entry = JSON.parse(JSON.stringify(filters[key])) as FilterData;
-      entry["name"] = key;
-      select_filters.push(entry);
+      select_filters.push({ ...filters[key], name: key } as FilterData);
     }
 
     if (filters[key]["type"] === "list") {
-      const entry = JSON.parse(JSON.stringify(filters[key])) as FilterData;
-      entry["name"] = key;
-      list_filters.push(entry);
+      list_filters.push({ ...filters[key], name: key } as FilterData);
     }
 
     if (filters[key]["type"] === "datetime") {
-      const entry = JSON.parse(JSON.stringify(filters[key])) as FilterData;
-      entry["name"] = key;
-      time_filters.push(entry);
+      time_filters.push({ ...filters[key], name: key } as FilterData);
     }
   });
 

@@ -1,17 +1,7 @@
-import type { Filters } from "./types";
+import type { Filters, NumberRange, DatetimeFilterValue } from "./types";
 
 interface DataEntry {
   [key: string]: unknown;
-}
-
-interface NumberFilterValue {
-  min: number;
-  max: number;
-}
-
-interface DatetimeFilterValue {
-  timespan_begin: string;
-  timespan_end: string;
 }
 
 export function ApplyFilters(data: unknown[], filters: Filters): DataEntry[] {
@@ -41,14 +31,10 @@ export function ApplyFilters(data: unknown[], filters: Filters): DataEntry[] {
         break;
 
       case "number": {
-        const numValue = filter["value"] as NumberFilterValue;
+        const numValue = filter["value"] as NumberRange;
         filteredData = filteredData.filter((entry) => {
           const entryValue = entry?.[key] as number | null | undefined;
-          return entry && entryValue != null && entryValue - numValue["min"] >= 0;
-        });
-        filteredData = filteredData.filter((entry) => {
-          const entryValue = entry?.[key] as number | null | undefined;
-          return entry && entryValue != null && numValue["max"] - entryValue >= 0;
+          return entry && entryValue != null && entryValue >= numValue.min && entryValue <= numValue.max;
         });
         break;
       }
@@ -86,22 +72,10 @@ export function ApplyFilters(data: unknown[], filters: Filters): DataEntry[] {
         const dtValue = filter["value"] as DatetimeFilterValue;
         filteredData = filteredData.filter((entry) => {
           const entryValue = entry?.[key];
-          return (
-            entry &&
-            entryValue &&
-            new Date(entryValue as string).getTime() -
-              new Date(dtValue["timespan_begin"]).getTime() >=
-            0
-          );
-        });
-        filteredData = filteredData.filter((entry) => {
-          const entryValue = entry?.[key];
-          return (
-            entry &&
-            entryValue &&
-            new Date(dtValue["timespan_end"]).getTime() - new Date(entryValue as string).getTime() >=
-            0
-          );
+          if (!entry || !entryValue) return false;
+          const time = new Date(entryValue as string).getTime();
+          return time >= new Date(dtValue.timespan_begin).getTime() &&
+            time <= new Date(dtValue.timespan_end).getTime();
         });
         break;
       }

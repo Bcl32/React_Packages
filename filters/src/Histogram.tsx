@@ -14,17 +14,6 @@ interface HistogramProps {
   chart_data: ChartDataEntry[];
 }
 
-interface ClickPayload {
-  payload: {
-    name: string;
-    [key: string]: unknown;
-  };
-}
-
-interface ChartClickEvent {
-  activePayload?: ClickPayload[];
-}
-
 export function Histogram({ chart_data }: HistogramProps): JSX.Element {
   const chartConfig = {
     count: {
@@ -41,11 +30,6 @@ export function Histogram({ chart_data }: HistogramProps): JSX.Element {
       <BarChart
         accessibilityLayer
         data={chart_data}
-        onClick={(data: ChartClickEvent) => {
-          if (data && data.activePayload && data.activePayload.length > 0) {
-            // click handler available for future use
-          }
-        }}
       >
         <CartesianGrid vertical={false} />
 

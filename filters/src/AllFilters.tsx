@@ -6,12 +6,7 @@ import { FilterElement } from "./FilterElement";
 import { FilterContext } from "./FilterContext";
 import type { FilterContextValue } from "./types";
 
-interface AllFiltersProps {
-  ModelData?: unknown;
-  dataset?: unknown;
-}
-
-export function AllFilters(_props: AllFiltersProps): JSX.Element {
+export function AllFilters(): JSX.Element {
   // Get filters from Context (single source of truth)
   const context = React.useContext(FilterContext) as FilterContextValue | null;
 
@@ -23,6 +18,7 @@ export function AllFilters(_props: AllFiltersProps): JSX.Element {
   const {
     string_filters,
     numeric_filters,
+    select_filters,
     list_filters,
     time_filters,
   } = GroupFilters(context.filters);
@@ -41,6 +37,12 @@ export function AllFilters(_props: AllFiltersProps): JSX.Element {
               })}
 
               {numeric_filters.map((entry) => {
+                return (
+                  <FilterElement key={entry["name"]} filter_data={entry} />
+                );
+              })}
+
+              {select_filters.map((entry) => {
                 return (
                   <FilterElement key={entry["name"]} filter_data={entry} />
                 );

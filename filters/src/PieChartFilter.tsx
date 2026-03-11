@@ -7,24 +7,13 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  type ChartConfig,
 } from "@bcl32/charts/Charts";
-import type { FilterContextValue, ChartDataEntry } from "./types";
+import type { FilterContextValue, ChartDataEntry, ChartClickEvent } from "./types";
+import { buildChartConfig } from "./utils";
 
 interface PieChartFilterProps {
   name: string;
   chart_data: ChartDataEntry[];
-}
-
-interface ClickPayload {
-  payload: {
-    name: string;
-    [key: string]: unknown;
-  };
-}
-
-interface ChartClickEvent {
-  activePayload?: ClickPayload[];
 }
 
 interface LegendPayload {
@@ -54,18 +43,10 @@ export function PieChartFilter({ name, chart_data }: PieChartFilterProps): JSX.E
     }
   }
 
-  const chartConfig: ChartConfig = {};
-  let colour_idx = 1;
+  const chartConfig = buildChartConfig(chart_data.map(e => e.name));
 
   chart_data.forEach((entry) => {
-    const entryName = entry["name"];
-    chartConfig[entryName] = {
-      label: entryName,
-      color: "hsl(var(--chart-" + colour_idx + "))",
-    };
-    colour_idx = colour_idx + 1;
-
-    entry["fill"] = "var(--color-" + entryName + ")";
+    entry["fill"] = "var(--color-" + entry.name + ")";
   });
 
   return (

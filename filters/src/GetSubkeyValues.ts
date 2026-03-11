@@ -13,11 +13,7 @@ export function GetSubkeyValues(chart_metadata: ChartMetadata, stats: DatasetSta
 
   const subkey_data = countStat?.["value"] as CountEntry[];
 
-  const subkeys = subkey_data.map((entry) => {
+  return subkey_data.map((entry) => {
     return entry["name"];
   });
-
-  chart_metadata["subkeys"] = subkeys;
-
-  return subkeys;
 }

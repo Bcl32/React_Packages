@@ -17,16 +17,12 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { Button } from "@bcl32/utils/Button";
 import { DialogButton } from "@bcl32/utils/DialogButton";
 
-import TimeEditDialog from "./TimeEditDialog";
-import type { FilterContextValue } from "./types";
+import { TimeEditDialog } from "./TimeEditDialog";
+import type { FilterContextValue, DatetimeFilterValue } from "./types";
+import { capitalize } from "./utils";
 
 interface TimeFilterProps {
   name: string;
-}
-
-interface DatetimeFilterValue {
-  timespan_begin: string;
-  timespan_end: string;
 }
 
 export function TimeFilter({ name }: TimeFilterProps): JSX.Element | null {
@@ -44,7 +40,7 @@ export function TimeFilter({ name }: TimeFilterProps): JSX.Element | null {
   const filterEmpty = filterData["filter_empty"];
 
   function change_time_filter(fieldName: string, timespan: string, value: dayjs.Dayjs) {
-    const timespans = JSON.parse(JSON.stringify(filterValue)) as DatetimeFilterValue; //get current values
+    const timespans: DatetimeFilterValue = { ...filterValue };
     if (timespan === "timespan_begin") {
       timespans.timespan_begin = value.toISOString();
     } else if (timespan === "timespan_end") {
@@ -61,7 +57,7 @@ export function TimeFilter({ name }: TimeFilterProps): JSX.Element | null {
     <div>
       <h1 className="font-semibold text-xl pr-2">
         {" "}
-        {name[0].toUpperCase() + name.slice(1)}:
+        {capitalize(name)}:
       </h1>
 
       <div className="grid xl:grid-cols-3">

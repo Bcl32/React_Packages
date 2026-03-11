@@ -10,7 +10,7 @@ interface DebouncedTextFilterProps {
   name: string;
 }
 
-function DebouncedTextFilter({ name }: DebouncedTextFilterProps): JSX.Element | null {
+export function DebouncedTextFilter({ name }: DebouncedTextFilterProps): JSX.Element | null {
   const context = React.useContext(FilterContext) as FilterContextValue | null;
 
   // Safe access to filter data - handles React batching timing issues
@@ -71,5 +71,3 @@ function DebouncedTextFilter({ name }: DebouncedTextFilterProps): JSX.Element | 
     </div>
   );
 }
-
-export default DebouncedTextFilter;
