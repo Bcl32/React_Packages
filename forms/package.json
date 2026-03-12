@@ -17,6 +17,10 @@
       "types": "./dist/AddModelForm.d.ts",
       "import": "./dist/AddModelForm.js"
     },
+    "./BulkEditModelForm": {
+      "types": "./dist/BulkEditModelForm.d.ts",
+      "import": "./dist/BulkEditModelForm.js"
+    },
     "./EditModelForm": {
       "types": "./dist/EditModelForm.d.ts",
       "import": "./dist/EditModelForm.js"

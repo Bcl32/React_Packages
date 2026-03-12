@@ -3,6 +3,7 @@ import { defineConfig } from "tsup";
 export default defineConfig({
   entry: [
     "src/AddModelForm.tsx",
+    "src/BulkEditModelForm.tsx",
     "src/EditModelForm.tsx",
     "src/DeleteModelForm.tsx",
     "src/FormElement.tsx",

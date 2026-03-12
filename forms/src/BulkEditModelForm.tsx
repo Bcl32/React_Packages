@@ -1,0 +1,154 @@
+import * as React from "react";
+
+import dayjs from "dayjs";
+import type { Dayjs } from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+import { useDatabaseMutation } from "@bcl32/hooks/useDatabaseMutation";
+import { Button } from "@bcl32/utils/Button";
+import { Checkbox } from "@bcl32/utils/Checkbox";
+import { Label } from "@bcl32/utils/Label";
+import { getFormDefault, type ModelData } from "@bcl32/data-utils";
+
+import { FormElement, type FormData } from "./FormElement";
+
+interface RowSelection {
+  [key: string]: boolean;
+}
+
+interface BulkEditModelFormProps {
+  ModelData: ModelData & { update_api_url: string };
+  query_invalidation: string[];
+  rowSelection: RowSelection;
+  setRowSelection: React.Dispatch<React.SetStateAction<RowSelection>>;
+}
+
+export function BulkEditModelForm({
+  ModelData,
+  query_invalidation,
+  rowSelection,
+  setRowSelection,
+}: BulkEditModelFormProps) {
+  const selectedIds = Object.keys(rowSelection);
+  const editableAttributes = ModelData.model_attributes.filter((a) => a.editable);
+
+  const form_defaults: FormData = {};
+  editableAttributes.forEach((item) => {
+    form_defaults[item.name] = getFormDefault(item);
+  });
+
+  const [formData, setFormData] = React.useState<FormData>(form_defaults);
+  const [enabledFields, setEnabledFields] = React.useState<Record<string, boolean>>({});
+
+  function change_datetime(value: Dayjs | null, name: string) {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    const element = document.getElementById("input_" + name);
+    if (element && value) {
+      element.innerText = value.format("MMM, D YYYY - h:mma");
+    }
+  }
+
+  function toggleField(name: string, checked: boolean) {
+    setEnabledFields((prev) => ({ ...prev, [name]: checked }));
+  }
+
+  // Build the payload with only enabled fields
+  const enabledData: FormData = {};
+  for (const key of Object.keys(enabledFields)) {
+    if (enabledFields[key]) {
+      enabledData[key] = formData[key];
+    }
+  }
+
+  const payload = { ids: selectedIds, data: enabledData };
+  const enabledCount = Object.values(enabledFields).filter(Boolean).length;
+
+  const mutation = useDatabaseMutation(
+    ModelData.update_api_url + "/bulk-update",
+    payload,
+    query_invalidation
+  );
+
+  async function handleSubmit() {
+    await mutation.mutate();
+    if (!mutation.isError) {
+      setRowSelection({});
+    }
+  }
+
+  // Clear selection on success
+  React.useEffect(() => {
+    if (mutation.isSuccess) {
+      setRowSelection({});
+    }
+  }, [mutation.isSuccess, setRowSelection]);
+
+  if (selectedIds.length === 0) {
+    return <p className="py-2 text-muted-foreground">No rows selected.</p>;
+  }
+
+  return (
+    <div className="space-y-6 max-h-[70vh] overflow-y-auto">
+      <p className="text-sm text-muted-foreground">
+        Editing <strong>{selectedIds.length}</strong> selected row{selectedIds.length !== 1 && "s"}.
+        Enable the fields you want to change.
+      </p>
+
+      <div className="space-y-4">
+        {editableAttributes.map((attr) => {
+          const enabled = !!enabledFields[attr.name];
+          return (
+            <div key={attr.name} className="border rounded-md p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Checkbox
+                  checked={enabled}
+                  onCheckedChange={(checked) => toggleField(attr.name, !!checked)}
+                  className="w-5 h-5 border-2"
+                  id={`bulk-enable-${attr.name}`}
+                />
+                <Label htmlFor={`bulk-enable-${attr.name}`} className="capitalize cursor-pointer">
+                  {attr.name.replace(/_/g, " ")}
+                </Label>
+              </div>
+              <div className={enabled ? "" : "opacity-40 pointer-events-none"}>
+                <FormElement
+                  entry_data={attr}
+                  change_datetime={change_datetime}
+                  formData={formData}
+                  setFormData={setFormData}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="pt-2 border-t">
+        <Button
+          variant="default"
+          onClick={handleSubmit}
+          disabled={enabledCount === 0 || mutation.isPending}
+        >
+          Update {selectedIds.length} Row{selectedIds.length !== 1 && "s"}
+        </Button>
+
+        {mutation.isPending && (
+          <p className="text-sm text-muted-foreground mt-2">Updating entries...</p>
+        )}
+        {mutation.isError && (
+          <div className="text-sm text-red-600 mt-2">
+            An error occurred: {mutation.error?.message}
+          </div>
+        )}
+        {mutation.isSuccess && (
+          <div className="text-sm text-green-600 mt-2">
+            Updated {(mutation.data as any)?.updated ?? selectedIds.length} rows!
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
