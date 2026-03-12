@@ -30,6 +30,7 @@ import {
 } from "@bcl32/utils/Dropdown";
 
 import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
 import ViewColumnIcon from "@mui/icons-material/ViewColumn";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { DataTablePagination } from "./TablePagination";
@@ -37,6 +38,7 @@ import { DataTablePagination } from "./TablePagination";
 import { DialogButton } from "@bcl32/utils/DialogButton";
 import { Button } from "@bcl32/utils/Button";
 import { AddModelForm } from "@bcl32/forms/AddModelForm";
+import { BulkEditModelForm } from "@bcl32/forms/BulkEditModelForm";
 import { DeleteModelForm } from "@bcl32/forms/DeleteModelForm";
 import type { ModelData, RowData } from "@bcl32/data-utils";
 
@@ -165,6 +167,28 @@ export function DataTable<TData extends RowData>(
             })}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {props.ModelData.update_api_url && (
+        <DialogButton
+          className="display: inline-block"
+          key={"dialog-bulk-edit"}
+          isModal={true}
+          size="medium"
+          button={
+            <Button>
+              <EditIcon /> {"Bulk Edit"}
+            </Button>
+          }
+          title={`Bulk Edit ${props.ModelData.model_name || "Entries"}`}
+        >
+          <BulkEditModelForm
+            ModelData={props.ModelData as ModelData & { update_api_url: string }}
+            query_invalidation={props.query_invalidation || []}
+            rowSelection={rowSelection}
+            setRowSelection={setRowSelection}
+          />
+        </DialogButton>
+      )}
 
       <DialogButton
         className="display: inline-block"
