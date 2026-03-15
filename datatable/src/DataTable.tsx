@@ -96,7 +96,7 @@ export function DataTable<TData extends RowData>(
     getPaginationRowModel: getPaginationRowModel(),
     initialState: {
       pagination: {
-        pageSize: props.pageSize || 10,
+        pageSize: props.pageSize || 9999,
       },
     },
   });
