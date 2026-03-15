@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.4.0 (2026-03-15)
+
+### Features
+
+- add ColourField component and bulk edit merge mode
+
 ## 2.3.1 (2026-03-15)
 
 ### Refactors
