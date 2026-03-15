@@ -43,6 +43,14 @@ export function BulkEditModelForm({
   const [formData, setFormData] = React.useState<FormData>(form_defaults);
   const [enabledFields, setEnabledFields] = React.useState<Record<string, boolean>>({});
 
+  // For list-type fields, default to merge mode (add to existing)
+  const listFieldNames = editableAttributes.filter((a) => a.type === "list").map((a) => a.name);
+  const [mergeMode, setMergeMode] = React.useState<Record<string, boolean>>(() => {
+    const defaults: Record<string, boolean> = {};
+    listFieldNames.forEach((name) => { defaults[name] = true; });
+    return defaults;
+  });
+
   function change_datetime(value: Dayjs | null, name: string) {
     setFormData((prev) => ({ ...prev, [name]: value }));
     const element = document.getElementById("input_" + name);
@@ -63,7 +71,9 @@ export function BulkEditModelForm({
     }
   }
 
-  const payload = { ids: selectedIds, data: enabledData };
+  // Build merge_fields from enabled list-type fields with merge mode on
+  const merge_fields = Object.keys(enabledData).filter((key) => mergeMode[key]);
+  const payload = { ids: selectedIds, data: enabledData, merge_fields };
   const enabledCount = Object.values(enabledFields).filter(Boolean).length;
 
   const mutation = useDatabaseMutation(
@@ -120,6 +130,21 @@ export function BulkEditModelForm({
                   formData={formData}
                   setFormData={setFormData}
                 />
+                {attr.type === "list" && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <Checkbox
+                      checked={!!mergeMode[attr.name]}
+                      onCheckedChange={(checked) =>
+                        setMergeMode((prev) => ({ ...prev, [attr.name]: !!checked }))
+                      }
+                      className="w-4 h-4"
+                      id={`bulk-merge-${attr.name}`}
+                    />
+                    <Label htmlFor={`bulk-merge-${attr.name}`} className="text-xs text-muted-foreground cursor-pointer">
+                      Add to existing (uncheck to replace all)
+                    </Label>
+                  </div>
+                )}
               </div>
             </div>
           );

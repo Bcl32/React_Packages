@@ -36,6 +36,10 @@
     "./ButtonDatePicker": {
       "types": "./dist/ButtonDatePicker.d.ts",
       "import": "./dist/ButtonDatePicker.js"
+    },
+    "./ColourField": {
+      "types": "./dist/ColourField.d.ts",
+      "import": "./dist/ColourField.js"
     }
   },
   "files": [

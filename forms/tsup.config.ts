@@ -8,6 +8,7 @@ export default defineConfig({
     "src/DeleteModelForm.tsx",
     "src/FormElement.tsx",
     "src/ButtonDatePicker.tsx",
+    "src/ColourField.tsx",
     "src/index.ts"
   ],
   format: ["esm"],

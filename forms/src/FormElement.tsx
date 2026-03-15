@@ -22,6 +22,7 @@ import TextField from "@mui/material/TextField";
 import { useGetRequest } from "@bcl32/hooks/useGetRequest";
 import type { ModelAttribute, ReferenceInfo } from "@bcl32/data-utils";
 import ButtonDatePicker from "./ButtonDatePicker";
+import { ColourField } from "./ColourField";
 
 interface LabelWithHelpProps {
   htmlFor: string;
@@ -338,6 +339,14 @@ export function FormElement({
             />
           </LocalizationProvider>
         </div>
+      );
+    case "colour":
+      return (
+        <ColourField
+          entry_data={entry_data}
+          formData={formData}
+          setFormData={setFormData}
+        />
       );
     case "id":
       if (entry_data.reference) {
