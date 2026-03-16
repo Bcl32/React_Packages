@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -133,6 +133,15 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Tag published versions
+        run: |
+          for pkg in utils data-utils hooks; do
+            tag="@bcl32/${pkg}@$(node -p "require('./${pkg}/package.json').version")"
+            if ! git tag -l "$tag" | grep -q "$tag"; then
+              git tag "$tag" && git push origin "$tag" && echo "Tagged: $tag"
+            fi
+          done
+
   publish-tier-1:
     needs: [detect-changes, publish-tier-0]
     if: |
@@ -226,6 +235,15 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Tag published versions
+        run: |
+          for pkg in themes forms charts navigation; do
+            tag="@bcl32/${pkg}@$(node -p "require('./${pkg}/package.json').version")"
+            if ! git tag -l "$tag" | grep -q "$tag"; then
+              git tag "$tag" && git push origin "$tag" && echo "Tagged: $tag"
+            fi
+          done
+
   publish-tier-2:
     needs: [detect-changes, publish-tier-1]
     if: |
@@ -290,3 +308,12 @@ jobs:
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag published versions
+        run: |
+          for pkg in datatable filters; do
+            tag="@bcl32/${pkg}@$(node -p "require('./${pkg}/package.json').version")"
+            if ! git tag -l "$tag" | grep -q "$tag"; then
+              git tag "$tag" && git push origin "$tag" && echo "Tagged: $tag"
+            fi
+          done
