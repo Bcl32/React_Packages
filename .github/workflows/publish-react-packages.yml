@@ -137,8 +137,10 @@ jobs:
         run: |
           for pkg in utils data-utils hooks; do
             tag="@bcl32/${pkg}@$(node -p "require('./${pkg}/package.json').version")"
-            if ! git tag -l "$tag" | grep -q "$tag"; then
+            if ! git ls-remote --tags origin "refs/tags/$tag" | grep -q "$tag"; then
               git tag "$tag" && git push origin "$tag" && echo "Tagged: $tag"
+            else
+              echo "Tag $tag already exists, skipping"
             fi
           done
 
@@ -239,8 +241,10 @@ jobs:
         run: |
           for pkg in themes forms charts navigation; do
             tag="@bcl32/${pkg}@$(node -p "require('./${pkg}/package.json').version")"
-            if ! git tag -l "$tag" | grep -q "$tag"; then
+            if ! git ls-remote --tags origin "refs/tags/$tag" | grep -q "$tag"; then
               git tag "$tag" && git push origin "$tag" && echo "Tagged: $tag"
+            else
+              echo "Tag $tag already exists, skipping"
             fi
           done
 
@@ -313,7 +317,9 @@ jobs:
         run: |
           for pkg in datatable filters; do
             tag="@bcl32/${pkg}@$(node -p "require('./${pkg}/package.json').version")"
-            if ! git tag -l "$tag" | grep -q "$tag"; then
+            if ! git ls-remote --tags origin "refs/tags/$tag" | grep -q "$tag"; then
               git tag "$tag" && git push origin "$tag" && echo "Tagged: $tag"
+            else
+              echo "Tag $tag already exists, skipping"
             fi
           done
