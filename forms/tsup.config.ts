@@ -9,6 +9,7 @@ export default defineConfig({
     "src/FormElement.tsx",
     "src/ButtonDatePicker.tsx",
     "src/ColourField.tsx",
+    "src/ColourArrayField.tsx",
     "src/index.ts"
   ],
   format: ["esm"],

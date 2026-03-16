@@ -21,12 +21,14 @@ interface RowActionsProps<TData extends { id: string | number }> {
   row: Row<TData>;
   ModelData: ModelData & { update_api_url: string };
   query_invalidation: string[];
+  onEditSuccess?: (formData: Record<string, unknown>, objData: Record<string, unknown>) => void;
 }
 
 export function RowActions<TData extends { id: string | number }>({
   row,
   ModelData,
   query_invalidation,
+  onEditSuccess,
 }: RowActionsProps<TData>): JSX.Element {
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const [hasOpenDialog, setHasOpenDialog] = React.useState(false);
@@ -89,6 +91,7 @@ export function RowActions<TData extends { id: string | number }>({
             ModelData={ModelData}
             query_invalidation={query_invalidation}
             obj_data={row.original}
+            onSuccess={onEditSuccess}
           />
         </DialogButton>
 

@@ -58,6 +58,7 @@ interface DataTableProps<TData extends RowData> {
   cellClassName?: string;
   maxCellHeight?: number;
   pageSize?: number;
+  onBulkEditSuccess?: (selectedIds: string[], enabledData: Record<string, unknown>) => void;
 }
 
 export function DataTable<TData extends RowData>(
@@ -186,6 +187,7 @@ export function DataTable<TData extends RowData>(
             query_invalidation={props.query_invalidation || []}
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
+            onSuccess={props.onBulkEditSuccess}
           />
         </DialogButton>
       )}

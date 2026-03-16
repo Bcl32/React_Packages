@@ -24,12 +24,14 @@ interface EditModelFormProps {
   query_invalidation: string[];
   obj_data: ObjData;
   processing_function?: () => void;
+  onSuccess?: (formData: FormData, objData: ObjData) => void;
 }
 
 export function EditModelForm({
   ModelData,
   query_invalidation,
   obj_data,
+  onSuccess,
   ...props
 }: EditModelFormProps) {
   const [formData, setFormData] = React.useState<FormData>(obj_data);
@@ -59,6 +61,12 @@ export function EditModelForm({
     query_invalidation,
     "PATCH"
   );
+
+  React.useEffect(() => {
+    if (mutation_update_entry.isSuccess) {
+      onSuccess?.(formData, obj_data);
+    }
+  }, [mutation_update_entry.isSuccess]);
 
   return (
     <div className="space-y-6 max-h-[70vh] overflow-y-auto">

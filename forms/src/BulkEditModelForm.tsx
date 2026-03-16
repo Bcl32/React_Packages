@@ -24,6 +24,7 @@ interface BulkEditModelFormProps {
   query_invalidation: string[];
   rowSelection: RowSelection;
   setRowSelection: React.Dispatch<React.SetStateAction<RowSelection>>;
+  onSuccess?: (selectedIds: string[], enabledData: FormData) => void;
 }
 
 export function BulkEditModelForm({
@@ -31,6 +32,7 @@ export function BulkEditModelForm({
   query_invalidation,
   rowSelection,
   setRowSelection,
+  onSuccess,
 }: BulkEditModelFormProps) {
   const selectedIds = Object.keys(rowSelection);
   const editableAttributes = ModelData.model_attributes.filter((a) => a.editable);
@@ -44,7 +46,7 @@ export function BulkEditModelForm({
   const [enabledFields, setEnabledFields] = React.useState<Record<string, boolean>>({});
 
   // For list-type fields, default to merge mode (add to existing)
-  const listFieldNames = editableAttributes.filter((a) => a.type === "list").map((a) => a.name);
+  const listFieldNames = editableAttributes.filter((a) => a.type === "list" || a.type === "colour_array").map((a) => a.name);
   const [mergeMode, setMergeMode] = React.useState<Record<string, boolean>>(() => {
     const defaults: Record<string, boolean> = {};
     listFieldNames.forEach((name) => { defaults[name] = true; });
@@ -82,19 +84,25 @@ export function BulkEditModelForm({
     query_invalidation
   );
 
+  const submittedIdsRef = React.useRef<string[]>([]);
+  const submittedDataRef = React.useRef<FormData>({});
+
   async function handleSubmit() {
+    submittedIdsRef.current = [...selectedIds];
+    submittedDataRef.current = { ...enabledData };
     await mutation.mutate();
     if (!mutation.isError) {
       setRowSelection({});
     }
   }
 
-  // Clear selection on success
+  // Clear selection and fire callback on success
   React.useEffect(() => {
     if (mutation.isSuccess) {
       setRowSelection({});
+      onSuccess?.(submittedIdsRef.current, submittedDataRef.current);
     }
-  }, [mutation.isSuccess, setRowSelection]);
+  }, [mutation.isSuccess]);
 
   if (selectedIds.length === 0) {
     return <p className="py-2 text-muted-foreground">No rows selected.</p>;
@@ -130,7 +138,7 @@ export function BulkEditModelForm({
                   formData={formData}
                   setFormData={setFormData}
                 />
-                {attr.type === "list" && (
+                {(attr.type === "list" || attr.type === "colour_array") && (
                   <div className="flex items-center gap-2 mt-2">
                     <Checkbox
                       checked={!!mergeMode[attr.name]}

@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/forms",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Forms to add new entities to the databases",
   "author": "",
   "license": "ISC",
@@ -40,6 +40,10 @@
     "./ColourField": {
       "types": "./dist/ColourField.d.ts",
       "import": "./dist/ColourField.js"
+    },
+    "./ColourArrayField": {
+      "types": "./dist/ColourArrayField.d.ts",
+      "import": "./dist/ColourArrayField.js"
     }
   },
   "files": [

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.5.0 (2026-03-16)
+
+### Features
+
+- add ColourArrayField and edit success callbacks
+
 ## 2.4.0 (2026-03-15)
 
 ### Features

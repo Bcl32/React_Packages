@@ -23,6 +23,7 @@ import { useGetRequest } from "@bcl32/hooks/useGetRequest";
 import type { ModelAttribute, ReferenceInfo } from "@bcl32/data-utils";
 import ButtonDatePicker from "./ButtonDatePicker";
 import { ColourField } from "./ColourField";
+import { ColourArrayField } from "./ColourArrayField";
 
 interface LabelWithHelpProps {
   htmlFor: string;
@@ -343,6 +344,14 @@ export function FormElement({
     case "colour":
       return (
         <ColourField
+          entry_data={entry_data}
+          formData={formData}
+          setFormData={setFormData}
+        />
+      );
+    case "colour_array":
+      return (
+        <ColourArrayField
           entry_data={entry_data}
           formData={formData}
           setFormData={setFormData}

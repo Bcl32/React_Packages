@@ -19,6 +19,7 @@ interface ColumnGeneratorProps {
   query_invalidation: string[];
   ModelData: ModelData & { update_api_url: string };
   add_edit?: boolean;
+  onEditSuccess?: (formData: Record<string, unknown>, objData: Record<string, unknown>) => void;
 }
 
 const columnHelper = createColumnHelper<RowData>();
@@ -28,6 +29,7 @@ export function ColumnGenerator({
   query_invalidation,
   ModelData,
   add_edit = true,
+  onEditSuccess,
 }: ColumnGeneratorProps): ColumnDef<RowData, unknown>[] {
   const edit_column: ColumnDef<RowData, unknown> = {
     id: "EditEntry",
@@ -53,6 +55,7 @@ export function ColumnGenerator({
               ModelData={ModelData}
               query_invalidation={query_invalidation}
               obj_data={row.original}
+              onSuccess={onEditSuccess}
             />
           </DialogButton>
         </div>
@@ -67,6 +70,7 @@ export function ColumnGenerator({
         row={row}
         ModelData={ModelData}
         query_invalidation={query_invalidation}
+        onEditSuccess={onEditSuccess}
       />
     ),
     header: () => null,
