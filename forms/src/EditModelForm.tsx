@@ -11,6 +11,7 @@ import { useDatabaseMutation } from "@bcl32/hooks/useDatabaseMutation";
 import { Button } from "@bcl32/utils/Button";
 import type { ModelData } from "@bcl32/data-utils";
 
+import { toast } from "sonner";
 import { FormElement, type FormData } from "./FormElement";
 
 type EditModelData = ModelData & { update_api_url: string };
@@ -25,6 +26,7 @@ interface EditModelFormProps {
   obj_data: ObjData;
   processing_function?: () => void;
   onSuccess?: (formData: FormData, objData: ObjData) => void;
+  onClose?: () => void;
 }
 
 export function EditModelForm({
@@ -32,6 +34,7 @@ export function EditModelForm({
   query_invalidation,
   obj_data,
   onSuccess,
+  onClose,
   ...props
 }: EditModelFormProps) {
   const [formData, setFormData] = React.useState<FormData>(obj_data);
@@ -64,6 +67,8 @@ export function EditModelForm({
 
   React.useEffect(() => {
     if (mutation_update_entry.isSuccess) {
+      toast.success("Entry updated");
+      onClose?.();
       onSuccess?.(formData, obj_data);
     }
   }, [mutation_update_entry.isSuccess]);
@@ -101,7 +106,7 @@ export function EditModelForm({
             An error occurred: {mutation_update_entry.error?.message}
           </div>
         )}
-        {mutation_update_entry.isSuccess && (
+        {mutation_update_entry.isSuccess && !onClose && (
           <div className="text-sm text-green-600 mt-2">Entry Edited!</div>
         )}
       </div>

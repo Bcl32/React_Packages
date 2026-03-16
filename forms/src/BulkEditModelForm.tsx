@@ -13,6 +13,7 @@ import { Checkbox } from "@bcl32/utils/Checkbox";
 import { Label } from "@bcl32/utils/Label";
 import { getFormDefault, type ModelData } from "@bcl32/data-utils";
 
+import { toast } from "sonner";
 import { FormElement, type FormData } from "./FormElement";
 
 interface RowSelection {
@@ -25,6 +26,7 @@ interface BulkEditModelFormProps {
   rowSelection: RowSelection;
   setRowSelection: React.Dispatch<React.SetStateAction<RowSelection>>;
   onSuccess?: (selectedIds: string[], enabledData: FormData) => void;
+  onClose?: () => void;
 }
 
 export function BulkEditModelForm({
@@ -33,6 +35,7 @@ export function BulkEditModelForm({
   rowSelection,
   setRowSelection,
   onSuccess,
+  onClose,
 }: BulkEditModelFormProps) {
   const selectedIds = Object.keys(rowSelection);
   const editableAttributes = ModelData.model_attributes.filter((a) => a.editable);
@@ -99,6 +102,9 @@ export function BulkEditModelForm({
   // Clear selection and fire callback on success
   React.useEffect(() => {
     if (mutation.isSuccess) {
+      const count = (mutation.data as any)?.updated ?? submittedIdsRef.current.length;
+      toast.success(`${count} ${count === 1 ? "entry" : "entries"} updated`);
+      onClose?.();
       setRowSelection({});
       onSuccess?.(submittedIdsRef.current, submittedDataRef.current);
     }
@@ -176,7 +182,7 @@ export function BulkEditModelForm({
             An error occurred: {mutation.error?.message}
           </div>
         )}
-        {mutation.isSuccess && (
+        {mutation.isSuccess && !onClose && (
           <div className="text-sm text-green-600 mt-2">
             Updated {(mutation.data as any)?.updated ?? selectedIds.length} rows!
           </div>

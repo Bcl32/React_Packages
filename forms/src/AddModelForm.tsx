@@ -11,6 +11,7 @@ import { useDatabaseMutation } from "@bcl32/hooks/useDatabaseMutation";
 import { Button } from "@bcl32/utils/Button";
 import { getFormDefault, type ModelData } from "@bcl32/data-utils";
 
+import { toast } from "sonner";
 import { FormElement, type FormData } from "./FormElement";
 
 interface AddModelFormProps {
@@ -18,6 +19,8 @@ interface AddModelFormProps {
   add_api_url: string;
   query_invalidation: string[];
   processing_function?: () => void;
+  onClose?: () => void;
+  onSuccess?: () => void;
 }
 
 export function AddModelForm(props: AddModelFormProps) {
@@ -55,6 +58,14 @@ export function AddModelForm(props: AddModelFormProps) {
     props.query_invalidation
   );
 
+  React.useEffect(() => {
+    if (mutation_add_entry.isSuccess) {
+      toast.success("Entry created");
+      props.onClose?.();
+      props.onSuccess?.();
+    }
+  }, [mutation_add_entry.isSuccess]);
+
   return (
     <div className="space-y-6 max-h-[70vh] overflow-y-auto">
       <form className="grid grid-cols-2 gap-x-6 gap-y-3">
@@ -88,7 +99,7 @@ export function AddModelForm(props: AddModelFormProps) {
             An error occurred: {mutation_add_entry.error?.message}
           </div>
         )}
-        {mutation_add_entry.isSuccess && (
+        {mutation_add_entry.isSuccess && !props.onClose && (
           <div className="text-sm text-green-600 mt-2">Entry Added!</div>
         )}
       </div>

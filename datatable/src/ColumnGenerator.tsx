@@ -1,3 +1,4 @@
+import * as React from "react";
 import { createColumnHelper, type ColumnDef, type Row } from "@tanstack/react-table";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -13,6 +14,43 @@ import { Button } from "@bcl32/utils/Button";
 
 import { dayjs_sorter } from "@bcl32/data-utils/dayjs_sorter";
 import type { ModelData, RowData } from "@bcl32/data-utils";
+
+interface EditCellProps {
+  row: Row<RowData>;
+  ModelData: ModelData & { update_api_url: string };
+  query_invalidation: string[];
+  onEditSuccess?: (formData: Record<string, unknown>, objData: Record<string, unknown>) => void;
+}
+
+function EditCell({ row, ModelData, query_invalidation, onEditSuccess }: EditCellProps) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div>
+      <DialogButton
+        key={"dialog-" + row.original.id}
+        size="medium"
+        open={open}
+        onOpenChange={setOpen}
+        button={
+          <Button size="icon">
+            <EditIcon />
+          </Button>
+        }
+        variant="default"
+        title="Edit Entry"
+      >
+        <EditModelForm
+          key={"entryform_edit_data_entry"}
+          ModelData={ModelData}
+          query_invalidation={query_invalidation}
+          obj_data={row.original}
+          onSuccess={onEditSuccess}
+          onClose={() => setOpen(false)}
+        />
+      </DialogButton>
+    </div>
+  );
+}
 
 interface ColumnGeneratorProps {
   custom_columns: ColumnDef<RowData, unknown>[];
@@ -36,31 +74,14 @@ export function ColumnGenerator({
     header: () => <span>Edit</span>,
     minSize: 10,
     maxSize: 10,
-    cell: ({ row }) => {
-      return (
-        <div>
-          <DialogButton
-            key={"dialog-" + row.original.id}
-            size="medium"
-            button={
-              <Button size="icon">
-                <EditIcon />
-              </Button>
-            }
-            variant="default"
-            title="Edit Entry"
-          >
-            <EditModelForm
-              key={"entryform_edit_data_entry"}
-              ModelData={ModelData}
-              query_invalidation={query_invalidation}
-              obj_data={row.original}
-              onSuccess={onEditSuccess}
-            />
-          </DialogButton>
-        </div>
-      );
-    },
+    cell: ({ row }) => (
+      <EditCell
+        row={row}
+        ModelData={ModelData}
+        query_invalidation={query_invalidation}
+        onEditSuccess={onEditSuccess}
+      />
+    ),
   };
 
   const action_column: ColumnDef<RowData, unknown> = {

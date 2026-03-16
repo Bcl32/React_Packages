@@ -92,6 +92,7 @@ export function RowActions<TData extends { id: string | number }>({
             query_invalidation={query_invalidation}
             obj_data={row.original}
             onSuccess={onEditSuccess}
+            onClose={() => handleDialogItemOpenChange(false)}
           />
         </DialogButton>
 

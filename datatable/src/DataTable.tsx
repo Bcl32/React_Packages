@@ -66,6 +66,10 @@ export function DataTable<TData extends RowData>(
 ): JSX.Element {
   const [rowSelection, setRowSelection] = React.useState<Record<string, boolean>>({});
 
+  const [addDialogOpen, setAddDialogOpen] = React.useState(false);
+  const [bulkEditDialogOpen, setBulkEditDialogOpen] = React.useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(
     props.columnVisibility || {}
   );
@@ -124,6 +128,8 @@ export function DataTable<TData extends RowData>(
           className="display: inline-block"
           key={"dialog-add-entry"}
           size="medium"
+          open={addDialogOpen}
+          onOpenChange={setAddDialogOpen}
           button={
             <Button>
               <AddIcon />
@@ -138,6 +144,7 @@ export function DataTable<TData extends RowData>(
             add_api_url={props.add_api_url || ""}
             ModelData={props.ModelData}
             query_invalidation={props.query_invalidation || []}
+            onClose={() => setAddDialogOpen(false)}
           />
         </DialogButton>
       )}
@@ -175,6 +182,8 @@ export function DataTable<TData extends RowData>(
           key={"dialog-bulk-edit"}
           isModal={true}
           size="medium"
+          open={bulkEditDialogOpen}
+          onOpenChange={setBulkEditDialogOpen}
           button={
             <Button>
               <EditIcon /> {"Bulk Edit"}
@@ -188,6 +197,7 @@ export function DataTable<TData extends RowData>(
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
             onSuccess={props.onBulkEditSuccess}
+            onClose={() => setBulkEditDialogOpen(false)}
           />
         </DialogButton>
       )}
@@ -196,6 +206,8 @@ export function DataTable<TData extends RowData>(
         className="display: inline-block"
         key={"dialog-delete-entry"}
         isModal={true}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
         button={
           <Button>
             <DeleteIcon /> {"Delete"}
@@ -209,6 +221,7 @@ export function DataTable<TData extends RowData>(
           query_invalidation={props.query_invalidation || []}
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
+          onClose={() => setDeleteDialogOpen(false)}
         />
       </DialogButton>
 
