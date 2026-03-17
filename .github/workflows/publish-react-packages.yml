@@ -3,19 +3,7 @@ name: Publish React Packages
 on:
   push:
     paths:
-      - '.github/workflows/**'
-      - 'package.json'
-      - 'pnpm-workspace.yaml'
-      - 'pnpm-lock.yaml'
-      - 'utils/**'
-      - 'data-utils/**'
-      - 'hooks/**'
-      - 'themes/**'
-      - 'forms/**'
-      - 'charts/**'
-      - 'navigation/**'
-      - 'datatable/**'
-      - 'filters/**'
+      - '.changeset/**'
     branches:
       - main
   workflow_dispatch:
@@ -25,52 +13,12 @@ permissions:
   packages: write
 
 jobs:
-  detect-changes:
+  release:
     runs-on: ubuntu-latest
-    outputs:
-      utils: ${{ steps.filter.outputs.utils }}
-      data-utils: ${{ steps.filter.outputs.data-utils }}
-      hooks: ${{ steps.filter.outputs.hooks }}
-      themes: ${{ steps.filter.outputs.themes }}
-      forms: ${{ steps.filter.outputs.forms }}
-      charts: ${{ steps.filter.outputs.charts }}
-      navigation: ${{ steps.filter.outputs.navigation }}
-      datatable: ${{ steps.filter.outputs.datatable }}
-      filters: ${{ steps.filter.outputs.filters }}
     steps:
       - uses: actions/checkout@v4
-
-      - uses: dorny/paths-filter@v3
-        id: filter
         with:
-          filters: |
-            utils:
-              - 'utils/**'
-            data-utils:
-              - 'data-utils/**'
-            hooks:
-              - 'hooks/**'
-            themes:
-              - 'themes/**'
-            forms:
-              - 'forms/**'
-            charts:
-              - 'charts/**'
-            navigation:
-              - 'navigation/**'
-            datatable:
-              - 'datatable/**'
-            filters:
-              - 'filters/**'
-
-  publish-tier-0:
-    needs: detect-changes
-    if: |
-      always() &&
-      (needs.detect-changes.outputs.utils == 'true' || needs.detect-changes.outputs.data-utils == 'true' || needs.detect-changes.outputs.hooks == 'true' || github.event_name == 'workflow_dispatch')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -85,241 +33,67 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and publish utils
-        if: needs.detect-changes.outputs.utils == 'true' || github.event_name == 'workflow_dispatch'
-        working-directory: utils
+      - name: Check for pending changesets
+        id: changesets
         run: |
-          pnpm run build
-          if ! output=$(pnpm publish --no-git-checks 2>&1); then
-            echo "$output"
-            if echo "$output" | grep -q 'Cannot publish over existing version'; then
-              echo "Version already published — skipping"
-            else
-              exit 1
-            fi
+          # Count changeset files (excluding README.md and config.json)
+          count=$(find .changeset -name '*.md' ! -name 'README.md' | wc -l)
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          if [ "$count" -gt 0 ]; then
+            echo "has_changesets=true" >> "$GITHUB_OUTPUT"
+            echo "Found $count pending changeset(s)"
+          else
+            echo "has_changesets=false" >> "$GITHUB_OUTPUT"
+            echo "No pending changesets found"
           fi
+
+      - name: Version packages
+        if: steps.changesets.outputs.has_changesets == 'true'
+        run: pnpm changeset version
+
+      - name: Build all packages
+        if: steps.changesets.outputs.has_changesets == 'true'
+        run: pnpm -r build
+
+      - name: Publish packages
+        if: steps.changesets.outputs.has_changesets == 'true'
+        run: |
+          pnpm -r publish --no-git-checks 2>&1 | while IFS= read -r line; do
+            echo "$line"
+            # Skip 409 conflict errors (already published)
+            if echo "$line" | grep -q 'Cannot publish over existing version'; then
+              echo "Version already published — skipping"
+            fi
+          done
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and publish data-utils
-        if: needs.detect-changes.outputs.data-utils == 'true' || github.event_name == 'workflow_dispatch'
-        working-directory: data-utils
+      - name: Create git tags
+        if: steps.changesets.outputs.has_changesets == 'true'
         run: |
-          pnpm run build
-          if ! output=$(pnpm publish --no-git-checks 2>&1); then
-            echo "$output"
-            if echo "$output" | grep -q 'Cannot publish over existing version'; then
-              echo "Version already published — skipping"
-            else
-              exit 1
-            fi
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and publish hooks
-        if: needs.detect-changes.outputs.hooks == 'true' || github.event_name == 'workflow_dispatch'
-        working-directory: hooks
-        run: |
-          pnpm run build
-          if ! output=$(pnpm publish --no-git-checks 2>&1); then
-            echo "$output"
-            if echo "$output" | grep -q 'Cannot publish over existing version'; then
-              echo "Version already published — skipping"
-            else
-              exit 1
-            fi
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Tag published versions
-        run: |
-          for pkg in utils data-utils hooks; do
-            tag="@bcl32/${pkg}@$(node -p "require('./${pkg}/package.json').version")"
-            if ! git ls-remote --tags origin "refs/tags/$tag" | grep -q "$tag"; then
-              git tag "$tag" && git push origin "$tag" && echo "Tagged: $tag"
-            else
-              echo "Tag $tag already exists, skipping"
+          for pkg_dir in utils data-utils hooks themes forms charts navigation datatable filters; do
+            pkg_json="$pkg_dir/package.json"
+            if [ -f "$pkg_json" ]; then
+              version=$(node -p "require('./$pkg_json').version")
+              tag="@bcl32/${pkg_dir}@${version}"
+              if ! git ls-remote --tags origin "refs/tags/$tag" | grep -q "$tag"; then
+                git tag "$tag"
+                echo "Created tag: $tag"
+              else
+                echo "Tag $tag already exists, skipping"
+              fi
             fi
           done
 
-  publish-tier-1:
-    needs: [detect-changes, publish-tier-0]
-    if: |
-      always() &&
-      (needs.publish-tier-0.result == 'success' || needs.publish-tier-0.result == 'skipped') &&
-      (needs.detect-changes.outputs.themes == 'true' || needs.detect-changes.outputs.forms == 'true' || needs.detect-changes.outputs.charts == 'true' || needs.detect-changes.outputs.navigation == 'true' || github.event_name == 'workflow_dispatch')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          registry-url: https://npm.pkg.github.com
-          scope: '@bcl32'
-
-      - uses: pnpm/action-setup@v4
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build tier-0 dependencies
+      - name: Commit version changes and push
+        if: steps.changesets.outputs.has_changesets == 'true'
         run: |
-          pnpm --filter @bcl32/utils build
-          pnpm --filter @bcl32/data-utils build
-          pnpm --filter @bcl32/hooks build
-
-      - name: Build and publish themes
-        if: needs.detect-changes.outputs.themes == 'true' || github.event_name == 'workflow_dispatch'
-        working-directory: themes
-        run: |
-          pnpm run build
-          if ! output=$(pnpm publish --no-git-checks 2>&1); then
-            echo "$output"
-            if echo "$output" | grep -q 'Cannot publish over existing version'; then
-              echo "Version already published — skipping"
-            else
-              exit 1
-            fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: version packages [skip ci]"
+            git push --follow-tags
+          else
+            echo "No version changes to commit"
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and publish forms
-        if: needs.detect-changes.outputs.forms == 'true' || github.event_name == 'workflow_dispatch'
-        working-directory: forms
-        run: |
-          pnpm run build
-          if ! output=$(pnpm publish --no-git-checks 2>&1); then
-            echo "$output"
-            if echo "$output" | grep -q 'Cannot publish over existing version'; then
-              echo "Version already published — skipping"
-            else
-              exit 1
-            fi
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and publish charts
-        if: needs.detect-changes.outputs.charts == 'true' || github.event_name == 'workflow_dispatch'
-        working-directory: charts
-        run: |
-          pnpm run build
-          if ! output=$(pnpm publish --no-git-checks 2>&1); then
-            echo "$output"
-            if echo "$output" | grep -q 'Cannot publish over existing version'; then
-              echo "Version already published — skipping"
-            else
-              exit 1
-            fi
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and publish navigation
-        if: needs.detect-changes.outputs.navigation == 'true' || github.event_name == 'workflow_dispatch'
-        working-directory: navigation
-        run: |
-          pnpm run build
-          if ! output=$(pnpm publish --no-git-checks 2>&1); then
-            echo "$output"
-            if echo "$output" | grep -q 'Cannot publish over existing version'; then
-              echo "Version already published — skipping"
-            else
-              exit 1
-            fi
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Tag published versions
-        run: |
-          for pkg in themes forms charts navigation; do
-            tag="@bcl32/${pkg}@$(node -p "require('./${pkg}/package.json').version")"
-            if ! git ls-remote --tags origin "refs/tags/$tag" | grep -q "$tag"; then
-              git tag "$tag" && git push origin "$tag" && echo "Tagged: $tag"
-            else
-              echo "Tag $tag already exists, skipping"
-            fi
-          done
-
-  publish-tier-2:
-    needs: [detect-changes, publish-tier-1]
-    if: |
-      always() &&
-      (needs.publish-tier-1.result == 'success' || needs.publish-tier-1.result == 'skipped') &&
-      (needs.detect-changes.outputs.datatable == 'true' || needs.detect-changes.outputs.filters == 'true' || github.event_name == 'workflow_dispatch')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          registry-url: https://npm.pkg.github.com
-          scope: '@bcl32'
-
-      - uses: pnpm/action-setup@v4
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build tier-0 and tier-1 dependencies
-        run: |
-          pnpm --filter @bcl32/utils build
-          pnpm --filter @bcl32/data-utils build
-          pnpm --filter @bcl32/hooks build
-          pnpm --filter @bcl32/themes build
-          pnpm --filter @bcl32/forms build
-          pnpm --filter @bcl32/charts build
-          pnpm --filter @bcl32/navigation build
-
-      - name: Build and publish datatable
-        if: needs.detect-changes.outputs.datatable == 'true' || github.event_name == 'workflow_dispatch'
-        working-directory: datatable
-        run: |
-          pnpm run build
-          if ! output=$(pnpm publish --no-git-checks 2>&1); then
-            echo "$output"
-            if echo "$output" | grep -q 'Cannot publish over existing version'; then
-              echo "Version already published — skipping"
-            else
-              exit 1
-            fi
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and publish filters
-        if: needs.detect-changes.outputs.filters == 'true' || github.event_name == 'workflow_dispatch'
-        working-directory: filters
-        run: |
-          pnpm run build
-          if ! output=$(pnpm publish --no-git-checks 2>&1); then
-            echo "$output"
-            if echo "$output" | grep -q 'Cannot publish over existing version'; then
-              echo "Version already published — skipping"
-            else
-              exit 1
-            fi
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Tag published versions
-        run: |
-          for pkg in datatable filters; do
-            tag="@bcl32/${pkg}@$(node -p "require('./${pkg}/package.json').version")"
-            if ! git ls-remote --tags origin "refs/tags/$tag" | grep -q "$tag"; then
-              git tag "$tag" && git push origin "$tag" && echo "Tagged: $tag"
-            else
-              echo "Tag $tag already exists, skipping"
-            fi
-          done
