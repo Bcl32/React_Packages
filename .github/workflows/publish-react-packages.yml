@@ -49,7 +49,11 @@ jobs:
 
       - name: Version packages
         if: steps.changesets.outputs.has_changesets == 'true'
-        run: pnpm changeset version
+        run: |
+          pnpm changeset version
+          pnpm install --no-frozen-lockfile
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build all packages
         if: steps.changesets.outputs.has_changesets == 'true'

@@ -21,10 +21,10 @@ importers:
   charts:
     dependencies:
       '@bcl32/hooks':
-        specifier: workspace:^2.0.0
+        specifier: workspace:^2.2.6
         version: link:../hooks
       '@bcl32/utils':
-        specifier: workspace:^2.0.0
+        specifier: workspace:^2.3.5
         version: link:../utils
       '@bokeh/bokehjs':
         specifier: ^2.4.3
@@ -74,16 +74,16 @@ importers:
   datatable:
     dependencies:
       '@bcl32/data-utils':
-        specifier: workspace:^2.0.0
+        specifier: workspace:^2.1.6
         version: link:../data-utils
       '@bcl32/forms':
-        specifier: workspace:^2.0.0
+        specifier: workspace:^2.5.1
         version: link:../forms
       '@bcl32/hooks':
-        specifier: workspace:^2.0.0
+        specifier: workspace:^2.2.6
         version: link:../hooks
       '@bcl32/utils':
-        specifier: workspace:^2.0.0
+        specifier: workspace:^2.3.5
         version: link:../utils
       '@mui/icons-material':
         specifier: ^5.15.7
@@ -126,13 +126,13 @@ importers:
   filters:
     dependencies:
       '@bcl32/charts':
-        specifier: workspace:^2.0.0
+        specifier: workspace:^2.1.5
         version: link:../charts
       '@bcl32/data-utils':
-        specifier: workspace:^2.0.0
+        specifier: workspace:^2.1.6
         version: link:../data-utils
       '@bcl32/utils':
-        specifier: workspace:^2.0.0
+        specifier: workspace:^2.3.5
         version: link:../utils
       '@mui/icons-material':
         specifier: ^5.15.7
@@ -175,13 +175,13 @@ importers:
   forms:
     dependencies:
       '@bcl32/data-utils':
-        specifier: workspace:^2.0.0
+        specifier: workspace:^2.1.6
         version: link:../data-utils
       '@bcl32/hooks':
-        specifier: workspace:^2.0.0
+        specifier: workspace:^2.2.6
         version: link:../hooks
       '@bcl32/utils':
-        specifier: workspace:^2.0.0
+        specifier: workspace:^2.3.5
         version: link:../utils
       '@mui/icons-material':
         specifier: ^5.15.7
@@ -246,7 +246,7 @@ importers:
   navigation:
     dependencies:
       '@bcl32/utils':
-        specifier: workspace:^2.0.0
+        specifier: workspace:^2.3.5
         version: link:../utils
       lucide-react:
         specifier: ^0.447.0
@@ -274,7 +274,7 @@ importers:
   themes:
     dependencies:
       '@bcl32/utils':
-        specifier: workspace:^2.0.0
+        specifier: workspace:^2.3.5
         version: link:../utils
       lucide-react:
         specifier: ^0.447.0
