@@ -17,6 +17,7 @@ const contentVariants = cva(
       size: {
         default: "fixed left-1/2 top-1/2 w-full max-w-md",
         medium: "fixed left-1/2 top-1/2 w-full max-w-2xl",
+        large: "fixed left-1/2 top-1/2 w-full max-w-3xl",
         big: "fixed left-1/2 top-1/2 w-full max-w-screen-2xl h-full max-h-[1000px]",
       },
     },

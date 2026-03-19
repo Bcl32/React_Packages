@@ -49,7 +49,7 @@ export function BulkEditModelForm({
   const [enabledFields, setEnabledFields] = React.useState<Record<string, boolean>>({});
 
   // For list-type fields, default to merge mode (add to existing)
-  const listFieldNames = editableAttributes.filter((a) => a.type === "list" || a.type === "colour_array").map((a) => a.name);
+  const listFieldNames = editableAttributes.filter((a) => a.type === "list").map((a) => a.name);
   const [mergeMode, setMergeMode] = React.useState<Record<string, boolean>>(() => {
     const defaults: Record<string, boolean> = {};
     listFieldNames.forEach((name) => { defaults[name] = true; });
@@ -144,7 +144,7 @@ export function BulkEditModelForm({
                   formData={formData}
                   setFormData={setFormData}
                 />
-                {(attr.type === "list" || attr.type === "colour_array") && (
+                {attr.type === "list" && (
                   <div className="flex items-center gap-2 mt-2">
                     <Checkbox
                       checked={!!mergeMode[attr.name]}
