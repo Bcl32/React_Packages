@@ -30,8 +30,12 @@ export function CalculateFeatureStats(metadata: ModelAttribute[], dataset: DataE
 
     if (item["type"] === "number") {
       const validValues = dataset
-        .map((entry) => entry[name])
-        .filter((val): val is number => val != null && !isNaN(val as number)) as number[];
+        .map((entry) => {
+          const raw = entry[name];
+          const num = typeof raw === "number" ? raw : Number(raw);
+          return num;
+        })
+        .filter((val): val is number => isFinite(val));
 
       const min: StatEntry = {
         name: "min",
@@ -44,13 +48,24 @@ export function CalculateFeatureStats(metadata: ModelAttribute[], dataset: DataE
         value: validValues.length > 0 ? Math.max(...validValues) : 0,
       };
 
-      const bins = bin<DataEntry, number>().value((d) => (d[name] as number) ?? 0)(dataset);
-      const binEntries: BinEntry[] = bins.map((entry) => ({
-        x0: entry.x0,
-        x1: entry.x1,
-        count: entry.length,
-        range: entry.x0 + "-" + entry.x1,
-      }));
+      const minVal = validValues.length > 0 ? Math.min(...validValues) : 0;
+      const maxVal = validValues.length > 0 ? Math.max(...validValues) : 0;
+
+      // d3 bin() can crash with invalid domains (zero-width, Infinity, huge ranges)
+      let binEntries: BinEntry[] = [];
+      if (validValues.length > 1 && minVal !== maxVal && isFinite(minVal) && isFinite(maxVal)) {
+        try {
+          const bins = bin()(validValues);
+          binEntries = bins.map((entry) => ({
+            x0: entry.x0,
+            x1: entry.x1,
+            count: entry.length,
+            range: entry.x0 + "-" + entry.x1,
+          }));
+        } catch {
+          // d3 bin can fail with certain value distributions
+        }
+      }
 
       const bin_stat: StatEntry = {
         name: "bins",
