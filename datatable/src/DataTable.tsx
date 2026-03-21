@@ -110,6 +110,8 @@ export function DataTable<TData extends RowData>(
     // no-op default
   });
 
+  const totalSize = tableInstance.getTotalSize();
+
   const renderSubComponent = props.renderSubComponent || (({ row }: { row: Row<TData> }) => (
     <div className="h-96 overflow-scroll">
       <pre style={{ fontSize: "20px", whiteSpace: "pre-wrap" }}>
@@ -232,15 +234,18 @@ export function DataTable<TData extends RowData>(
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} colSpan={header.colSpan}>
+                    <TableHead
+                      key={header.id}
+                      colSpan={header.colSpan}
+                      style={{
+                        width: `${(header.getSize() / totalSize) * 100}%`,
+                        minWidth: header.column.columnDef.minSize,
+                        maxWidth: header.column.columnDef.maxSize != null && header.column.columnDef.maxSize < Number.MAX_SAFE_INTEGER
+                          ? header.column.columnDef.maxSize : undefined,
+                      }}
+                    >
                       {header.isPlaceholder ? null : (
                         <div
-                          style={{
-                            width:
-                              header.getSize() !== 150
-                                ? header.getSize()
-                                : undefined,
-                          }}
                           className={
                             header.column.getCanSort()
                               ? "cursor-pointer select-none flex min-w-[36px]"
@@ -287,7 +292,10 @@ export function DataTable<TData extends RowData>(
                         key={cell.id}
                         className={props.cellClassName}
                         style={{
-                          width: cell.column.getSize(),
+                          width: `${(cell.column.getSize() / totalSize) * 100}%`,
+                          minWidth: cell.column.columnDef.minSize,
+                          maxWidth: cell.column.columnDef.maxSize != null && cell.column.columnDef.maxSize < Number.MAX_SAFE_INTEGER
+                            ? cell.column.columnDef.maxSize : undefined,
                         }}
                       >
                         {props.maxCellHeight && !(cell.column.columnDef.meta as Record<string, unknown>)?.noMaxHeight ? (

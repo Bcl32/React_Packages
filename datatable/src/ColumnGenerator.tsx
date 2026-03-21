@@ -72,8 +72,9 @@ export function ColumnGenerator({
   const edit_column: ColumnDef<RowData, unknown> = {
     id: "EditEntry",
     header: () => <span>Edit</span>,
-    minSize: 10,
-    maxSize: 10,
+    size: 56,
+    minSize: 56,
+    maxSize: 56,
     cell: ({ row }) => (
       <EditCell
         row={row}
@@ -99,10 +100,12 @@ export function ColumnGenerator({
 
   const select_column: ColumnDef<RowData, unknown> = {
     id: "select",
-    minSize: 10,
-    maxSize: 10,
-    header: ({ table }) => {
-      return (
+    size: 48,
+    minSize: 48,
+    maxSize: 48,
+    meta: { noMaxHeight: true },
+    header: ({ table }) => (
+      <label className="flex items-center -m-4 p-4 pr-0 cursor-pointer">
         <Checkbox
           checked={table.getIsAllRowsSelected()}
           onCheckedChange={(checked) => {
@@ -110,25 +113,27 @@ export function ColumnGenerator({
           }}
           className={"w-5 h-5 border-2"}
         />
-      );
-    },
+      </label>
+    ),
     cell: ({ row }) => (
-      <div className="px-0">
+      <label className="flex items-center -m-4 p-4 pr-0 cursor-pointer">
         <Checkbox
           name={"checkbox" + row.id}
           checked={row.getIsSelected()}
           onCheckedChange={() => row.toggleSelected()}
           className="w-5 h-5"
         />
-      </div>
+      </label>
     ),
   };
 
   const expand_column: ColumnDef<RowData, unknown> = {
     id: "expander",
     header: () => null,
-    minSize: 10,
-    maxSize: 10,
+    size: 24,
+    minSize: 24,
+    maxSize: 24,
+    meta: { noMaxHeight: true },
     cell: ({ row }) => {
       return row.getCanExpand() ? (
         <button
