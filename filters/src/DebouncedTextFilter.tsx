@@ -17,36 +17,51 @@ export function DebouncedTextFilter({ name }: DebouncedTextFilterProps): JSX.Ele
   const filterData = context?.filters?.[name];
   const initialValue = (filterData?.value as string) ?? "";
 
-  //place value in state as when leaving this when inside a tab will remove the state when coming back to the tab
   const [inputValue, setInputValue] = React.useState(initialValue);
-  const [debouncedInputValue, setDebouncedInputValue] = React.useState("");
+  const mountedRef = React.useRef(false);
+
+  // Sync local state when context changes externally (e.g., reset from FiltersSummary)
+  React.useEffect(() => {
+    setInputValue(initialValue);
+  }, [initialValue]);
 
   // Guard: don't render until filter data is available
   if (!filterData || !context) {
     return null;
   }
 
-  //changes original input
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value);
   };
 
-  //debounce the input
+  // Debounce input and push to context
   React.useEffect(() => {
+    // Skip initial mount — context already has the correct value
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
     const timeoutId = setTimeout(() => {
-      setDebouncedInputValue(inputValue);
+      context?.change_filters(name, "value", inputValue);
     }, 500);
     return () => clearTimeout(timeoutId);
-  }, [inputValue]);
-
-  //update state with debounced value
-  React.useEffect(() => {
-    context?.change_filters(name, "value", debouncedInputValue);
-  }, [debouncedInputValue, context, name]);
+  }, [inputValue, name]);
 
   return (
     <div className="flex flex-row items-center justify-between p-1 space-x-1">
       <Label className="capitalize"> {name}:</Label>
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        size="sm"
+        value={filterData["rule"]}
+        onValueChange={(value) => {
+          context?.change_filters(name, "rule", value);
+        }}
+      >
+        <ToggleGroupItem value="contains" className="text-xs px-2 h-7">{"contains"}</ToggleGroupItem>
+        <ToggleGroupItem value="equals" className="text-xs px-2 h-7">{"equals"}</ToggleGroupItem>
+      </ToggleGroup>
       <Input
         variant="background"
         id={"filter_" + name}
@@ -56,18 +71,6 @@ export function DebouncedTextFilter({ name }: DebouncedTextFilterProps): JSX.Ele
         type="text"
         placeholder=""
       />
-
-      <ToggleGroup
-        type="single"
-        variant="outline"
-        value={filterData["rule"]}
-        onValueChange={(value) => {
-          context?.change_filters(name, "rule", value);
-        }}
-      >
-        <ToggleGroupItem value="contains">{"contains"}</ToggleGroupItem>
-        <ToggleGroupItem value="equals">{"equals"}</ToggleGroupItem>
-      </ToggleGroup>
     </div>
   );
 }

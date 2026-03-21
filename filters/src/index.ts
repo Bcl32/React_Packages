@@ -21,6 +21,9 @@ export * from "./GetActiveFilters";
 export * from "./InitializeFilters";
 export * from "./GroupFilters";
 export * from "./ProcessDataset";
+export * from "./useEntityFilters";
+export * from "./FilterProvider";
+export * from "./useFilterContext";
 export type {
   FilterValue,
   Filters,

@@ -5,7 +5,7 @@ dayjs.extend(duration);
 
 import { Button } from "@bcl32/utils/Button";
 import { FilterContext } from "./FilterContext";
-import type { Filters, FilterContextValue, DatetimeFilterValue } from "./types";
+import type { Filters, FilterContextValue, DatetimeFilterValue, NumberRange } from "./types";
 import { capitalize } from "./utils";
 
 interface FiltersSummaryProps {
@@ -50,6 +50,12 @@ export function FiltersSummary({ active_filters }: FiltersSummaryProps): JSX.Ele
                 dayjs(start).format("MMM, D YYYY - h:mma") +
                 "\n End: " +
                 dayjs(end).format("MMM, D YYYY - h:mma");
+            } else if (entry["type"] === "number") {
+              const numValue = context.filters[key]["value"] as NumberRange;
+              filter_value = numValue["min"] + " - " + numValue["max"];
+            } else if (entry["type"] === "list" || entry["type"] === "select") {
+              const arrValue = context.filters[key]["value"] as string[];
+              filter_value = arrValue.join(", ");
             } else {
               filter_value =
                 context.filters[key]["rule"] + " " + context.filters[key]["value"];
@@ -93,7 +99,7 @@ function FiltersEntry({ name, filter_value }: FiltersEntryProps): JSX.Element | 
 
       <Button
         onClick={() =>
-          context.change_filters(name, "value", context.filters[name]["filter_empty"])
+          context.change_filters(name, "value", structuredClone(context.filters[name]["filter_empty"]))
         }
         variant="default"
         size="lg"

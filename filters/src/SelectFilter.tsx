@@ -36,7 +36,7 @@ export function SelectFilter({ name, options }: SelectFilterProps): JSX.Element 
         freeSolo
         multiple
         options={options}
-        value={filterData["value"] as string[]}
+        value={Array.isArray(filterData["value"]) ? filterData["value"] as string[] : []}
         onChange={(_event, value) => handleComboboxChange(name, value as (string | { label: string })[])}
         renderInput={(params) => (
           <TextField

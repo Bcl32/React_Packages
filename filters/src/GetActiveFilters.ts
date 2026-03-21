@@ -1,4 +1,4 @@
-import type { Filters, FilterValue, DatetimeFilterValue } from "./types";
+import type { Filters, FilterValue, DatetimeFilterValue, NumberRange } from "./types";
 
 export function GetActiveFilters(filters: Filters): Filters {
   const active_filters: Filters = {};
@@ -8,11 +8,18 @@ export function GetActiveFilters(filters: Filters): Filters {
 
     switch (filter["type"]) {
       case "string":
-      case "number":
         if (filter["value"] !== filter["filter_empty"]) {
           active_filters[key] = filter;
         }
         break;
+      case "number": {
+        const numValue = filter["value"] as NumberRange;
+        const numEmpty = filter["filter_empty"] as NumberRange;
+        if (numValue["min"] !== numEmpty["min"] || numValue["max"] !== numEmpty["max"]) {
+          active_filters[key] = filter;
+        }
+        break;
+      }
       case "list":
       case "select": {
         const arrValue = filter["value"] as string[];

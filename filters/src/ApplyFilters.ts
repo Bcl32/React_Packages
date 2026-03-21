@@ -33,8 +33,10 @@ export function ApplyFilters(data: unknown[], filters: Filters): DataEntry[] {
       case "number": {
         const numValue = filter["value"] as NumberRange;
         filteredData = filteredData.filter((entry) => {
-          const entryValue = entry?.[key] as number | null | undefined;
-          return entry && entryValue != null && entryValue >= numValue.min && entryValue <= numValue.max;
+          const raw = entry?.[key];
+          if (raw == null) return false;
+          const entryValue = typeof raw === "number" ? raw : Number(raw);
+          return isFinite(entryValue) && entryValue >= numValue.min && entryValue <= numValue.max;
         });
         break;
       }

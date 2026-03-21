@@ -105,6 +105,18 @@
       "types": "./dist/ProcessDataset.d.ts",
       "import": "./dist/ProcessDataset.js"
     },
+    "./useEntityFilters": {
+      "types": "./dist/useEntityFilters.d.ts",
+      "import": "./dist/useEntityFilters.js"
+    },
+    "./FilterProvider": {
+      "types": "./dist/FilterProvider.d.ts",
+      "import": "./dist/FilterProvider.js"
+    },
+    "./useFilterContext": {
+      "types": "./dist/useFilterContext.d.ts",
+      "import": "./dist/useFilterContext.js"
+    },
     "./types": {
       "types": "./dist/types.d.ts",
       "import": "./dist/types.js"

@@ -50,7 +50,7 @@ export function TimeFilter({ name }: TimeFilterProps): JSX.Element | null {
   }
 
   function reset_value() {
-    context?.change_filters(name, "value", filterEmpty);
+    context?.change_filters(name, "value", structuredClone(filterEmpty));
   }
 
   return (

@@ -38,7 +38,7 @@ export function ListFilter({ name, options }: ListFilterProps): JSX.Element | nu
         freeSolo
         multiple
         options={options}
-        value={filterData["value"] as string[]}
+        value={Array.isArray(filterData["value"]) ? filterData["value"] as string[] : []}
         onChange={(_event, value) => handleComboboxChange(name, value as (string | { label: string })[])}
         sx={{
           '& .MuiInputBase-root': {
