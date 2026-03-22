@@ -1,3 +1,0 @@
-#!/bin/bash
-# Version bumping moved to post-commit hook to ensure bumped files
-# are included in the commit via amend. See .githooks/post-commit.
