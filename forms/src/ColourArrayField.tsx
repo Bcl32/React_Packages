@@ -81,7 +81,6 @@ export function ColourArrayField({
   }, [data, groupKey]);
 
   const colours = (formData[name] as string[]) || [];
-  const filamentIds = (formData[idsKey] as (string | null)[]) || [];
 
   React.useEffect(() => {
     if (!open && editingIndex === null) return;
