@@ -2,9 +2,10 @@
 # Pre-commit hook: ensure pnpm-lock.yaml is updated when any package.json changes
 
 if git diff --cached --name-only | grep -q 'package.json'; then
-  if ! git diff --cached --name-only | grep -q 'pnpm-lock.yaml'; then
+  # Only fail if the lockfile is actually out of date (pnpm install --frozen-lockfile fails)
+  if ! pnpm install --frozen-lockfile --silent 2>/dev/null; then
     echo ""
-    echo "ERROR: A package.json was modified but pnpm-lock.yaml is not staged."
+    echo "ERROR: A package.json was modified but pnpm-lock.yaml is out of date."
     echo ""
     echo "  Run 'pnpm install' and stage the lockfile:"
     echo "    pnpm install && git add pnpm-lock.yaml"
