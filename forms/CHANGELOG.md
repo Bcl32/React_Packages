@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.5.2
+
+### Patch Changes
+
+- 881c819: fix(forms): remove unused React import in ColourPickerPopover
+- 7b18930: fix(forms): remove unused filamentIds variable in ColourArrayField
+- 19d9b2a: Click-to-change colour swatches in ColourArrayField and DialogButton updates
+- Updated dependencies [bf5f36e]
+- Updated dependencies [19d9b2a]
+  - @bcl32/data-utils@2.1.7
+  - @bcl32/utils@2.3.6
+
 ## 2.5.1
 
 ### Patch Changes

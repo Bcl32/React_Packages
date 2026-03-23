@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/forms",
-  "version": "2.5.1",
+  "version": "2.5.2",
   "description": "Forms to add new entities to the databases",
   "author": "",
   "license": "ISC",
@@ -73,9 +73,9 @@
     "sonner": "^2.0.7"
   },
   "dependencies": {
-    "@bcl32/data-utils": "workspace:^2.1.6",
+    "@bcl32/data-utils": "workspace:^2.1.7",
     "@bcl32/hooks": "workspace:^2.2.6",
-    "@bcl32/utils": "workspace:^2.3.5",
+    "@bcl32/utils": "workspace:^2.3.6",
     "@mui/icons-material": "^5.15.7",
     "@mui/material": "^5.15.7",
     "@mui/x-date-pickers": "^6.19.3",
