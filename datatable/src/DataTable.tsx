@@ -129,7 +129,7 @@ export function DataTable<TData extends RowData>(
         <DialogButton
           className="display: inline-block"
           key={"dialog-add-entry"}
-          size="medium"
+          size="large"
           open={addDialogOpen}
           onOpenChange={setAddDialogOpen}
           button={
@@ -183,7 +183,7 @@ export function DataTable<TData extends RowData>(
           className="display: inline-block"
           key={"dialog-bulk-edit"}
           isModal={true}
-          size="medium"
+          size="large"
           open={bulkEditDialogOpen}
           onOpenChange={setBulkEditDialogOpen}
           button={

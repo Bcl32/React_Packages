@@ -28,7 +28,7 @@ function EditCell({ row, ModelData, query_invalidation, onEditSuccess }: EditCel
     <div>
       <DialogButton
         key={"dialog-" + row.original.id}
-        size="medium"
+        size="large"
         open={open}
         onOpenChange={setOpen}
         button={
