@@ -5,14 +5,11 @@ import { CustomTooltip } from "@bcl32/utils/Tooltip";
 import { useGetRequest } from "@bcl32/hooks/useGetRequest";
 import type { ModelAttribute } from "@bcl32/data-utils";
 import type { FormData } from "./FormElement";
+import { ColourPickerPopover, type ColourSwatch } from "./ColourPickerPopover";
 
 interface ColourPresetsInfo {
   get_api_url: string;
-}
-
-interface Swatch {
-  colour_hex: string;
-  colour_name?: string;
+  group_by?: string;
 }
 
 function LabelWithHelp({
@@ -59,22 +56,26 @@ export function ColourField({
     }
   );
 
-  const swatches: Swatch[] = React.useMemo(() => {
-    if (!data?.items) return [];
-    const seen = new Set<string>();
-    const result: Swatch[] = [];
+  const groupKey = colourPresets?.group_by;
+
+  const groupedSwatches = React.useMemo(() => {
+    if (!data?.items) return new Map<string, ColourSwatch[]>();
+    const groups = new Map<string, ColourSwatch[]>();
     for (const item of data.items) {
       const hex = item.colour_hex as string | undefined;
-      if (hex && !seen.has(hex)) {
-        seen.add(hex);
-        result.push({
-          colour_hex: hex,
-          colour_name: item.colour_name as string | undefined,
-        });
-      }
+      if (!hex) continue;
+      const label = groupKey ? ((item[groupKey] as string) || "Other") : "Presets";
+      const swatch: ColourSwatch = {
+        id: item.id as string | undefined,
+        colour_hex: hex,
+        colour_name: item.colour_name as string | undefined,
+      };
+      const group = groups.get(label) || [];
+      group.push(swatch);
+      groups.set(label, group);
     }
-    return result;
-  }, [data]);
+    return groups;
+  }, [data, groupKey]);
 
   const currentColour = (formData[name] as string) || "";
 
@@ -87,8 +88,16 @@ export function ColourField({
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  const handleChange = (colour: string) => {
-    setFormData((prev) => ({ ...prev, [name]: colour }));
+  const handleSelect = (colour: string, filamentId?: string) => {
+    setFormData((prev) => {
+      const next = { ...prev, [name]: colour };
+      const idsKey = name.replace(/_colours?$/, "_ids");
+      if (idsKey !== name) {
+        next[idsKey] = filamentId ? [filamentId] : [null];
+      }
+      return next;
+    });
+    setOpen(false);
   };
 
   return (
@@ -107,43 +116,11 @@ export function ColourField({
             title={currentColour || "No colour — click to set"}
           />
           {open && (
-            <div className="absolute left-0 top-full mt-1 z-10 bg-popover border rounded-lg shadow-lg p-3 w-52">
-              {swatches.length > 0 && (
-                <>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1.5">
-                    Filaments
-                  </p>
-                  <div className="flex flex-wrap gap-1.5 mb-3">
-                    {swatches.map((s) => (
-                      <button
-                        key={s.colour_hex}
-                        type="button"
-                        onClick={() => {
-                          handleChange(s.colour_hex);
-                          setOpen(false);
-                        }}
-                        title={s.colour_name || s.colour_hex}
-                        className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${
-                          currentColour === s.colour_hex
-                            ? "border-primary ring-1 ring-primary"
-                            : "border-border"
-                        }`}
-                        style={{ backgroundColor: s.colour_hex }}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1.5">
-                Custom
-              </p>
-              <input
-                type="color"
-                value={currentColour || "#6b9bd2"}
-                onChange={(e) => handleChange(e.target.value)}
-                className="w-full h-8 rounded border cursor-pointer"
-              />
-            </div>
+            <ColourPickerPopover
+              swatchGroups={groupedSwatches}
+              currentColour={currentColour}
+              onSelect={handleSelect}
+            />
           )}
         </div>
       </div>
