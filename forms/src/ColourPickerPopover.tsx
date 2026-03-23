@@ -1,5 +1,3 @@
-import * as React from "react";
-
 export interface ColourSwatch {
   id?: string;
   colour_hex: string;
