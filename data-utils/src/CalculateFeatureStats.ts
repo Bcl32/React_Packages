@@ -76,7 +76,7 @@ export function CalculateFeatureStats(metadata: ModelAttribute[], dataset: DataE
       stats[name].push(min, max, bin_stat);
     }
 
-    if (item["type"] === "list") {
+    if (item["type"] === "list" || item["type"] === "colour") {
       const counts: Record<string, number> = {};
       const options = new Set<string>();
 

@@ -113,6 +113,10 @@
       "types": "./dist/StatusBanner.d.ts",
       "import": "./dist/StatusBanner.js"
     },
+    "./ColourPickerPopover": {
+      "types": "./dist/ColourPickerPopover.d.ts",
+      "import": "./dist/ColourPickerPopover.js"
+    },
     "./cn": {
       "types": "./dist/cn.d.ts",
       "import": "./dist/cn.js"

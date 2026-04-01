@@ -20,6 +20,7 @@ export function GetActiveFilters(filters: Filters): Filters {
         }
         break;
       }
+      case "colour":
       case "list":
       case "select": {
         const arrValue = filter["value"] as string[];

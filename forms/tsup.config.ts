@@ -10,7 +10,6 @@ export default defineConfig({
     "src/ButtonDatePicker.tsx",
     "src/ColourField.tsx",
     "src/ColourArrayField.tsx",
-    "src/ColourPickerPopover.tsx",
     "src/index.ts"
   ],
   format: ["esm"],

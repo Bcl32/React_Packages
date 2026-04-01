@@ -23,7 +23,7 @@ export function ColourPickerPopover({
     currentColour === hex || (selectedColours?.includes(hex) ?? false);
 
   return (
-    <div className="absolute left-0 top-full mt-1 z-10 bg-popover border rounded-lg shadow-lg p-3 w-80 max-h-96 overflow-y-auto">
+    <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-popover border rounded-lg shadow-lg p-3 w-80 max-h-[80vh] overflow-y-auto">
       {swatchGroups.size > 0 &&
         Array.from(swatchGroups.entries()).map(([groupLabel, swatches]) => (
           <div key={groupLabel} className="mb-3">

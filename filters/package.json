@@ -146,6 +146,7 @@
   },
   "dependencies": {
     "@bcl32/utils": "workspace:^2.3.6",
+    "@bcl32/hooks": "workspace:^2.2.6",
     "@bcl32/data-utils": "workspace:^2.1.7",
     "@bcl32/charts": "workspace:^2.1.5",
     "@radix-ui/react-toggle-group": "^1.1.0",

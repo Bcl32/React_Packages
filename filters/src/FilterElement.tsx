@@ -3,6 +3,7 @@ import { DebouncedNumberFilter } from "./DebouncedNumberFilter";
 import { SelectFilter } from "./SelectFilter";
 import { ListFilter } from "./ListFilter";
 import { TimeFilter } from "./TimeFilter";
+import { ColourFilter } from "./ColourFilter";
 import type { FilterData } from "./types";
 
 interface FilterElementProps {
@@ -43,6 +44,13 @@ function get_chart_type(filter_data: FilterData): JSX.Element {
         <ListFilter
           name={filter_data["name"]}
           options={filter_data["options"] || []}
+        />
+      );
+    case "colour":
+      return (
+        <ColourFilter
+          name={filter_data["name"]}
+          colour_presets={filter_data["colour_presets"]}
         />
       );
     default:

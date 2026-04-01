@@ -27,6 +27,7 @@ export default defineConfig({
     "src/useIsMobile.tsx",
     "src/FileSystem.tsx",
     "src/StatusBanner.tsx",
+    "src/ColourPickerPopover.tsx",
     "src/cn.ts",
     "src/index.ts"
   ],

@@ -44,10 +44,6 @@
     "./ColourArrayField": {
       "types": "./dist/ColourArrayField.d.ts",
       "import": "./dist/ColourArrayField.js"
-    },
-    "./ColourPickerPopover": {
-      "types": "./dist/ColourPickerPopover.d.ts",
-      "import": "./dist/ColourPickerPopover.js"
     }
   },
   "files": [

@@ -25,6 +25,7 @@ export * from "./useIsMobile";
 export * from "./FileSystem";
 
 export * from "./StatusBanner";
+export * from "./ColourPickerPopover";
 
 // Functions
 export * from "./cn";

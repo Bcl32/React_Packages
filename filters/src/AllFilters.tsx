@@ -21,6 +21,7 @@ export function AllFilters(): JSX.Element {
     select_filters,
     list_filters,
     time_filters,
+    colour_filters,
   } = GroupFilters(context.filters);
 
   return (
@@ -49,6 +50,12 @@ export function AllFilters(): JSX.Element {
               })}
 
               {list_filters.map((entry) => {
+                return (
+                  <FilterElement key={entry["name"]} filter_data={entry} />
+                );
+              })}
+
+              {colour_filters.map((entry) => {
                 return (
                   <FilterElement key={entry["name"]} filter_data={entry} />
                 );

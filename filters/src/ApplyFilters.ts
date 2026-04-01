@@ -70,6 +70,22 @@ export function ApplyFilters(data: unknown[], filters: Filters): DataEntry[] {
         break;
       }
 
+      case "colour": {
+        const colourValue = filter["value"] as string[];
+        if (filter["rule"] === "any") {
+          filteredData = filteredData.filter((entry) => {
+            const entryValue = entry?.[key];
+            return entry && entryValue && Array.isArray(entryValue) && colourValue.some((r) => entryValue.includes(r));
+          });
+        } else if (filter["rule"] === "all") {
+          filteredData = filteredData.filter((entry) => {
+            const entryValue = entry?.[key];
+            return entry && entryValue && Array.isArray(entryValue) && colourValue.every((r) => entryValue.includes(r));
+          });
+        }
+        break;
+      }
+
       case "datetime": {
         const dtValue = filter["value"] as DatetimeFilterValue;
         filteredData = filteredData.filter((entry) => {

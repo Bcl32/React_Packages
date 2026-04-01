@@ -12,6 +12,7 @@ export * from "./LineChartFilter";
 export * from "./PieChartFilter";
 export * from "./Histogram";
 export * from "./ListFilter";
+export * from "./ColourFilter";
 export * from "./DebouncedNumberFilter";
 export * from "./DebouncedTextFilter";
 export * from "./TimeEditDialog";
@@ -39,6 +40,7 @@ export type {
   ProcessedDataset,
   DatetimeFilterValue,
   NumberRange,
+  ColourPresetsConfig,
   ClickPayload,
   ChartClickEvent,
 } from "./types";

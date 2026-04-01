@@ -5,7 +5,7 @@ import { CustomTooltip } from "@bcl32/utils/Tooltip";
 import { useGetRequest } from "@bcl32/hooks/useGetRequest";
 import type { ModelAttribute } from "@bcl32/data-utils";
 import type { FormData } from "./FormElement";
-import { ColourPickerPopover, type ColourSwatch } from "./ColourPickerPopover";
+import { ColourPickerPopover, type ColourSwatch } from "@bcl32/utils/ColourPickerPopover";
 
 interface ColourPresetsInfo {
   get_api_url: string;

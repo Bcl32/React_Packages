@@ -131,6 +131,9 @@ importers:
       '@bcl32/data-utils':
         specifier: workspace:^2.1.7
         version: link:../data-utils
+      '@bcl32/hooks':
+        specifier: workspace:^2.2.6
+        version: link:../hooks
       '@bcl32/utils':
         specifier: workspace:^2.3.6
         version: link:../utils

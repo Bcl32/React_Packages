@@ -6,6 +6,7 @@ export function GroupFilters(filters: Filters): GroupedFilters {
   const select_filters: FilterData[] = [];
   const list_filters: FilterData[] = [];
   const time_filters: FilterData[] = [];
+  const colour_filters: FilterData[] = [];
 
   Object.keys(filters).forEach((key) => {
     if (filters[key]["type"] === "string") {
@@ -27,6 +28,10 @@ export function GroupFilters(filters: Filters): GroupedFilters {
     if (filters[key]["type"] === "datetime") {
       time_filters.push({ ...filters[key], name: key } as FilterData);
     }
+
+    if (filters[key]["type"] === "colour") {
+      colour_filters.push({ ...filters[key], name: key } as FilterData);
+    }
   });
 
   return {
@@ -35,5 +40,6 @@ export function GroupFilters(filters: Filters): GroupedFilters {
     select_filters,
     list_filters,
     time_filters,
+    colour_filters,
   };
 }

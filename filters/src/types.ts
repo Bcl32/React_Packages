@@ -1,7 +1,7 @@
 // Core filter types used across the package
 
 export interface FilterValue {
-  type: "string" | "number" | "datetime" | "select" | "list";
+  type: "string" | "number" | "datetime" | "select" | "list" | "colour";
   value: unknown;
   rule?: string;
   filter_empty: unknown;
@@ -22,7 +22,13 @@ export interface FilterData {
   name: string;
   type: string;
   options?: string[];
+  colour_presets?: ColourPresetsConfig;
   [key: string]: unknown;
+}
+
+export interface ColourPresetsConfig {
+  get_api_url: string;
+  group_by?: string;
 }
 
 export interface GroupedFilters {
@@ -31,6 +37,7 @@ export interface GroupedFilters {
   select_filters: FilterData[];
   list_filters: FilterData[];
   time_filters: FilterData[];
+  colour_filters: FilterData[];
 }
 
 export interface ChartMetadata {
