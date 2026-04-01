@@ -1,5 +1,11 @@
 # @bcl32/utils
 
+## 2.3.7
+
+### Patch Changes
+
+- acd0e2c: feat(filters): add colour filter type with shared ColourPickerPopover
+
 ## 2.3.6
 
 ### Patch Changes

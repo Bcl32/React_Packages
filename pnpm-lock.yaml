@@ -129,13 +129,13 @@ importers:
         specifier: workspace:^2.1.5
         version: link:../charts
       '@bcl32/data-utils':
-        specifier: workspace:^2.1.7
+        specifier: workspace:^2.1.8
         version: link:../data-utils
       '@bcl32/hooks':
         specifier: workspace:^2.2.6
         version: link:../hooks
       '@bcl32/utils':
-        specifier: workspace:^2.3.6
+        specifier: workspace:^2.3.7
         version: link:../utils
       '@mui/icons-material':
         specifier: ^5.15.7
@@ -178,13 +178,13 @@ importers:
   forms:
     dependencies:
       '@bcl32/data-utils':
-        specifier: workspace:^2.1.7
+        specifier: workspace:^2.1.8
         version: link:../data-utils
       '@bcl32/hooks':
         specifier: workspace:^2.2.6
         version: link:../hooks
       '@bcl32/utils':
-        specifier: workspace:^2.3.6
+        specifier: workspace:^2.3.7
         version: link:../utils
       '@mui/icons-material':
         specifier: ^5.15.7
