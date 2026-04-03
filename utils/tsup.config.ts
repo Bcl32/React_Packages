@@ -28,6 +28,7 @@ export default defineConfig({
     "src/FileSystem.tsx",
     "src/StatusBanner.tsx",
     "src/ColourPickerPopover.tsx",
+    "src/Combobox.tsx",
     "src/cn.ts",
     "src/index.ts"
   ],
