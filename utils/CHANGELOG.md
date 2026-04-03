@@ -1,5 +1,12 @@
 # @bcl32/utils
 
+## 2.3.8
+
+### Patch Changes
+
+- e6a1b83: fix(utils): add Combobox to tsup entry points
+- fa21c39: feat(utils): add Combobox component with deep-path export
+
 ## 2.3.7
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @bcl32/filters
 
+## 2.4.2
+
+### Patch Changes
+
+- 8ff52b8: refactor(filters,forms): replace MUI Autocomplete with Combobox
+- Updated dependencies [e6a1b83]
+- Updated dependencies [fa21c39]
+  - @bcl32/utils@2.3.8
+
 ## 2.4.1
 
 ### Patch Changes
