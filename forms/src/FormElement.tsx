@@ -16,10 +16,8 @@ import { CustomTooltip } from "@bcl32/utils/Tooltip";
 
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import Autocomplete from "@mui/material/Autocomplete";
-import TextField from "@mui/material/TextField";
-
 import { useGetRequest } from "@bcl32/hooks/useGetRequest";
+import { Combobox } from "@bcl32/utils/Combobox";
 import type { ModelAttribute, ReferenceInfo } from "@bcl32/data-utils";
 import ButtonDatePicker from "./ButtonDatePicker";
 import { ColourField } from "./ColourField";
@@ -47,10 +45,6 @@ function LabelWithHelp({ htmlFor, children, helpText }: LabelWithHelpProps) {
 interface SelectOption {
   label: string;
   value: string;
-}
-
-interface ComboboxOption {
-  label?: string;
 }
 
 /** @deprecated Use ModelAttribute from @bcl32/data-utils instead */
@@ -85,7 +79,7 @@ function IdReferenceField({
   const name = entry_data.name;
   const helpText = entry_data.help_text || entry_data.description || null;
 
-  const { data, isLoading } = useGetRequest<{ items: Record<string, unknown>[] }>(
+  const { data } = useGetRequest<{ items: Record<string, unknown>[] }>(
     reference.get_api_url,
     { staleTime: 5 * 60 * 1000 }
   );
@@ -105,46 +99,17 @@ function IdReferenceField({
       <LabelWithHelp htmlFor={name} helpText={helpText}>
         {name[0].toUpperCase() + name.slice(1).replace(/_/g, " ")}:
       </LabelWithHelp>
-      <Autocomplete
-        options={options}
-        loading={isLoading}
-        value={selectedOption}
-        onChange={(_event, value) => {
+      <Combobox
+        options={options.map((o) => o.label)}
+        value={selectedOption ? [selectedOption.label] : []}
+        onChange={(val) => {
+          const match = options.find((o) => o.label === val[0]);
           setFormData((prev) => ({
             ...prev,
-            [name]: value?.id ?? "",
+            [name]: match?.id ?? "",
           }));
         }}
-        getOptionLabel={(opt) => opt.label}
-        isOptionEqualToValue={(opt, val) => opt.id === val.id}
-        sx={{
-          "& .MuiInputBase-root": {
-            backgroundColor: "hsl(var(--background))",
-            color: "hsl(var(--foreground))",
-            borderRadius: "0.375rem",
-            borderColor: "hsl(var(--input))",
-            "&:hover": {
-              borderColor: "hsl(var(--ring))",
-            },
-            "&.Mui-focused": {
-              borderColor: "hsl(var(--ring))",
-              boxShadow: "0 0 0 2px hsl(var(--ring) / 0.2)",
-            },
-          },
-          "& .MuiInputBase-input": {
-            color: "hsl(var(--foreground))",
-          },
-          "& .MuiInputLabel-root": {
-            color: "hsl(var(--muted-foreground))",
-          },
-        }}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            variant="outlined"
-            placeholder={`Select ${name.replace(/_id$/, "").replace(/_/g, " ")}...`}
-          />
-        )}
+        placeholder={`Select ${name.replace(/_id$/, "").replace(/_/g, " ")}...`}
       />
     </div>
   );
@@ -162,15 +127,6 @@ export function FormElement({
 
   function handleChange(event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = event.target;
-    setFormData((prevFormData) => {
-      return {
-        ...prevFormData,
-        [name]: value,
-      };
-    });
-  }
-
-  function handleComboboxChange(_attribute: string, value: ComboboxOption[]) {
     setFormData((prevFormData) => {
       return {
         ...prevFormData,
@@ -255,44 +211,15 @@ export function FormElement({
           <LabelWithHelp htmlFor={name} helpText={helpText}>
             {name[0].toUpperCase() + name.slice(1)}:
           </LabelWithHelp>
-          <Autocomplete
-            freeSolo
+          <Combobox
             multiple
-            options={entry_data.options as ComboboxOption[]}
-            value={formData[name] as ComboboxOption[]}
-            onChange={(_event, value) => handleComboboxChange(name, value as ComboboxOption[])}
-            sx={{
-              "& .MuiInputBase-root": {
-                backgroundColor: "hsl(var(--background))",
-                color: "hsl(var(--foreground))",
-                borderRadius: "0.375rem",
-                borderColor: "hsl(var(--input))",
-                "&:hover": {
-                  borderColor: "hsl(var(--ring))",
-                },
-                "&.Mui-focused": {
-                  borderColor: "hsl(var(--ring))",
-                  boxShadow: "0 0 0 2px hsl(var(--ring) / 0.2)",
-                },
-              },
-              "& .MuiInputBase-input": {
-                color: "hsl(var(--foreground))",
-              },
-              "& .MuiInputLabel-root": {
-                color: "hsl(var(--muted-foreground))",
-              },
-              "& .MuiChip-root": {
-                backgroundColor: "hsl(var(--primary))",
-                color: "hsl(var(--primary-foreground))",
-              },
-            }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                variant="outlined"
-                placeholder={`Add ${name}...`}
-              />
-            )}
+            freeSolo
+            options={(entry_data.options as string[]) || []}
+            value={(formData[name] as string[]) || []}
+            onChange={(newValue) =>
+              setFormData((prev) => ({ ...prev, [name]: newValue }))
+            }
+            placeholder={`Add ${name}...`}
           />
         </div>
       );

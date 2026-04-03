@@ -1,12 +1,10 @@
 import * as React from "react";
 import { FilterContext } from "./FilterContext";
 
-import Autocomplete from "@mui/material/Autocomplete";
-import TextField from "@mui/material/TextField";
-
+import { Combobox } from "@bcl32/utils/Combobox";
 import { ToggleGroup, ToggleGroupItem } from "@bcl32/utils/ToggleGroup";
 import type { FilterContextValue } from "./types";
-import { extractLabels, capitalize } from "./utils";
+import { capitalize } from "./utils";
 
 interface ListFilterProps {
   name: string;
@@ -24,9 +22,8 @@ export function ListFilter({ name, options }: ListFilterProps): JSX.Element | nu
     return null;
   }
 
-  function handleComboboxChange(fieldName: string, value: (string | { label: string })[]) {
-    context?.change_filters(fieldName, "value", extractLabels(value));
-  }
+  const stringOptions = options.map((o) => (typeof o === "string" ? o : o.label));
+  const currentValue = Array.isArray(filterData["value"]) ? filterData["value"] as string[] : [];
 
   return (
     <div>
@@ -34,44 +31,13 @@ export function ListFilter({ name, options }: ListFilterProps): JSX.Element | nu
         {capitalize(name)}:
       </span>
 
-      <Autocomplete
-        freeSolo
+      <Combobox
         multiple
-        options={options}
-        value={Array.isArray(filterData["value"]) ? filterData["value"] as string[] : []}
-        onChange={(_event, value) => handleComboboxChange(name, value as (string | { label: string })[])}
-        sx={{
-          '& .MuiInputBase-root': {
-            backgroundColor: 'hsl(var(--background))',
-            color: 'hsl(var(--foreground))',
-            borderRadius: '0.375rem',
-            borderColor: 'hsl(var(--input))',
-            '&:hover': {
-              borderColor: 'hsl(var(--ring))',
-            },
-            '&.Mui-focused': {
-              borderColor: 'hsl(var(--ring))',
-              boxShadow: '0 0 0 2px hsl(var(--ring) / 0.2)',
-            },
-          },
-          '& .MuiInputBase-input': {
-            color: 'hsl(var(--foreground))',
-          },
-          '& .MuiInputLabel-root': {
-            color: 'hsl(var(--muted-foreground))',
-          },
-          '& .MuiChip-root': {
-            backgroundColor: 'hsl(var(--primary))',
-            color: 'hsl(var(--primary-foreground))',
-          },
-        }}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            variant="outlined"
-            placeholder={`Add ${name}...`}
-          />
-        )}
+        freeSolo
+        options={stringOptions}
+        value={currentValue}
+        onChange={(value) => context?.change_filters(name, "value", value)}
+        placeholder={`Add ${name}...`}
       />
 
       <ToggleGroup
