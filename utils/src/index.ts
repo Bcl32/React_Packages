@@ -26,6 +26,7 @@ export * from "./FileSystem";
 
 export * from "./StatusBanner";
 export * from "./ColourPickerPopover";
+export * from "./Combobox";
 
 // Functions
 export * from "./cn";

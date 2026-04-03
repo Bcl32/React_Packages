@@ -117,6 +117,10 @@
       "types": "./dist/ColourPickerPopover.d.ts",
       "import": "./dist/ColourPickerPopover.js"
     },
+    "./Combobox": {
+      "types": "./dist/Combobox.d.ts",
+      "import": "./dist/Combobox.js"
+    },
     "./cn": {
       "types": "./dist/cn.d.ts",
       "import": "./dist/cn.js"
