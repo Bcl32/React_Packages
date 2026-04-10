@@ -26,6 +26,7 @@ export default defineConfig({
     "src/GroupFilters.ts",
     "src/ProcessDataset.ts",
     "src/useEntityFilters.ts",
+    "src/DataTableFilterBar.tsx",
     "src/FilterProvider.tsx",
     "src/useFilterContext.ts",
     "src/types.ts",

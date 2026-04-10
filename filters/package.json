@@ -109,6 +109,10 @@
       "types": "./dist/useEntityFilters.d.ts",
       "import": "./dist/useEntityFilters.js"
     },
+    "./DataTableFilterBar": {
+      "types": "./dist/DataTableFilterBar.d.ts",
+      "import": "./dist/DataTableFilterBar.js"
+    },
     "./FilterProvider": {
       "types": "./dist/FilterProvider.d.ts",
       "import": "./dist/FilterProvider.js"

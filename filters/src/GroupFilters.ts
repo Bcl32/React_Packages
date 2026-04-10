@@ -1,6 +1,7 @@
 import type { Filters, FilterData, GroupedFilters } from "./types";
 
 export function GroupFilters(filters: Filters): GroupedFilters {
+  const primary_filters: FilterData[] = [];
   const string_filters: FilterData[] = [];
   const numeric_filters: FilterData[] = [];
   const select_filters: FilterData[] = [];
@@ -9,32 +10,40 @@ export function GroupFilters(filters: Filters): GroupedFilters {
   const colour_filters: FilterData[] = [];
 
   Object.keys(filters).forEach((key) => {
+    const entry = { ...filters[key], name: key } as FilterData;
+
+    if ((filters[key] as Record<string, unknown>).primaryFilter) {
+      primary_filters.push(entry);
+      return;
+    }
+
     if (filters[key]["type"] === "string") {
-      string_filters.push({ ...filters[key], name: key } as FilterData);
+      string_filters.push(entry);
     }
 
     if (filters[key]["type"] === "number") {
-      numeric_filters.push({ ...filters[key], name: key } as FilterData);
+      numeric_filters.push(entry);
     }
 
     if (filters[key]["type"] === "select") {
-      select_filters.push({ ...filters[key], name: key } as FilterData);
+      select_filters.push(entry);
     }
 
     if (filters[key]["type"] === "list") {
-      list_filters.push({ ...filters[key], name: key } as FilterData);
+      list_filters.push(entry);
     }
 
     if (filters[key]["type"] === "datetime") {
-      time_filters.push({ ...filters[key], name: key } as FilterData);
+      time_filters.push(entry);
     }
 
     if (filters[key]["type"] === "colour") {
-      colour_filters.push({ ...filters[key], name: key } as FilterData);
+      colour_filters.push(entry);
     }
   });
 
   return {
+    primary_filters,
     string_filters,
     numeric_filters,
     select_filters,

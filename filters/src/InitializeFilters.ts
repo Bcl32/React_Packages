@@ -27,6 +27,10 @@ export function InitializeFilters(model_data: ModelAttribute[], datasetStats: Da
         (filter_start[title] as unknown as Record<string, unknown>)["colour_presets"] = item["colour_presets"];
       }
 
+      if (item["primaryFilter"]) {
+        (filter_start[title] as unknown as Record<string, unknown>)["primaryFilter"] = true;
+      }
+
       if (item["type"] === "number") {
         //get the earliest and latest stat objects and assign to filter empty and value for filters
         const minStat = datasetStats[title].find((obj) => {

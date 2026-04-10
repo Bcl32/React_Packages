@@ -32,6 +32,7 @@ export interface ColourPresetsConfig {
 }
 
 export interface GroupedFilters {
+  primary_filters: FilterData[];
   string_filters: FilterData[];
   numeric_filters: FilterData[];
   select_filters: FilterData[];
