@@ -1,5 +1,18 @@
 # @bcl32/filters
 
+## 2.5.0
+
+### Minor Changes
+
+- d1091d4: Add DataTable filter toolbar integration and compact toolbar style
+
+  DataTable: refactor toolbar to compact flex layout with filter slot, toolbar actions, selection-aware bulk edit/delete buttons, and count display.
+  Filters: add DataTableFilterBar component with tabbed filter panel, active filter chips, and primary filter support.
+
+### Patch Changes
+
+- a03b98e: feat(filters): add toggle filter type and main tab for primary filters
+
 ## 2.4.2
 
 ### Patch Changes
