@@ -4,6 +4,7 @@ import { SelectFilter } from "./SelectFilter";
 import { ListFilter } from "./ListFilter";
 import { TimeFilter } from "./TimeFilter";
 import { ColourFilter } from "./ColourFilter";
+import { ToggleFilter } from "./ToggleFilter";
 import type { FilterData } from "./types";
 
 interface FilterElementProps {
@@ -51,6 +52,13 @@ function get_chart_type(filter_data: FilterData): JSX.Element {
         <ColourFilter
           name={filter_data["name"]}
           colour_presets={filter_data["colour_presets"]}
+        />
+      );
+    case "toggle":
+      return (
+        <ToggleFilter
+          name={filter_data["name"]}
+          options={filter_data["options"] || []}
         />
       );
     default:

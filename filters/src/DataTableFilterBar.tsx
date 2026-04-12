@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import * as React from "react";
 import dayjs from "dayjs";
 import { FilterProvider } from "./FilterProvider";
@@ -17,6 +17,7 @@ function formatFilterLabel(name: string, filter: FilterValue): string {
       const v = filter.value as { min: number; max: number };
       return `${label}: ${v.min} – ${v.max}`;
     }
+    case "toggle":
     case "select": {
       const vals = filter.value as string[];
       return `${label}: ${vals.join(", ")}`;
@@ -62,10 +63,17 @@ export function useDataTableFilterBar({
   filteredCount,
   totalCount,
 }: UseDataTableFilterBarProps): DataTableFilter {
+  const grouped = allFilters ? GroupFilters(allFilters) : null;
   const [activeTab, setActiveTab] = useState<string | null>(null);
+  const hasSetInitialTab = useRef(false);
   const activeCount = Object.keys(activeFilters).length;
 
-  const grouped = allFilters ? GroupFilters(allFilters) : null;
+  useEffect(() => {
+    if (!hasSetInitialTab.current && grouped && grouped.primary_filters.length > 0) {
+      setActiveTab("main");
+      hasSetInitialTab.current = true;
+    }
+  }, [grouped]);
 
   function resetFilter(name: string) {
     if (allFilters?.[name]) {
@@ -82,6 +90,8 @@ export function useDataTableFilterBar({
   }
 
   const tabs = [
+    ...(grouped && grouped.primary_filters.length > 0
+      ? [{ key: "main", label: "Main" }] : []),
     ...(grouped && (grouped.string_filters.length + grouped.select_filters.length + grouped.list_filters.length) > 0
       ? [{ key: "filters", label: "Filters" }] : []),
     ...(grouped && grouped.numeric_filters.length > 0
@@ -136,6 +146,13 @@ export function useDataTableFilterBar({
         {grouped && (
           <FilterProvider filters={allFilters} changeFilters={changeFilters}>
             <div className="pt-2 pb-1 border-b">
+              {activeTab === "main" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2 py-2">
+                  {grouped.primary_filters.map((entry) => (
+                    <FilterElement key={entry.name} filter_data={entry} />
+                  ))}
+                </div>
+              )}
               {activeTab === "filters" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2 py-2">
                   {grouped.string_filters.map((entry) => (
@@ -149,32 +166,32 @@ export function useDataTableFilterBar({
                   ))}
                 </div>
               )}
-              {activeTab === "numerical" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2 py-2">
-                  {grouped.numeric_filters.map((entry) => (
-                    <FilterElement key={entry.name} filter_data={entry} />
-                  ))}
-                </div>
-              )}
-              {activeTab === "colours" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2 py-2">
-                  {grouped.colour_filters.map((entry) => (
-                    <FilterElement key={entry.name} filter_data={entry} />
-                  ))}
-                </div>
-              )}
-              {activeTab === "time" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 py-2">
-                  {grouped.time_filters.map((entry) => (
-                    <FilterElement key={entry.name} filter_data={entry} />
-                  ))}
-                </div>
-              )}
-            </div>
-          </FilterProvider>
-        )}
+                {activeTab === "numerical" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2 py-2">
+                    {grouped.numeric_filters.map((entry) => (
+                      <FilterElement key={entry.name} filter_data={entry} />
+                    ))}
+                  </div>
+                )}
+                {activeTab === "colours" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2 py-2">
+                    {grouped.colour_filters.map((entry) => (
+                      <FilterElement key={entry.name} filter_data={entry} />
+                    ))}
+                  </div>
+                )}
+                {activeTab === "time" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 py-2">
+                    {grouped.time_filters.map((entry) => (
+                      <FilterElement key={entry.name} filter_data={entry} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </FilterProvider>
+          )}
+        </div>
       </div>
-    </div>
   );
 
   return { toolbar, panel, filteredCount, totalCount };

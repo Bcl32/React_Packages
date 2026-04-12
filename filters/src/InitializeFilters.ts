@@ -10,11 +10,13 @@ export function InitializeFilters(model_data: ModelAttribute[], datasetStats: Da
 
   model_data.forEach(function (item) {
     if (item["filter"]) {
+      const resolvedType = (item["filterType"] || item["type"]) as FilterValue["type"];
+      const isToggle = resolvedType === "toggle";
       const filter: FilterValue = {
-        type: item["type"] as FilterValue["type"],
-        value: item["filter_empty"],
-        rule: item["filter_rule"],
-        filter_empty: structuredClone(item["filter_empty"]),
+        type: resolvedType,
+        value: isToggle ? [] : item["filter_empty"],
+        rule: isToggle ? "equals" : item["filter_rule"],
+        filter_empty: isToggle ? [] : structuredClone(item["filter_empty"]),
       };
       const title = item["name"];
       filter_start[title] = filter;

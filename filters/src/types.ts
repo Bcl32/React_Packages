@@ -1,12 +1,13 @@
 // Core filter types used across the package
 
 export interface FilterValue {
-  type: "string" | "number" | "datetime" | "select" | "list" | "colour";
+  type: "string" | "number" | "datetime" | "select" | "list" | "colour" | "toggle";
   value: unknown;
   rule?: string;
   filter_empty: unknown;
   options?: string[];
   timespan_begin?: string;
+  primaryFilter?: boolean;
 }
 
 export interface Filters {

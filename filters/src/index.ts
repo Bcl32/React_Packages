@@ -13,6 +13,7 @@ export * from "./PieChartFilter";
 export * from "./Histogram";
 export * from "./ListFilter";
 export * from "./ColourFilter";
+export * from "./ToggleFilter";
 export * from "./DebouncedNumberFilter";
 export * from "./DebouncedTextFilter";
 export * from "./TimeEditDialog";

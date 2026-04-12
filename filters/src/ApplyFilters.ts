@@ -41,6 +41,7 @@ export function ApplyFilters(data: unknown[], filters: Filters): DataEntry[] {
         break;
       }
 
+      case "toggle":
       case "select": {
         const selectValue = filter["value"] as string[];
         filteredData = filteredData.filter((entry) => {

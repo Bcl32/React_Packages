@@ -12,7 +12,7 @@ export function GroupFilters(filters: Filters): GroupedFilters {
   Object.keys(filters).forEach((key) => {
     const entry = { ...filters[key], name: key } as FilterData;
 
-    if ((filters[key] as Record<string, unknown>).primaryFilter) {
+    if (filters[key].primaryFilter) {
       primary_filters.push(entry);
       return;
     }
@@ -25,7 +25,7 @@ export function GroupFilters(filters: Filters): GroupedFilters {
       numeric_filters.push(entry);
     }
 
-    if (filters[key]["type"] === "select") {
+    if (filters[key]["type"] === "select" || filters[key]["type"] === "toggle") {
       select_filters.push(entry);
     }
 
