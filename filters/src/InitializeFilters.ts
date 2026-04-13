@@ -1,5 +1,15 @@
 import type { Filters, ModelAttribute, DatasetStats, FilterValue, NumberRange, DatetimeFilterValue } from "./types";
 
+const OPTIONS_FIELDS = [
+  "options",
+  "source_kind",
+  "selection",
+  "display",
+  "value_key",
+  "label_key",
+  "colour_presets",
+] as const;
+
 export function InitializeFilters(model_data: ModelAttribute[], datasetStats: DatasetStats): Filters {
   // Early return if datasetStats is not ready (race condition during initial load)
   if (!datasetStats || Object.keys(datasetStats).length === 0) {
@@ -10,23 +20,22 @@ export function InitializeFilters(model_data: ModelAttribute[], datasetStats: Da
 
   model_data.forEach(function (item) {
     if (item["filter"]) {
-      const resolvedType = (item["filterType"] || item["type"]) as FilterValue["type"];
-      const isToggle = resolvedType === "toggle";
+      const resolvedType = item["type"] as FilterValue["type"];
       const filter: FilterValue = {
         type: resolvedType,
-        value: isToggle ? [] : item["filter_empty"],
-        rule: isToggle ? "equals" : item["filter_rule"],
-        filter_empty: isToggle ? [] : structuredClone(item["filter_empty"]),
+        value: item["filter_empty"],
+        rule: item["filter_rule"],
+        filter_empty: structuredClone(item["filter_empty"]),
       };
       const title = item["name"];
       filter_start[title] = filter;
 
-      if (item["options"]) {
-        filter_start[title]["options"] = item["options"] as string[];
-      }
-
-      if (item["colour_presets"]) {
-        (filter_start[title] as unknown as Record<string, unknown>)["colour_presets"] = item["colour_presets"];
+      if (resolvedType === "options") {
+        for (const field of OPTIONS_FIELDS) {
+          if (item[field] !== undefined) {
+            (filter_start[title] as unknown as Record<string, unknown>)[field] = item[field];
+          }
+        }
       }
 
       if (item["primaryFilter"]) {

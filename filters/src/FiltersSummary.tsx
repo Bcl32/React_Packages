@@ -5,11 +5,17 @@ dayjs.extend(duration);
 
 import { Button } from "@bcl32/utils/Button";
 import { FilterContext } from "./FilterContext";
-import type { Filters, FilterContextValue, DatetimeFilterValue, NumberRange } from "./types";
+import type { Filters, FilterContextValue, FilterOption, DatetimeFilterValue, NumberRange } from "./types";
 import { capitalize } from "./utils";
 
 interface FiltersSummaryProps {
   active_filters: Filters;
+}
+
+function formatOptionsValue(value: string[], options: FilterOption[] | undefined): string {
+  if (!options || options.length === 0) return value.join(", ");
+  const map = new Map(options.map((o) => [o.value, o.label]));
+  return value.map((v) => map.get(v) ?? v).join(", ");
 }
 
 export function FiltersSummary({ active_filters }: FiltersSummaryProps): JSX.Element | null {
@@ -53,9 +59,11 @@ export function FiltersSummary({ active_filters }: FiltersSummaryProps): JSX.Ele
             } else if (entry["type"] === "number") {
               const numValue = context.filters[key]["value"] as NumberRange;
               filter_value = numValue["min"] + " - " + numValue["max"];
-            } else if (entry["type"] === "list" || entry["type"] === "select") {
+            } else if (entry["type"] === "options") {
               const arrValue = context.filters[key]["value"] as string[];
-              filter_value = arrValue.join(", ");
+              const rule = context.filters[key]["rule"];
+              const ruleHint = rule === "all" ? " (all)" : "";
+              filter_value = ruleHint + formatOptionsValue(arrValue, context.filters[key]["options"]);
             } else {
               filter_value =
                 context.filters[key]["rule"] + " " + context.filters[key]["value"];

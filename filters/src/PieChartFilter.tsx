@@ -36,7 +36,7 @@ export function PieChartFilter({ name, chart_data }: PieChartFilterProps): JSX.E
   const context = React.useContext(FilterContext) as FilterContextValue | null;
 
   function filter_on_click(value: string) {
-    if (context?.filters[name]["type"] === "select") {
+    if (context?.filters[name]["type"] === "options") {
       context?.change_filters(name, "value", [value]);
     } else {
       context?.change_filters(name, "value", value);

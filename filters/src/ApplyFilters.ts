@@ -4,6 +4,27 @@ interface DataEntry {
   [key: string]: unknown;
 }
 
+function extractRowValues(
+  raw: unknown,
+  source_kind: string | undefined,
+  value_key: string,
+): string[] {
+  switch (source_kind) {
+    case "object-array":
+      return Array.isArray(raw)
+        ? raw
+            .map((c) => (c && typeof c === "object" ? (c as Record<string, unknown>)[value_key] : undefined))
+            .filter((v) => v != null)
+            .map(String)
+        : [];
+    case "scalar-array":
+      return Array.isArray(raw) ? raw.filter((v) => v != null).map(String) : [];
+    case "scalar":
+    default:
+      return raw == null ? [] : [String(raw)];
+  }
+}
+
 export function ApplyFilters(data: unknown[], filters: Filters): DataEntry[] {
   // Always filter out null/undefined entries first
   let filteredData: DataEntry[] = Array.isArray(data)
@@ -41,49 +62,21 @@ export function ApplyFilters(data: unknown[], filters: Filters): DataEntry[] {
         break;
       }
 
-      case "toggle":
-      case "select": {
-        const selectValue = filter["value"] as string[];
+      case "options": {
+        const selected = (filter["value"] as string[]) ?? [];
+        if (selected.length === 0) break;
+        const value_key = filter["value_key"] ?? "id";
+        const rule = filter["rule"] ?? "any";
         filteredData = filteredData.filter((entry) => {
-          const entryValue = entry?.[key];
-          return entry && entryValue != null && selectValue.includes(entryValue as string);
+          const rowValues = extractRowValues(entry?.[key], filter["source_kind"], value_key);
+          if (rule === "equals") {
+            return selected.length === 1 && rowValues.includes(selected[0]);
+          }
+          if (rule === "all") {
+            return selected.every((s) => rowValues.includes(s));
+          }
+          return selected.some((s) => rowValues.includes(s));
         });
-        break;
-      }
-
-      case "list": {
-        const listValue = filter["value"] as string[];
-        if (filter["rule"] === "any") {
-          filteredData = filteredData.filter((entry) => {
-            const entryValue = entry?.[key];
-            return entry && entryValue && Array.isArray(entryValue) && listValue.some((r) => entryValue.includes(r));
-          });
-          break;
-        }
-
-        if (filter["rule"] === "all") {
-          filteredData = filteredData.filter((entry) => {
-            const entryValue = entry?.[key];
-            return entry && entryValue && Array.isArray(entryValue) && listValue.every((r) => entryValue.includes(r));
-          });
-          break;
-        }
-        break;
-      }
-
-      case "colour": {
-        const colourValue = filter["value"] as string[];
-        if (filter["rule"] === "any") {
-          filteredData = filteredData.filter((entry) => {
-            const entryValue = entry?.[key];
-            return entry && entryValue && Array.isArray(entryValue) && colourValue.some((r) => entryValue.includes(r));
-          });
-        } else if (filter["rule"] === "all") {
-          filteredData = filteredData.filter((entry) => {
-            const entryValue = entry?.[key];
-            return entry && entryValue && Array.isArray(entryValue) && colourValue.every((r) => entryValue.includes(r));
-          });
-        }
         break;
       }
 

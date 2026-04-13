@@ -20,10 +20,7 @@ export function GetActiveFilters(filters: Filters): Filters {
         }
         break;
       }
-      case "colour":
-      case "list":
-      case "select":
-      case "toggle": {
+      case "options": {
         const arrValue = filter["value"] as string[];
         if (arrValue.length !== 0) {
           active_filters[key] = filter;

@@ -4,9 +4,15 @@ import dayjs from "dayjs";
 import { FilterProvider } from "./FilterProvider";
 import { GroupFilters } from "./GroupFilters";
 import { FilterElement } from "./FilterElement";
-import type { Filters, FilterValue } from "./types";
+import type { Filters, FilterValue, FilterOption } from "./types";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import CloseIcon from "@mui/icons-material/Close";
+
+function formatOptionsLabel(value: string[], options: FilterOption[] | undefined): string {
+  if (!options || options.length === 0) return value.join(", ");
+  const map = new Map(options.map((o) => [o.value, o.label]));
+  return value.map((v) => map.get(v) ?? v).join(", ");
+}
 
 function formatFilterLabel(name: string, filter: FilterValue): string {
   const label = name.replace(/_/g, " ");
@@ -17,18 +23,13 @@ function formatFilterLabel(name: string, filter: FilterValue): string {
       const v = filter.value as { min: number; max: number };
       return `${label}: ${v.min} – ${v.max}`;
     }
-    case "toggle":
-    case "select": {
+    case "options": {
       const vals = filter.value as string[];
-      return `${label}: ${vals.join(", ")}`;
-    }
-    case "list": {
-      const vals = filter.value as string[];
-      return `${label} (${filter.rule}): ${vals.join(", ")}`;
-    }
-    case "colour": {
-      const vals = filter.value as unknown[];
-      return `${label}: ${vals.length} colour${vals.length !== 1 ? "s" : ""}`;
+      const rule = filter.rule === "all" ? " (all)" : "";
+      if (filter.display === "swatch-grid") {
+        return `${label}: ${vals.length} colour${vals.length !== 1 ? "s" : ""}`;
+      }
+      return `${label}${rule}: ${formatOptionsLabel(vals, filter.options)}`;
     }
     case "datetime": {
       const v = filter.value as { timespan_begin: string; timespan_end: string };
@@ -92,12 +93,10 @@ export function useDataTableFilterBar({
   const tabs = [
     ...(grouped && grouped.primary_filters.length > 0
       ? [{ key: "main", label: "Main" }] : []),
-    ...(grouped && (grouped.string_filters.length + grouped.select_filters.length + grouped.list_filters.length) > 0
+    ...(grouped && (grouped.string_filters.length + grouped.options_filters.length) > 0
       ? [{ key: "filters", label: "Filters" }] : []),
     ...(grouped && grouped.numeric_filters.length > 0
       ? [{ key: "numerical", label: "Numerical" }] : []),
-    ...(grouped && grouped.colour_filters.length > 0
-      ? [{ key: "colours", label: "Colours" }] : []),
     ...(grouped && grouped.time_filters.length > 0
       ? [{ key: "time", label: "Time" }] : []),
   ];
@@ -158,10 +157,7 @@ export function useDataTableFilterBar({
                   {grouped.string_filters.map((entry) => (
                     <FilterElement key={entry.name} filter_data={entry} />
                   ))}
-                  {grouped.select_filters.map((entry) => (
-                    <FilterElement key={entry.name} filter_data={entry} />
-                  ))}
-                  {grouped.list_filters.map((entry) => (
+                  {grouped.options_filters.map((entry) => (
                     <FilterElement key={entry.name} filter_data={entry} />
                   ))}
                 </div>
@@ -169,13 +165,6 @@ export function useDataTableFilterBar({
                 {activeTab === "numerical" && (
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2 py-2">
                     {grouped.numeric_filters.map((entry) => (
-                      <FilterElement key={entry.name} filter_data={entry} />
-                    ))}
-                  </div>
-                )}
-                {activeTab === "colours" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2 py-2">
-                    {grouped.colour_filters.map((entry) => (
                       <FilterElement key={entry.name} filter_data={entry} />
                     ))}
                   </div>

@@ -1,11 +1,33 @@
 // Core filter types used across the package
 
+export type FilterDisplay =
+  | "dropdown"
+  | "combobox"
+  | "chip-toggle"
+  | "swatch-grid"
+  | "toggle-buttons";
+
+export type FilterSourceKind = "scalar" | "scalar-array" | "object-array";
+
+export type FilterSelection = "single" | "multi";
+
+export interface FilterOption {
+  value: string;
+  label: string;
+}
+
 export interface FilterValue {
-  type: "string" | "number" | "datetime" | "select" | "list" | "colour" | "toggle";
+  type: "string" | "number" | "datetime" | "options";
   value: unknown;
   rule?: string;
   filter_empty: unknown;
-  options?: string[];
+  options?: FilterOption[];
+  source_kind?: FilterSourceKind;
+  selection?: FilterSelection;
+  display?: FilterDisplay;
+  value_key?: string;
+  label_key?: string;
+  colour_presets?: ColourPresetsConfig;
   timespan_begin?: string;
   primaryFilter?: boolean;
 }
@@ -22,7 +44,7 @@ export interface FilterContextValue {
 export interface FilterData {
   name: string;
   type: string;
-  options?: string[];
+  options?: FilterOption[];
   colour_presets?: ColourPresetsConfig;
   [key: string]: unknown;
 }
@@ -36,10 +58,8 @@ export interface GroupedFilters {
   primary_filters: FilterData[];
   string_filters: FilterData[];
   numeric_filters: FilterData[];
-  select_filters: FilterData[];
-  list_filters: FilterData[];
+  options_filters: FilterData[];
   time_filters: FilterData[];
-  colour_filters: FilterData[];
 }
 
 export interface ChartMetadata {

@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/filters",
-  "version": "2.5.0",
+  "version": "3.0.0",
   "description": "Custom filters for data pulled from servers",
   "author": "",
   "license": "ISC",
@@ -29,9 +29,9 @@
       "types": "./dist/FiltersSummary.d.ts",
       "import": "./dist/FiltersSummary.js"
     },
-    "./SelectFilter": {
-      "types": "./dist/SelectFilter.d.ts",
-      "import": "./dist/SelectFilter.js"
+    "./OptionsFilter": {
+      "types": "./dist/OptionsFilter.d.ts",
+      "import": "./dist/OptionsFilter.js"
     },
     "./TimeFilter": {
       "types": "./dist/TimeFilter.d.ts",
@@ -64,10 +64,6 @@
     "./Histogram": {
       "types": "./dist/Histogram.d.ts",
       "import": "./dist/Histogram.js"
-    },
-    "./ListFilter": {
-      "types": "./dist/ListFilter.d.ts",
-      "import": "./dist/ListFilter.js"
     },
     "./DebouncedNumberFilter": {
       "types": "./dist/DebouncedNumberFilter.d.ts",

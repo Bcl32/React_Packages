@@ -1,11 +1,8 @@
 import { DebouncedTextFilter } from "./DebouncedTextFilter";
 import { DebouncedNumberFilter } from "./DebouncedNumberFilter";
-import { SelectFilter } from "./SelectFilter";
-import { ListFilter } from "./ListFilter";
+import { OptionsFilter } from "./OptionsFilter";
 import { TimeFilter } from "./TimeFilter";
-import { ColourFilter } from "./ColourFilter";
-import { ToggleFilter } from "./ToggleFilter";
-import type { FilterData } from "./types";
+import type { FilterData, FilterDisplay, FilterOption, FilterSelection, FilterSourceKind, ColourPresetsConfig } from "./types";
 
 interface FilterElementProps {
   filter_data: FilterData;
@@ -33,32 +30,15 @@ function get_chart_type(filter_data: FilterData): JSX.Element {
       return (
         <DebouncedNumberFilter name={filter_data["name"]} />
       );
-    case "select":
+    case "options":
       return (
-        <SelectFilter
+        <OptionsFilter
           name={filter_data["name"]}
-          options={filter_data["options"] || []}
-        />
-      );
-    case "list":
-      return (
-        <ListFilter
-          name={filter_data["name"]}
-          options={filter_data["options"] || []}
-        />
-      );
-    case "colour":
-      return (
-        <ColourFilter
-          name={filter_data["name"]}
-          colour_presets={filter_data["colour_presets"]}
-        />
-      );
-    case "toggle":
-      return (
-        <ToggleFilter
-          name={filter_data["name"]}
-          options={filter_data["options"] || []}
+          options={(filter_data["options"] as FilterOption[]) || []}
+          display={filter_data["display"] as FilterDisplay | undefined}
+          selection={filter_data["selection"] as FilterSelection | undefined}
+          source_kind={filter_data["source_kind"] as FilterSourceKind | undefined}
+          colour_presets={filter_data["colour_presets"] as ColourPresetsConfig | undefined}
         />
       );
     default:

@@ -4,7 +4,7 @@ import { GroupFilters } from "./GroupFilters";
 import { AnimatedTabs, TabContent } from "@bcl32/utils/AnimatedTabs";
 import { FilterElement } from "./FilterElement";
 import { FilterContext } from "./FilterContext";
-import type { FilterContextValue } from "./types";
+import type { FilterContextValue, FilterData } from "./types";
 
 export function AllFilters(): JSX.Element {
   // Get filters from Context (single source of truth)
@@ -18,10 +18,8 @@ export function AllFilters(): JSX.Element {
   const {
     string_filters,
     numeric_filters,
-    select_filters,
-    list_filters,
+    options_filters,
     time_filters,
-    colour_filters,
   } = GroupFilters(context.filters);
 
   return (
@@ -31,31 +29,19 @@ export function AllFilters(): JSX.Element {
           <div className="overflow-auto">
 
             <TabContent unmount={false}>
-              {string_filters.map((entry) => {
+              {string_filters.map((entry: FilterData) => {
                 return (
                   <FilterElement key={entry["name"]} filter_data={entry} />
                 );
               })}
 
-              {numeric_filters.map((entry) => {
+              {numeric_filters.map((entry: FilterData) => {
                 return (
                   <FilterElement key={entry["name"]} filter_data={entry} />
                 );
               })}
 
-              {select_filters.map((entry) => {
-                return (
-                  <FilterElement key={entry["name"]} filter_data={entry} />
-                );
-              })}
-
-              {list_filters.map((entry) => {
-                return (
-                  <FilterElement key={entry["name"]} filter_data={entry} />
-                );
-              })}
-
-              {colour_filters.map((entry) => {
+              {options_filters.map((entry: FilterData) => {
                 return (
                   <FilterElement key={entry["name"]} filter_data={entry} />
                 );
@@ -63,7 +49,7 @@ export function AllFilters(): JSX.Element {
             </TabContent>
 
             <TabContent>
-              {time_filters.map((entry) => {
+              {time_filters.map((entry: FilterData) => {
                 return (
                   <FilterElement key={entry["name"]} filter_data={entry} />
                 );

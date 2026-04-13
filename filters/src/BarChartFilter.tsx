@@ -28,10 +28,7 @@ export function BarChartFilter({ name, chart_data }: BarChartFilterProps): JSX.E
   const context = React.useContext(FilterContext) as FilterContextValue | null;
 
   function bar_click(value: string) {
-    if (
-      context?.filters[name]["type"] === "select" ||
-      context?.filters[name]["type"] === "list"
-    ) {
+    if (context?.filters[name]["type"] === "options") {
       context?.change_filters(name, "value", [value]);
     } else {
       context?.change_filters(name, "value", value);
