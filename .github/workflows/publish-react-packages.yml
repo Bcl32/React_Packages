@@ -75,6 +75,8 @@ jobs:
       - name: Create git tags
         if: steps.changesets.outputs.has_changesets == 'true'
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           for pkg_dir in utils data-utils hooks themes forms charts navigation datatable filters; do
             pkg_json="$pkg_dir/package.json"
             if [ -f "$pkg_json" ]; then
