@@ -81,7 +81,7 @@ jobs:
               version=$(node -p "require('./$pkg_json').version")
               tag="@bcl32/${pkg_dir}@${version}"
               if ! git ls-remote --tags origin "refs/tags/$tag" | grep -q "$tag"; then
-                git tag "$tag"
+                git tag -a "$tag" -m "$tag"
                 echo "Created tag: $tag"
               else
                 echo "Tag $tag already exists, skipping"
