@@ -34,22 +34,25 @@ export function ApplyFilters(data: unknown[], filters: Filters): DataEntry[] {
   for (const key in filters) {
     const filter = filters[key];
     switch (filter["type"]) {
-      case "string":
+      case "string": {
+        const strVal = ((filter["value"] as string) ?? "").toLowerCase();
+        if (!strVal) break;
         if (filter["rule"] === "equals") {
           filteredData = filteredData.filter((entry) => {
-            return entry && entry[key] === filter["value"];
+            const entryValue = entry?.[key];
+            return typeof entryValue === "string" && entryValue.toLowerCase() === strVal;
           });
           break;
         }
-
         if (filter["rule"] === "contains") {
           filteredData = filteredData.filter((entry) => {
             const entryValue = entry?.[key];
-            return entry && typeof entryValue === "string" && entryValue.includes(filter["value"] as string);
+            return typeof entryValue === "string" && entryValue.toLowerCase().includes(strVal);
           });
           break;
         }
         break;
+      }
 
       case "number": {
         const numValue = filter["value"] as NumberRange;

@@ -50,9 +50,25 @@ export function OptionsFilter({
     setValue(currentValue.includes(v) ? currentValue.filter((x) => x !== v) : [...currentValue, v]);
   }
 
+  function toggleRule() {
+    const next = filterData["rule"] === "all" ? "any" : "all";
+    context!.change_filters(name, "rule", next);
+  }
+
   return (
     <div>
-      <span className="font-semibold">{capitalize(name)}:</span>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="font-semibold">{capitalize(name)}</span>
+        {ruleEligible && (
+          <button
+            type="button"
+            onClick={toggleRule}
+            className="text-xs px-1.5 py-0.5 rounded border border-primary/40 text-primary hover:border-primary transition-colors"
+          >
+            {filterData["rule"] === "all" ? "All" : "Any"}
+          </button>
+        )}
+      </div>
 
       {display === "combobox" && (
         <ComboboxView
@@ -88,20 +104,6 @@ export function OptionsFilter({
           selected={currentValue}
           onToggle={toggleValue}
         />
-      )}
-
-      {ruleEligible && (
-        <ToggleGroup
-          type="single"
-          variant="outline"
-          value={filterData["rule"]}
-          onValueChange={(value) => {
-            if (value) context.change_filters(name, "rule", value);
-          }}
-        >
-          <ToggleGroupItem value="any">{"any"}</ToggleGroupItem>
-          <ToggleGroupItem value="all">{"all"}</ToggleGroupItem>
-        </ToggleGroup>
       )}
     </div>
   );
