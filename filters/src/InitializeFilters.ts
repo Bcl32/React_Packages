@@ -20,7 +20,13 @@ export function InitializeFilters(model_data: ModelAttribute[], datasetStats: Da
 
   model_data.forEach(function (item) {
     if (item["filter"]) {
-      const resolvedType = item["type"] as FilterValue["type"];
+      const declaredFilterType = item["filter_type"] as FilterValue["type"] | undefined;
+      const dataType = item["type"] as string;
+      const resolvedType: FilterValue["type"] =
+        declaredFilterType ??
+        (dataType === "string" || dataType === "number" || dataType === "datetime"
+          ? dataType
+          : "options");
       const filter: FilterValue = {
         type: resolvedType,
         value: item["filter_empty"],
