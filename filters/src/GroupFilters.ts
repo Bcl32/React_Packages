@@ -32,6 +32,12 @@ export function GroupFilters(filters: Filters): GroupedFilters {
     }
   });
 
+  primary_filters.sort((a, b) => {
+    const aOrder = (a as unknown as Record<string, unknown>)["filterOrder"] as number | undefined;
+    const bOrder = (b as unknown as Record<string, unknown>)["filterOrder"] as number | undefined;
+    return (aOrder ?? Infinity) - (bOrder ?? Infinity);
+  });
+
   return {
     primary_filters,
     string_filters,
