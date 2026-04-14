@@ -47,7 +47,7 @@ export function DebouncedTextFilter({ name }: DebouncedTextFilterProps): JSX.Ele
   }, [inputValue, name]);
 
   function toggleRule() {
-    const next = filterData["rule"] === "equals" ? "contains" : "equals";
+    const next = filterData?.["rule"] === "equals" ? "contains" : "equals";
     context?.change_filters(name, "rule", next);
   }
 

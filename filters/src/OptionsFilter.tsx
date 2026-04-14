@@ -51,7 +51,7 @@ export function OptionsFilter({
   }
 
   function toggleRule() {
-    const next = filterData["rule"] === "all" ? "any" : "all";
+    const next = filterData?.["rule"] === "all" ? "any" : "all";
     context!.change_filters(name, "rule", next);
   }
 
