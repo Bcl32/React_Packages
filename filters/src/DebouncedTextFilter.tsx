@@ -3,7 +3,6 @@ import { FilterContext } from "./FilterContext";
 
 import { Input } from "@bcl32/utils/Input";
 import { Label } from "@bcl32/utils/Label";
-import { ToggleGroup, ToggleGroupItem } from "@bcl32/utils/ToggleGroup";
 import type { FilterContextValue } from "./types";
 
 interface DebouncedTextFilterProps {
@@ -47,21 +46,23 @@ export function DebouncedTextFilter({ name }: DebouncedTextFilterProps): JSX.Ele
     return () => clearTimeout(timeoutId);
   }, [inputValue, name]);
 
+  function toggleRule() {
+    const next = filterData["rule"] === "equals" ? "contains" : "equals";
+    context?.change_filters(name, "rule", next);
+  }
+
   return (
-    <div className="flex flex-row items-center justify-between p-1 space-x-1">
-      <Label className="capitalize"> {name}:</Label>
-      <ToggleGroup
-        type="single"
-        variant="outline"
-        size="sm"
-        value={filterData["rule"]}
-        onValueChange={(value) => {
-          context?.change_filters(name, "rule", value);
-        }}
-      >
-        <ToggleGroupItem value="contains" className="text-xs px-2 h-7">{"contains"}</ToggleGroupItem>
-        <ToggleGroupItem value="equals" className="text-xs px-2 h-7">{"equals"}</ToggleGroupItem>
-      </ToggleGroup>
+    <div>
+      <div className="flex items-center gap-2 mb-1">
+        <Label className="font-semibold capitalize">{name}</Label>
+        <button
+          type="button"
+          onClick={toggleRule}
+          className="text-xs px-1.5 py-0.5 rounded border border-primary/40 text-primary hover:border-primary transition-colors"
+        >
+          {filterData["rule"] === "equals" ? "Equals" : "Contains"}
+        </button>
+      </div>
       <Input
         variant="background"
         id={"filter_" + name}
