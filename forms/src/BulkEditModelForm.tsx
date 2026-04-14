@@ -87,19 +87,33 @@ export function BulkEditModelForm({
     query_invalidation
   );
 
+  // The submitted ids/data are snapshotted into refs so the success effect can
+  // pass them to onSuccess — they're needed even after rowSelection clears.
   const submittedIdsRef = React.useRef<string[]>([]);
   const submittedDataRef = React.useRef<FormData>({});
 
-  async function handleSubmit() {
+  // ⚠️ DO NOT mutate rowSelection (or any other state that conditionally
+  // mounts this form from a parent) synchronously in handleSubmit.
+  //
+  // Consumers like DataTable render this form conditionally on
+  // `selectedIds.length > 0`. If handleSubmit clears the selection eagerly,
+  // the form unmounts before TanStack Query flips `mutation.isSuccess` to
+  // true, and the success effect below never runs — onSuccess is silently
+  // dropped. (This broke thumbnail regeneration after bulk colour edits in
+  // Print-Tracker for weeks before it was root-caused.)
+  //
+  // Also note: `mutation.mutate()` returns void, not a promise. `await`-ing
+  // it is a no-op and gives a false sense of "the POST finished" in code
+  // that runs after. Use `mutateAsync()` if you need to await.
+  function handleSubmit() {
     submittedIdsRef.current = [...selectedIds];
     submittedDataRef.current = { ...enabledData };
-    await mutation.mutate();
-    if (!mutation.isError) {
-      setRowSelection({});
-    }
+    mutation.mutate();
   }
 
-  // Clear selection and fire callback on success
+  // Fires exactly once when mutation.isSuccess flips true. All post-success
+  // side effects (toast, close, selection reset, callback) live here so the
+  // form is guaranteed to still be mounted when they run.
   React.useEffect(() => {
     if (mutation.isSuccess) {
       const count = (mutation.data as any)?.updated ?? submittedIdsRef.current.length;
