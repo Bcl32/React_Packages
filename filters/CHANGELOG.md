@@ -1,5 +1,16 @@
 # @bcl32/filters
 
+## 3.0.2
+
+### Patch Changes
+
+- ae8e1c3: fix(filters): guard optional filterData in toggleRule closures
+- a0181af: refactor(filters): replace ToggleGroup with inline button for equals/contains rule in DebouncedTextFilter
+
+  Matches the inline any/all toggle styling introduced for list filters — a single compact button that flips between "Contains" and "Equals" sits next to the label, replacing the wider ToggleGroup row.
+
+- d7eb9d1: fix(filters): make string filter matching case-insensitive for both equals and contains rules
+
 ## 2.5.0
 
 ### Minor Changes
