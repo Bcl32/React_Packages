@@ -184,7 +184,7 @@ importers:
         specifier: workspace:^2.2.6
         version: link:../hooks
       '@bcl32/utils':
-        specifier: workspace:^2.3.8
+        specifier: workspace:^2.3.9
         version: link:../utils
       '@mui/icons-material':
         specifier: ^5.15.7

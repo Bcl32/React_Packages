@@ -1,5 +1,11 @@
 # @bcl32/utils
 
+## 2.3.9
+
+### Patch Changes
+
+- 47ed598: fix(forms,utils): preserve filament identity in colour_array bulk edits
+
 ## 2.3.8
 
 ### Patch Changes
