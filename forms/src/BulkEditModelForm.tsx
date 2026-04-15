@@ -68,16 +68,45 @@ export function BulkEditModelForm({
     setEnabledFields((prev) => ({ ...prev, [name]: checked }));
   }
 
+  // colour_array fields (e.g. filament_colours) maintain a parallel
+  // foreign-key array (filament_ids) populated by ColourArrayField when the
+  // user picks a swatch. The backend uses these IDs to preserve the exact
+  // filament the user chose; without them it falls back to hex-matching,
+  // which is ambiguous when multiple filaments share a hex (e.g. several
+  // blacks at #000000FF). Bulk-edit must submit both so the user's choice
+  // survives the round-trip.
+  function pairedIdsKey(name: string): string | null {
+    const idsKey = name.replace(/_colours?$/, "_ids");
+    return idsKey !== name ? idsKey : null;
+  }
+
   // Build the payload with only enabled fields
   const enabledData: FormData = {};
   for (const key of Object.keys(enabledFields)) {
-    if (enabledFields[key]) {
-      enabledData[key] = formData[key];
+    if (!enabledFields[key]) continue;
+    enabledData[key] = formData[key];
+    // Auto-include the paired _ids sibling when enabling a colour_array
+    // field. The user only ticks "Filament Colours"; they shouldn't also
+    // have to know about filament_ids (which isn't a user-facing concept).
+    const attr = editableAttributes.find((a) => a.name === key);
+    if (attr?.type === "colour_array") {
+      const idsKey = pairedIdsKey(key);
+      if (idsKey && idsKey in formData) {
+        enabledData[idsKey] = formData[idsKey];
+      }
     }
   }
 
-  // Build merge_fields from enabled list-type fields with merge mode on
-  const merge_fields = Object.keys(enabledData).filter((key) => mergeMode[key]);
+  // merge_fields tells the backend which list fields to append vs. replace.
+  // If the user chose "Add to existing" on filament_colours, the filament_ids
+  // sibling must follow the same mode — otherwise the two arrays desync
+  // (colours appended, ids replaced → index misalignment).
+  const merge_fields = Object.keys(enabledData).filter((key) => {
+    if (mergeMode[key]) return true;
+    const colourKey = key.replace(/_ids$/, "_colours");
+    const attr = editableAttributes.find((a) => a.name === colourKey);
+    return attr?.type === "colour_array" && !!mergeMode[colourKey];
+  });
   const payload = { ids: selectedIds, data: enabledData, merge_fields };
   const enabledCount = Object.values(enabledFields).filter(Boolean).length;
 

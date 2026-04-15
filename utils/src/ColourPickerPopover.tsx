@@ -7,6 +7,7 @@ export interface ColourSwatch {
 export interface ColourPickerPopoverProps {
   swatchGroups: Map<string, ColourSwatch[]>;
   currentColour?: string;
+  currentId?: string;
   selectedColours?: string[];
   defaultCustomColour?: string;
   onSelect: (hex: string, filamentId?: string) => void;
@@ -15,12 +16,24 @@ export interface ColourPickerPopoverProps {
 export function ColourPickerPopover({
   swatchGroups,
   currentColour,
+  currentId,
   selectedColours,
   defaultCustomColour = "#6b9bd2",
   onSelect,
 }: ColourPickerPopoverProps) {
-  const isSelected = (hex: string) =>
-    currentColour === hex || (selectedColours?.includes(hex) ?? false);
+  const hasMatchingId =
+    currentId != null &&
+    Array.from(swatchGroups.values()).some((sw) =>
+      sw.some((s) => s.id === currentId)
+    );
+
+  const isSelected = (s: ColourSwatch) => {
+    if (hasMatchingId) return s.id === currentId;
+    return (
+      currentColour === s.colour_hex ||
+      (selectedColours?.includes(s.colour_hex) ?? false)
+    );
+  };
 
   return (
     <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-popover border rounded-lg shadow-lg p-3 w-80 max-h-[80vh] overflow-y-auto">
@@ -37,12 +50,12 @@ export function ColourPickerPopover({
                   type="button"
                   onClick={() => onSelect(s.colour_hex, s.id)}
                   className={`flex items-center gap-1.5 px-1.5 py-1 rounded-md transition-colors hover:bg-accent ${
-                    isSelected(s.colour_hex) ? "bg-accent" : ""
+                    isSelected(s) ? "bg-accent" : ""
                   }`}
                 >
                   <span
                     className={`w-4 h-4 rounded-full border-2 shrink-0 ${
-                      isSelected(s.colour_hex)
+                      isSelected(s)
                         ? "border-primary ring-1 ring-primary"
                         : "border-border"
                     }`}
