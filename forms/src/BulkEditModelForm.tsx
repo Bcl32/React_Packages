@@ -14,7 +14,7 @@ import { Label } from "@bcl32/utils/Label";
 import { getFormDefault, type ModelData } from "@bcl32/data-utils";
 
 import { toast } from "sonner";
-import { FormElement, type FormData } from "./FormElement";
+import { FormElement, canRenderFormElement, type FormData } from "./FormElement";
 
 interface RowSelection {
   [key: string]: boolean;
@@ -39,6 +39,23 @@ export function BulkEditModelForm({
 }: BulkEditModelFormProps) {
   const selectedIds = Object.keys(rowSelection);
   const editableAttributes = ModelData.model_attributes.filter((a) => a.editable);
+  // Why visibleAttributes exists (editable ≠ visible):
+  //
+  // Unlike EditModelForm, this component renders its own scaffolding — a
+  // bordered card with an enable-checkbox and label — *around* each FormElement
+  // (see the map at the bottom). That scaffolding renders unconditionally, so
+  // if we mapped over editableAttributes directly we'd emit ghost cards for
+  // attributes whose FormElement silently returns null (id-typed fields with
+  // no `reference`, or unrecognised types like "array"). The user sees a
+  // tickable checkbox with an empty input area below it — can tick it, can't
+  // set a value, submits a blank that may overwrite every selected row.
+  //
+  // visibleAttributes is the render set: attributes that have a concrete
+  // renderer in FormElement. editableAttributes stays broad because the
+  // paired-ids machinery (see pairedIdsKey below) needs filament_ids to exist
+  // in formData so it can auto-include it when the user enables
+  // filament_colours — hide the card, keep the data slot.
+  const visibleAttributes = editableAttributes.filter(canRenderFormElement);
 
   const form_defaults: FormData = {};
   editableAttributes.forEach((item) => {
@@ -165,7 +182,7 @@ export function BulkEditModelForm({
       </p>
 
       <div className="space-y-4">
-        {editableAttributes.map((attr) => {
+        {visibleAttributes.map((attr) => {
           const enabled = !!enabledFields[attr.name];
           return (
             <div key={attr.name} className="border rounded-md p-3">

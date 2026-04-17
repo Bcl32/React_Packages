@@ -12,7 +12,7 @@ import { Button } from "@bcl32/utils/Button";
 import type { ModelData } from "@bcl32/data-utils";
 
 import { toast } from "sonner";
-import { FormElement, type FormData } from "./FormElement";
+import { FormElement, canRenderFormElement, type FormData } from "./FormElement";
 
 type EditModelData = ModelData & { update_api_url: string };
 
@@ -76,21 +76,17 @@ export function EditModelForm({
   return (
     <div className="space-y-6 max-h-[70vh] overflow-y-auto">
       <form className="grid grid-cols-2 gap-x-6 gap-y-3">
-        {ModelData.model_attributes.map((entry) => {
-          if (entry.editable) {
-            return (
-              <FormElement
-                key={entry.name}
-                entry_data={entry}
-                change_datetime={change_datetime}
-                formData={formData}
-                setFormData={setFormData}
-              />
-            );
-          } else {
-            return null;
-          }
-        })}
+        {ModelData.model_attributes
+          .filter((entry) => entry.editable && canRenderFormElement(entry))
+          .map((entry) => (
+            <FormElement
+              key={entry.name}
+              entry_data={entry}
+              change_datetime={change_datetime}
+              formData={formData}
+              setFormData={setFormData}
+            />
+          ))}
       </form>
 
       <div className="pt-2 border-t">

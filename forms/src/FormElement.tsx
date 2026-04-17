@@ -54,6 +54,28 @@ export interface FormData {
   [key: string]: unknown;
 }
 
+// Mirrors the non-null branches of FormElement's switch. Consumers that render
+// their own scaffolding around FormElement (e.g. BulkEditModelForm's per-field
+// checkbox cards) can filter on this to avoid emitting wrappers for attributes
+// that would render nothing.
+export function canRenderFormElement(attr: ModelAttribute): boolean {
+  switch (attr.type) {
+    case "string":
+    case "number":
+    case "boolean":
+    case "list":
+    case "select":
+    case "datetime":
+    case "colour":
+    case "colour_array":
+      return true;
+    case "id":
+      return Boolean(attr.reference);
+    default:
+      return false;
+  }
+}
+
 export interface FormElementProps {
   entry_data: ModelAttribute;
   formData: FormData;
@@ -214,7 +236,9 @@ export function FormElement({
           <Combobox
             multiple
             freeSolo
-            options={(entry_data.options as string[]) || []}
+            options={((entry_data.options as Array<string | {label: string}>) || []).map(
+              (o) => (typeof o === "string" ? o : o.label)
+            )}
             value={(formData[name] as string[]) || []}
             onChange={(newValue) =>
               setFormData((prev) => ({ ...prev, [name]: newValue }))
