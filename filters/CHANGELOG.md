@@ -1,5 +1,11 @@
 # @bcl32/filters
 
+## 3.0.3
+
+### Patch Changes
+
+- c15c157: fix(filters): default options value_key to "value"
+
 ## 3.0.2
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.5.7
+
+### Patch Changes
+
+- 02e5334: fix(forms): skip unrenderable attributes and normalise combobox options
+
 ## 2.5.6
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @bcl32/navigation
 
+## 2.1.5
+
+### Patch Changes
+
+- f1d75d1: fix(navigation): render breadcrumb as BreadcrumbPage when url is missing
+
 ## 2.1.4
 
 ### Patch Changes
