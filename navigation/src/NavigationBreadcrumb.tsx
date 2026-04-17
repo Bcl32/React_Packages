@@ -6,6 +6,7 @@ import {
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
+  BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@bcl32/utils/Breadcrumb";
 
@@ -36,14 +37,20 @@ export default function NavigationBreadcrumb(_props: NavigationBreadcrumbProps) 
               </BreadcrumbSeparator>
 
               <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link
-                    to={"/" + entry.url}
-                    state={{ object_id: entry.id }}
-                  >
+                {entry.url ? (
+                  <BreadcrumbLink asChild>
+                    <Link
+                      to={"/" + entry.url}
+                      state={{ object_id: entry.id }}
+                    >
+                      <LinkLabel entry={entry} />
+                    </Link>
+                  </BreadcrumbLink>
+                ) : (
+                  <BreadcrumbPage>
                     <LinkLabel entry={entry} />
-                  </Link>
-                </BreadcrumbLink>
+                  </BreadcrumbPage>
+                )}
               </BreadcrumbItem>
             </div>
           );
