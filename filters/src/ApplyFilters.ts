@@ -68,7 +68,7 @@ export function ApplyFilters(data: unknown[], filters: Filters): DataEntry[] {
       case "options": {
         const selected = (filter["value"] as string[]) ?? [];
         if (selected.length === 0) break;
-        const value_key = filter["value_key"] ?? "id";
+        const value_key = filter["value_key"] ?? "value";
         const rule = filter["rule"] ?? "any";
         filteredData = filteredData.filter((entry) => {
           const rowValues = extractRowValues(entry?.[key], filter["source_kind"], value_key);
