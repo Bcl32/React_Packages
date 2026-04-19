@@ -1,5 +1,11 @@
 # @bcl32/themes
 
+## 2.1.5
+
+### Patch Changes
+
+- c1d7749: chore: bump workspace dependency floors to latest versions
+
 ## 2.1.4
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.6.1
+
+### Patch Changes
+
+- c1d7749: chore: bump workspace dependency floors to latest versions
+
 ## 2.6.0
 
 ### Minor Changes

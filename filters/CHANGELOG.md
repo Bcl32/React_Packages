@@ -1,5 +1,13 @@
 # @bcl32/filters
 
+## 3.0.4
+
+### Patch Changes
+
+- c1d7749: chore: bump workspace dependency floors to latest versions
+- Updated dependencies [c1d7749]
+  - @bcl32/charts@2.1.6
+
 ## 3.0.3
 
 ### Patch Changes
