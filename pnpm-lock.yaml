@@ -24,7 +24,7 @@ importers:
         specifier: workspace:^2.2.6
         version: link:../hooks
       '@bcl32/utils':
-        specifier: workspace:^2.3.5
+        specifier: workspace:^2.3.9
         version: link:../utils
       '@bokeh/bokehjs':
         specifier: ^2.4.3
@@ -74,16 +74,16 @@ importers:
   datatable:
     dependencies:
       '@bcl32/data-utils':
-        specifier: workspace:^2.1.7
+        specifier: workspace:^2.1.8
         version: link:../data-utils
       '@bcl32/forms':
-        specifier: workspace:^2.5.2
+        specifier: workspace:^2.5.7
         version: link:../forms
       '@bcl32/hooks':
         specifier: workspace:^2.2.6
         version: link:../hooks
       '@bcl32/utils':
-        specifier: workspace:^2.3.6
+        specifier: workspace:^2.3.9
         version: link:../utils
       '@mui/icons-material':
         specifier: ^5.15.7
@@ -135,7 +135,7 @@ importers:
         specifier: workspace:^2.2.6
         version: link:../hooks
       '@bcl32/utils':
-        specifier: workspace:^2.3.8
+        specifier: workspace:^2.3.9
         version: link:../utils
       '@mui/icons-material':
         specifier: ^5.15.7
@@ -249,7 +249,7 @@ importers:
   navigation:
     dependencies:
       '@bcl32/utils':
-        specifier: workspace:^2.3.5
+        specifier: workspace:^2.3.9
         version: link:../utils
       lucide-react:
         specifier: ^0.447.0
@@ -277,7 +277,7 @@ importers:
   themes:
     dependencies:
       '@bcl32/utils':
-        specifier: workspace:^2.3.5
+        specifier: workspace:^2.3.9
         version: link:../utils
       lucide-react:
         specifier: ^0.447.0

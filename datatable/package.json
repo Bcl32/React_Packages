@@ -64,10 +64,10 @@
     "dayjs": "^1.11.10"
   },
   "dependencies": {
-    "@bcl32/utils": "workspace:^2.3.6",
-    "@bcl32/data-utils": "workspace:^2.1.7",
+    "@bcl32/utils": "workspace:^2.3.9",
+    "@bcl32/data-utils": "workspace:^2.1.8",
     "@bcl32/hooks": "workspace:^2.2.6",
-    "@bcl32/forms": "workspace:^2.5.2",
+    "@bcl32/forms": "workspace:^2.5.7",
     "@radix-ui/react-dialog": "^1.1.1",
     "@radix-ui/react-icons": "^1.3.0",
     "@tanstack/react-table": "^8.11.8",

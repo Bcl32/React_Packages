@@ -145,7 +145,7 @@
     "recharts": "^2.12.0"
   },
   "dependencies": {
-    "@bcl32/utils": "workspace:^2.3.8",
+    "@bcl32/utils": "workspace:^2.3.9",
     "@bcl32/hooks": "workspace:^2.2.6",
     "@bcl32/data-utils": "workspace:^2.1.8",
     "@bcl32/charts": "workspace:^2.1.5",
