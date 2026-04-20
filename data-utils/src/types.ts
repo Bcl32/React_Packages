@@ -7,6 +7,11 @@ export interface ReferenceInfo {
 /** Base attribute definition for a model field */
 export interface ModelAttribute {
   name: string;
+  /**
+   * Discriminant consumed by FormElement: "string" | "number" | "boolean" |
+   * "list" | "select" | "datetime" | "colour" | "colour_array" | "id" | "file".
+   * Typed as `string` for forward-compatibility with app-specific extensions.
+   */
   type: string;
   default?: unknown;
   editable?: boolean;
@@ -19,6 +24,8 @@ export interface ModelAttribute {
   stats?: boolean;
   groupBy?: string;
   reference?: ReferenceInfo;
+  /** HTML file-input `accept` filter, used when `type === "file"` (e.g. ".stl,.3mf"). */
+  accept?: string;
   [key: string]: unknown;
 }
 

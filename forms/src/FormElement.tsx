@@ -68,6 +68,7 @@ export function canRenderFormElement(attr: ModelAttribute): boolean {
     case "datetime":
     case "colour":
     case "colour_array":
+    case "file":
       return true;
     case "id":
       return Boolean(attr.reference);
@@ -319,6 +320,39 @@ export function FormElement({
         );
       }
       return null;
+    case "file": {
+      // The browser's File instance stays in formData directly — the mutation
+      // hooks detect it and switch to multipart/form-data, so callers don't
+      // need to convert or base64-encode anything.
+      const selected = formData[name];
+      const isFile = typeof File !== "undefined" && selected instanceof File;
+      return (
+        <div className="flex">
+          <div className="w-full">
+            <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
+              {name[0].toUpperCase() + name.slice(1)}:
+            </LabelWithHelp>
+            <Input
+              variant="background"
+              size="default"
+              id={"input_" + name}
+              name={name}
+              type="file"
+              accept={entry_data.accept}
+              onChange={(e) => {
+                const f = e.target.files?.[0] ?? null;
+                setFormData((prev) => ({ ...prev, [name]: f }));
+              }}
+            />
+            {isFile && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {(selected as File).name} — {((selected as File).size / 1024).toFixed(1)} KB
+              </p>
+            )}
+          </div>
+        </div>
+      );
+    }
     default:
       return null;
   }

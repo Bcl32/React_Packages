@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient, UseMutationResult } from "@tanstack/react-query";
+import { buildRequestBody } from "./_buildRequestBody";
 
 interface ValidationErrorDetail {
   loc: (string | number)[];
@@ -24,11 +25,11 @@ const apiMutate = async <TData, TResponse>(
   data: TData,
   method?: string
 ): Promise<TResponse> => {
-  const response = await fetch(url, {
-    method: method || "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
+  // buildRequestBody picks JSON by default; switches to multipart/form-data
+  // (and drops Content-Type so the browser sets the boundary) when `data`
+  // contains any File/Blob. Enables file uploads through the same hook.
+  const { body, headers } = buildRequestBody(data);
+  const response = await fetch(url, { method: method || "POST", headers, body });
 
   const status = response.status;
   let result: any;

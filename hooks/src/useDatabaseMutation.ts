@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { useMutation, useQueryClient, UseMutationResult } from "@tanstack/react-query";
+import { buildRequestBody } from "./_buildRequestBody";
 
 interface ValidationErrorDetail {
   loc: (string | number)[];
@@ -16,11 +17,11 @@ interface ErrorResponse {
 }
 
 const post_api = async <TData, TResponse>(url: string, formData: TData, method: string = "POST"): Promise<TResponse> => {
-  const response = await fetch(url, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(formData),
-  });
+  // buildRequestBody keeps the JSON default and auto-switches to multipart
+  // when formData carries any File/Blob — so AddModelForm can transparently
+  // submit file-carrying DTOs too.
+  const { body, headers } = buildRequestBody(formData);
+  const response = await fetch(url, { method, headers, body });
 
   const status = response.status;
   let result: any;
