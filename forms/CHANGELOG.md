@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.5.8
+
+### Patch Changes
+
+- 94e4ba1: feat(hooks,forms): multipart auto-detect in mutations + file type in FormElement
+- Updated dependencies [94e4ba1]
+  - @bcl32/data-utils@2.1.9
+  - @bcl32/hooks@2.2.7
+
 ## 2.5.7
 
 ### Patch Changes

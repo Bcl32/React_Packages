@@ -1,5 +1,11 @@
 # @bcl32/data-utils
 
+## 2.1.9
+
+### Patch Changes
+
+- 94e4ba1: feat(hooks,forms): multipart auto-detect in mutations + file type in FormElement
+
 ## 2.1.8
 
 ### Patch Changes
