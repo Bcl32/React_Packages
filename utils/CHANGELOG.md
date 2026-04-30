@@ -1,5 +1,11 @@
 # @bcl32/utils
 
+## 2.4.1
+
+### Patch Changes
+
+- c9beb42: feat(utils): add Stepper component with navigation helpers
+
 ## 2.3.9
 
 ### Patch Changes
