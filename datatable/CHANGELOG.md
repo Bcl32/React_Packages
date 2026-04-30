@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.6.3
+
+### Patch Changes
+
+- bcafd31: chore(datatable,filters): move Radix UI deps to peerDependencies
+
 ## 2.6.1
 
 ### Patch Changes

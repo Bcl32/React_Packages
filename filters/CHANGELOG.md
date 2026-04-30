@@ -1,5 +1,11 @@
 # @bcl32/filters
 
+## 3.0.6
+
+### Patch Changes
+
+- bcafd31: chore(datatable,filters): move Radix UI deps to peerDependencies
+
 ## 3.0.4
 
 ### Patch Changes
