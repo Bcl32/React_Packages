@@ -13,6 +13,14 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./ApiError": {
+      "types": "./dist/ApiError.d.ts",
+      "import": "./dist/ApiError.js"
+    },
+    "./apiFetch": {
+      "types": "./dist/apiFetch.d.ts",
+      "import": "./dist/apiFetch.js"
+    },
     "./useDatabaseMutation": {
       "types": "./dist/useDatabaseMutation.d.ts",
       "import": "./dist/useDatabaseMutation.js"

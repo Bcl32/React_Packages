@@ -80,6 +80,7 @@ interface DataTableProps<TData extends RowData> {
   pageSize?: number;
   onBulkEditSuccess?: (selectedIds: string[], enabledData: Record<string, unknown>) => void;
   toolbarActions?: (selectedIds: string[]) => ToolbarAction[];
+  bulk_delete_enabled?: boolean;
 }
 
 export function DataTable<TData extends RowData>(
@@ -269,7 +270,7 @@ export function DataTable<TData extends RowData>(
             })}
 
             {/* Delete */}
-            {selectedIds.length > 0 ? (
+            {props.bulk_delete_enabled === false ? null : selectedIds.length > 0 ? (
               <DialogButton
                 key={"dialog-delete-entry"}
                 isModal={true}

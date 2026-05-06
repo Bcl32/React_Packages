@@ -2,6 +2,8 @@ import { defineConfig } from "tsup";
 
 export default defineConfig({
   entry: [
+    "src/ApiError.ts",
+    "src/apiFetch.ts",
     "src/useDatabaseMutation.ts",
     "src/useGetRequest.ts",
     "src/useApiMutation.ts",

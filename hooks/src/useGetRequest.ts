@@ -1,14 +1,6 @@
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
-
-interface ValidationErrorDetail {
-  loc: (string | number)[];
-  msg: string;
-  type: string;
-}
-
-interface ValidationErrorResponse {
-  detail: ValidationErrorDetail[];
-}
+import { ApiError } from "./ApiError";
+import { apiFetch } from "./apiFetch";
 
 interface UseGetRequestOptions {
   queryKey?: string[];
@@ -17,34 +9,22 @@ interface UseGetRequestOptions {
   responseType?: "json" | "text";
 }
 
-const getRequest = async <T>(url: string, responseType?: "json" | "text"): Promise<T> => {
-  const response = await fetch(url);
-
-  if (response.status === 422) {
-    const errorResult = (await response.json()) as ValidationErrorResponse;
-    throw new Error(
-      "Status Code 422 - Attribute: " +
-        errorResult.detail[0]["loc"][1] +
-        " Message: " +
-        errorResult.detail[0]["msg"]
-    );
-  }
-
-  if (!response.ok) {
-    throw new Error(`Error fetching data: ${response.statusText}`);
-  }
-
+const getRequest = async <T>(
+  url: string,
+  responseType?: "json" | "text",
+): Promise<T> => {
+  const res = await apiFetch(url);
   if (responseType === "text") {
-    return (await response.text()) as T;
+    return (await res.text()) as T;
   }
-  return (await response.json()) as T;
+  return (await res.json()) as T;
 };
 
 export const useGetRequest = <T = unknown>(
   url: string,
-  options?: UseGetRequestOptions
-): UseQueryResult<T, Error> => {
-  return useQuery<T, Error>({
+  options?: UseGetRequestOptions,
+): UseQueryResult<T, ApiError> => {
+  return useQuery<T, ApiError>({
     queryKey: options?.queryKey ?? [url],
     queryFn: () => getRequest<T>(url, options?.responseType),
     enabled: options?.enabled,
