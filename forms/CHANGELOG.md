@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.5.9
+
+### Patch Changes
+
+- 4b98b89: feat(hooks,forms,datatable): structured ApiError system + cascade-delete conflict UX
+- 45dcfbc: fix(forms,hooks,utils): standardize @tanstack/react-query as peerDep + externalize in tsup
+- Updated dependencies [4b98b89]
+- Updated dependencies [45dcfbc]
+  - @bcl32/hooks@2.2.8
+  - @bcl32/utils@2.4.2
+
 ## 2.5.8
 
 ### Patch Changes

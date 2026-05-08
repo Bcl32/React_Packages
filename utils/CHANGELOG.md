@@ -1,5 +1,11 @@
 # @bcl32/utils
 
+## 2.4.2
+
+### Patch Changes
+
+- 45dcfbc: fix(forms,hooks,utils): standardize @tanstack/react-query as peerDep + externalize in tsup
+
 ## 2.4.1
 
 ### Patch Changes

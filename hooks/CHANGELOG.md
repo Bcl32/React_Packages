@@ -1,5 +1,12 @@
 # @bcl32/hooks
 
+## 2.2.8
+
+### Patch Changes
+
+- 4b98b89: feat(hooks,forms,datatable): structured ApiError system + cascade-delete conflict UX
+- 45dcfbc: fix(forms,hooks,utils): standardize @tanstack/react-query as peerDep + externalize in tsup
+
 ## 2.2.7
 
 ### Patch Changes
