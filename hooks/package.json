@@ -40,6 +40,10 @@
     "./useDataLoader": {
       "types": "./dist/useDataLoader.d.ts",
       "import": "./dist/useDataLoader.js"
+    },
+    "./useOptionsEnrichment": {
+      "types": "./dist/useOptionsEnrichment.d.ts",
+      "import": "./dist/useOptionsEnrichment.js"
     }
   },
   "files": [

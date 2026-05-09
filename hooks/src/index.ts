@@ -5,3 +5,4 @@ export * from "./useGetRequest";
 export * from "./useApiMutation";
 export * from "./useBokehChart";
 export * from "./useDataLoader";
+export * from "./useOptionsEnrichment";

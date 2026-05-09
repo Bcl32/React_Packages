@@ -9,6 +9,7 @@ export default defineConfig({
     "src/useApiMutation.ts",
     "src/useBokehChart.ts",
     "src/useDataLoader.ts",
+    "src/useOptionsEnrichment.ts",
     "src/index.ts"
   ],
   format: ["esm"],
