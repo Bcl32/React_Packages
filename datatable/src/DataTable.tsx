@@ -10,6 +10,8 @@ import {
   getPaginationRowModel,
 } from "@tanstack/react-table";
 
+import { useVirtualizer } from "@tanstack/react-virtual";
+
 import {
   Table,
   TableBody,
@@ -78,6 +80,8 @@ interface DataTableProps<TData extends RowData> {
   cellClassName?: string;
   maxCellHeight?: number;
   pageSize?: number;
+  virtualized?: boolean;
+  estimatedRowHeight?: number;
   onBulkEditSuccess?: (selectedIds: string[], enabledData: Record<string, unknown>) => void;
   toolbarActions?: (selectedIds: string[]) => ToolbarAction[];
   bulk_delete_enabled?: boolean;
@@ -136,6 +140,28 @@ export function DataTable<TData extends RowData>(
 
   const totalSize = tableInstance.getTotalSize();
 
+  // Virtualization plumbing. The scroll ref is attached to DataTable's
+  // own internal scroll region. When `virtualized` is set, we attempt
+  // to virtualize against it; if the parent didn't give DataTable a
+  // bounded flex context, the scroll region won't actually scroll and
+  // the virtualizer harmlessly renders all rows (same as non-virtualized).
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const rows = tableInstance.getRowModel().rows;
+  const virtualizer = useVirtualizer({
+    count: props.virtualized ? rows.length : 0,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => props.estimatedRowHeight ?? 56,
+    overscan: 8,
+    measureElement: (el) => el.getBoundingClientRect().height,
+  });
+  const virtualItems = props.virtualized ? virtualizer.getVirtualItems() : [];
+  const virtualTotalSize = props.virtualized ? virtualizer.getTotalSize() : 0;
+  const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0;
+  const paddingBottom =
+    virtualItems.length > 0
+      ? virtualTotalSize - virtualItems[virtualItems.length - 1].end
+      : 0;
+
   const renderSubComponent = props.renderSubComponent || (({ row }: { row: Row<TData> }) => (
     <div className="h-96 overflow-scroll">
       <pre style={{ fontSize: "20px", whiteSpace: "pre-wrap" }}>
@@ -145,9 +171,9 @@ export function DataTable<TData extends RowData>(
   ));
 
   return (
-    <div>
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Toolbar */}
-      <div className="mb-2">
+      <div className="mb-2 shrink-0">
         <div className="flex items-center gap-2 min-h-9">
           <h3 className="text-lg font-semibold capitalize whitespace-nowrap shrink-0">
             {props.title}
@@ -307,10 +333,11 @@ export function DataTable<TData extends RowData>(
       </div>
 
       {/* Filter panel — rendered as sibling to table to avoid re-render on tab switch */}
-      {props.filter?.panel}
+      {props.filter?.panel && <div className="shrink-0">{props.filter.panel}</div>}
 
+      <div ref={scrollRef} className="flex-1 overflow-auto min-h-0">
       <Table className="text-md border-4 rounded-lg">
-        <TableHeader>
+        <TableHeader className="sticky top-0 z-10 bg-card">
           {tableInstance.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
@@ -346,53 +373,7 @@ export function DataTable<TData extends RowData>(
           ))}
         </TableHeader>
         <TableBody>
-          {tableInstance.getRowModel().rows?.length ? (
-            tableInstance.getRowModel().rows.map((row) => (
-              <Fragment key={row.id}>
-                <TableRow
-                  data-state={row.getIsSelected() && "selected"}
-                  className={props.expandOnRowClick ? "cursor-pointer" : undefined}
-                  onClick={(e) => {
-                    const target = e.target as HTMLElement;
-                    if (target.closest("a, input, button, label")) return;
-                    if (props.expandOnRowClick) {
-                      row.toggleExpanded();
-                    }
-                    handleRowClick(row.original);
-                  }}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={props.cellClassName}
-                      style={{
-                        width: `${(cell.column.getSize() / totalSize) * 100}%`,
-                        minWidth: cell.column.columnDef.minSize,
-                        maxWidth: cell.column.columnDef.maxSize != null && cell.column.columnDef.maxSize < Number.MAX_SAFE_INTEGER
-                          ? cell.column.columnDef.maxSize : undefined,
-                      }}
-                    >
-                      {props.maxCellHeight && !(cell.column.columnDef.meta as Record<string, unknown>)?.noMaxHeight ? (
-                        <div style={{ maxHeight: props.maxCellHeight, overflowY: "auto" }}>
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </div>
-                      ) : (
-                        flexRender(cell.column.columnDef.cell, cell.getContext())
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-
-                {row.getIsExpanded() && (
-                  <TableRow>
-                    <TableCell colSpan={row.getVisibleCells().length}>
-                      {renderSubComponent({ row })}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </Fragment>
-            ))
-          ) : (
+          {rows.length === 0 ? (
             <TableRow>
               <TableCell
                 colSpan={props.columns.length}
@@ -401,6 +382,66 @@ export function DataTable<TData extends RowData>(
                 No results.
               </TableCell>
             </TableRow>
+          ) : (
+            <>
+              {props.virtualized && paddingTop > 0 && (
+                <tr style={{ height: paddingTop }} aria-hidden>
+                  <td colSpan={props.columns.length} />
+                </tr>
+              )}
+              {(props.virtualized ? virtualItems.map((vi) => rows[vi.index]) : rows).map((row, idx) => (
+                <Fragment key={row.id}>
+                  <TableRow
+                    data-state={row.getIsSelected() && "selected"}
+                    data-index={props.virtualized ? virtualItems[idx].index : undefined}
+                    ref={props.virtualized ? virtualizer.measureElement : undefined}
+                    className={props.expandOnRowClick ? "cursor-pointer" : undefined}
+                    onClick={(e) => {
+                      const target = e.target as HTMLElement;
+                      if (target.closest("a, input, button, label")) return;
+                      if (props.expandOnRowClick) {
+                        row.toggleExpanded();
+                      }
+                      handleRowClick(row.original);
+                    }}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className={props.cellClassName}
+                        style={{
+                          width: `${(cell.column.getSize() / totalSize) * 100}%`,
+                          minWidth: cell.column.columnDef.minSize,
+                          maxWidth: cell.column.columnDef.maxSize != null && cell.column.columnDef.maxSize < Number.MAX_SAFE_INTEGER
+                            ? cell.column.columnDef.maxSize : undefined,
+                        }}
+                      >
+                        {props.maxCellHeight && !(cell.column.columnDef.meta as Record<string, unknown>)?.noMaxHeight ? (
+                          <div style={{ maxHeight: props.maxCellHeight, overflowY: "auto" }}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </div>
+                        ) : (
+                          flexRender(cell.column.columnDef.cell, cell.getContext())
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+
+                  {row.getIsExpanded() && (
+                    <TableRow>
+                      <TableCell colSpan={row.getVisibleCells().length}>
+                        {renderSubComponent({ row })}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </Fragment>
+              ))}
+              {props.virtualized && paddingBottom > 0 && (
+                <tr style={{ height: paddingBottom }} aria-hidden>
+                  <td colSpan={props.columns.length} />
+                </tr>
+              )}
+            </>
           )}
         </TableBody>
         <TableFooter>
@@ -420,6 +461,7 @@ export function DataTable<TData extends RowData>(
           ))}
         </TableFooter>
       </Table>
+      </div>
 
       {tableInstance.getPageCount() > 1 && <DataTablePagination table={tableInstance} />}
     </div>
