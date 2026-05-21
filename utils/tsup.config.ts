@@ -24,6 +24,7 @@ export default defineConfig({
     "src/RadioButton.tsx",
     "src/Slider.tsx",
     "src/Breadcrumb.tsx",
+    "src/Stepper.tsx",
     "src/useIsMobile.tsx",
     "src/FileSystem.tsx",
     "src/StatusBanner.tsx",
