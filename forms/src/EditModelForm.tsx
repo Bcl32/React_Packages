@@ -13,6 +13,7 @@ import type { ModelData } from "@bcl32/data-utils";
 
 import { toast } from "sonner";
 import { FormElement, canRenderFormElement, type FormData } from "./FormElement";
+import { changedFields } from "./_diff";
 
 type EditModelData = ModelData & { update_api_url: string };
 
@@ -53,14 +54,26 @@ export function EditModelForm({
     }
   }
 
+  // Only the attributes the user actually changed — keeps the PATCH minimal
+  // and avoids re-sending unchanged (or heavy read-only) fields.
+  const patchBody = React.useMemo(
+    () => changedFields(formData, obj_data),
+    [formData, obj_data],
+  );
+
   async function update_entry() {
+    if (Object.keys(patchBody).length === 0) {
+      toast.info("No changes to save");
+      onClose?.();
+      return;
+    }
     props.processing_function?.();
     await mutation_update_entry.mutate();
   }
 
   const mutation_update_entry = useDatabaseMutation(
     ModelData.update_api_url + "/" + obj_data.id,
-    formData,
+    patchBody,
     query_invalidation,
     "PATCH"
   );
