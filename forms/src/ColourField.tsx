@@ -2,15 +2,10 @@ import * as React from "react";
 import { HelpCircle } from "lucide-react";
 import { Label } from "@bcl32/utils/Label";
 import { CustomTooltip } from "@bcl32/utils/Tooltip";
-import { useGetRequest } from "@bcl32/hooks/useGetRequest";
 import type { ModelAttribute } from "@bcl32/data-utils";
 import type { FormData } from "./FormElement";
-import { ColourPickerPopover, type ColourSwatch } from "@bcl32/utils/ColourPickerPopover";
-
-interface ColourPresetsInfo {
-  get_api_url: string;
-  group_by?: string;
-}
+import { ColourPickerPopover } from "@bcl32/utils/ColourPickerPopover";
+import { useGroupedSwatches } from "./useGroupedSwatches";
 
 function LabelWithHelp({
   htmlFor,
@@ -44,38 +39,10 @@ export function ColourField({
 }) {
   const name = entry_data.name;
   const helpText = entry_data.help_text || entry_data.description || null;
-  const colourPresets = entry_data.colour_presets as ColourPresetsInfo | undefined;
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
 
-  const { data } = useGetRequest<{ items: Record<string, unknown>[] }>(
-    colourPresets?.get_api_url ?? "",
-    {
-      enabled: !!colourPresets?.get_api_url,
-      staleTime: 5 * 60 * 1000,
-    }
-  );
-
-  const groupKey = colourPresets?.group_by;
-
-  const groupedSwatches = React.useMemo(() => {
-    if (!data?.items) return new Map<string, ColourSwatch[]>();
-    const groups = new Map<string, ColourSwatch[]>();
-    for (const item of data.items) {
-      const hex = item.colour_hex as string | undefined;
-      if (!hex) continue;
-      const label = groupKey ? ((item[groupKey] as string) || "Other") : "Presets";
-      const swatch: ColourSwatch = {
-        id: item.id as string | undefined,
-        colour_hex: hex,
-        colour_name: item.colour_name as string | undefined,
-      };
-      const group = groups.get(label) || [];
-      group.push(swatch);
-      groups.set(label, group);
-    }
-    return groups;
-  }, [data, groupKey]);
+  const groupedSwatches = useGroupedSwatches(entry_data);
 
   const currentColour = (formData[name] as string) || "";
 
