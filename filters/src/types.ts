@@ -52,6 +52,7 @@ export interface FilterData {
 export interface ColourPresetsConfig {
   get_api_url: string;
   group_by?: string;
+  subgroup_by?: string;
 }
 
 export interface GroupedFilters {

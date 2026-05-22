@@ -221,25 +221,36 @@ function SwatchGridView({ colour_presets, selected, onToggle }: SwatchGridViewPr
   );
 
   const groupKey = colour_presets?.group_by;
+  const subgroupKey = colour_presets?.subgroup_by;
 
   const groupedSwatches = React.useMemo(() => {
-    if (!data?.items) return new Map<string, ColourSwatch[]>();
-    const groups = new Map<string, ColourSwatch[]>();
+    const groups = new Map<string, Map<string, ColourSwatch[]>>();
+    if (!data?.items) return groups;
     for (const item of data.items) {
       const hex = item.colour_hex as string | undefined;
       if (!hex) continue;
-      const label = groupKey ? ((item[groupKey] as string) || "Other") : "Presets";
+      const groupLabel = groupKey
+        ? ((item[groupKey] as string) || "Other")
+        : "Presets";
+      const subLabel = subgroupKey
+        ? ((item[subgroupKey] as string) || "Other")
+        : "";
       const swatch: ColourSwatch = {
         id: item.id as string | undefined,
         colour_hex: hex,
         colour_name: item.colour_name as string | undefined,
       };
-      const group = groups.get(label) || [];
-      group.push(swatch);
-      groups.set(label, group);
+      let subGroups = groups.get(groupLabel);
+      if (!subGroups) {
+        subGroups = new Map<string, ColourSwatch[]>();
+        groups.set(groupLabel, subGroups);
+      }
+      const swatches = subGroups.get(subLabel) || [];
+      swatches.push(swatch);
+      subGroups.set(subLabel, swatches);
     }
     return groups;
-  }, [data, groupKey]);
+  }, [data, groupKey, subgroupKey]);
 
   React.useEffect(() => {
     if (!open) return;
