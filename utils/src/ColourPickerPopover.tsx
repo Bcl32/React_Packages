@@ -61,7 +61,7 @@ export function ColourPickerPopover({
       }`}
     >
       <span
-        className={`w-4 h-4 rounded-full border-2 shrink-0 ${
+        className={`w-6 h-6 rounded-full border-2 shrink-0 ${
           isSelected(s)
             ? "border-primary ring-1 ring-primary"
             : "border-border"
@@ -75,31 +75,31 @@ export function ColourPickerPopover({
   );
 
   return (
-    <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-popover border rounded-lg shadow-lg p-3 w-80 max-h-[80vh] overflow-y-auto">
+    <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-popover border rounded-lg shadow-lg p-3 w-[32rem] max-h-[80vh] overflow-y-auto">
       {groups.size > 0 &&
         Array.from(groups.entries()).map(([groupLabel, subGroups]) => (
-          <div key={groupLabel} className="mb-3">
-            <p className="text-[10px] font-semibold text-foreground uppercase tracking-wide mb-1.5">
+          <div key={groupLabel} className="mb-4">
+            <p className="text-sm font-bold text-foreground uppercase tracking-wider border-b border-border pb-1 mb-2">
               {groupLabel}
             </p>
             {Array.from(subGroups.entries()).map(([subLabel, swatches]) => (
               <div
                 key={`${groupLabel}/${subLabel}`}
-                className={subLabel ? "mb-2 ml-2" : ""}
+                className={subLabel ? "mb-2 ml-1 pl-2 border-l-2 border-border" : ""}
               >
                 {subLabel && (
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-wide mb-1">
+                  <p className="text-xs font-bold text-foreground uppercase tracking-wide mb-1">
                     {subLabel}
                   </p>
                 )}
-                <div className="grid grid-cols-2 gap-1">
+                <div className="grid grid-cols-3 gap-1">
                   {swatches.map(renderSwatch)}
                 </div>
               </div>
             ))}
           </div>
         ))}
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1.5">
+      <p className="text-sm font-bold text-foreground uppercase tracking-wider border-t border-border pt-2 mt-1 mb-2">
         Custom
       </p>
       <input
