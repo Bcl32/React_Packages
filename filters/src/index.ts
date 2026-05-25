@@ -21,6 +21,8 @@ export * from "./InitializeFilters";
 export * from "./GroupFilters";
 export * from "./ProcessDataset";
 export * from "./useEntityFilters";
+export * from "./useEntityGroups";
+export * from "./EntityGroupCards";
 export * from "./FilterProvider";
 export * from "./useFilterContext";
 export * from "./DataTableFilterBar";
