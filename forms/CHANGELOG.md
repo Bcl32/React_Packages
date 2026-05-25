@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.5.10
+
+### Patch Changes
+
+- 2c5779f: feat(forms,utils): two-level grouping in colour swatch picker
+- 451ef87: feat: PATCH only changed fields from EditModelForm
+- aee527f: feat(forms,data-utils,datatable): id_list support for bulk-edit and stats
+
+  FormElement now renders id_list as a label-space Combobox over `attr.options`
+  ({value, label} pairs), BulkEditModelForm includes id_list fields in its
+  list-style merge/replace toggle (defaulting to "Add to existing"), and
+  StatsTable skips id_list rather than falling through to default rendering.
+  Unlocks bulk-editing reference-array fields like Part.systems.
+
+- Updated dependencies [2c5779f]
+- Updated dependencies [dd1cf42]
+- Updated dependencies [aee527f]
+  - @bcl32/utils@2.4.4
+  - @bcl32/data-utils@2.1.10
+
 ## 2.5.9
 
 ### Patch Changes

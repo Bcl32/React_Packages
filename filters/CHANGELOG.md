@@ -1,5 +1,16 @@
 # @bcl32/filters
 
+## 3.1.1
+
+### Patch Changes
+
+- 9e43685: feat(filters): group colour-swatch filter by submaterial
+- Updated dependencies [2c5779f]
+- Updated dependencies [dd1cf42]
+- Updated dependencies [aee527f]
+  - @bcl32/utils@2.4.4
+  - @bcl32/data-utils@2.1.10
+
 ## 3.1.0
 
 ### Minor Changes

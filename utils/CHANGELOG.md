@@ -1,5 +1,12 @@
 # @bcl32/utils
 
+## 2.4.4
+
+### Patch Changes
+
+- 2c5779f: feat(forms,utils): two-level grouping in colour swatch picker
+- dd1cf42: style(utils): emphasise sections in the colour swatch popover
+
 ## 2.4.3
 
 ### Patch Changes
