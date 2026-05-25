@@ -6,6 +6,7 @@ export function getFormDefault(attr: ModelAttribute): unknown {
     case "string":  return undefined;
     case "boolean": return false;
     case "list":    return [];
+    case "id_list": return [];
     case "id":      return null;
     default:        return undefined;
   }

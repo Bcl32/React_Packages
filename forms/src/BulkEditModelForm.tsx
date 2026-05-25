@@ -65,8 +65,12 @@ export function BulkEditModelForm({
   const [formData, setFormData] = React.useState<FormData>(form_defaults);
   const [enabledFields, setEnabledFields] = React.useState<Record<string, boolean>>({});
 
-  // For list-type fields, default to merge mode (add to existing)
-  const listFieldNames = editableAttributes.filter((a) => a.type === "list").map((a) => a.name);
+  // For list-style fields (scalar `list` or reference `id_list`), default to
+  // merge mode (add to existing) so a bulk-apply doesn't wipe per-row
+  // configurations the user can't see from the bulk modal.
+  const listFieldNames = editableAttributes
+    .filter((a) => a.type === "list" || a.type === "id_list")
+    .map((a) => a.name);
   const [mergeMode, setMergeMode] = React.useState<Record<string, boolean>>(() => {
     const defaults: Record<string, boolean> = {};
     listFieldNames.forEach((name) => { defaults[name] = true; });
@@ -204,7 +208,7 @@ export function BulkEditModelForm({
                   formData={formData}
                   setFormData={setFormData}
                 />
-                {attr.type === "list" && (
+                {(attr.type === "list" || attr.type === "id_list") && (
                   <div className="flex items-center gap-2 mt-2">
                     <Checkbox
                       checked={!!mergeMode[attr.name]}

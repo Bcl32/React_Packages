@@ -64,6 +64,7 @@ export function canRenderFormElement(attr: ModelAttribute): boolean {
     case "number":
     case "boolean":
     case "list":
+    case "id_list":
     case "select":
     case "datetime":
     case "colour":
@@ -248,6 +249,50 @@ export function FormElement({
           />
         </div>
       );
+
+    case "id_list": {
+      // Multi-select of {value, label} reference pairs (e.g. systems).
+      // Combobox works in label-space for display; formData stores the
+      // canonical value array (UUIDs), translated at change time via
+      // attr.options. Mirrors EditableDetailItem.jsx's badge-modal flow.
+      const valueKey = (entry_data.value_key as string) || "value";
+      const labelKey = (entry_data.label_key as string) || "label";
+      const options =
+        (entry_data.options as Array<Record<string, unknown>>) || [];
+      const optionLabels = options.map((o) => String(o[labelKey]));
+      const currentValues = (formData[name] as Array<string>) || [];
+      const selectedLabels = currentValues
+        .map((v) => {
+          const match = options.find((o) => o[valueKey] === v);
+          return match ? String(match[labelKey]) : null;
+        })
+        .filter((l): l is string => l != null);
+      return (
+        <div className="py-2">
+          <LabelWithHelp htmlFor={name} helpText={helpText}>
+            {name[0].toUpperCase() + name.slice(1).replace(/_/g, " ")}:
+          </LabelWithHelp>
+          <Combobox
+            multiple
+            showBadges
+            options={optionLabels}
+            value={selectedLabels}
+            onChange={(newLabels) => {
+              const newValues = newLabels
+                .map((lbl) => {
+                  const match = options.find(
+                    (o) => String(o[labelKey]) === lbl,
+                  );
+                  return match ? (match[valueKey] as string) : null;
+                })
+                .filter((v): v is string => v != null);
+              setFormData((prev) => ({ ...prev, [name]: newValues }));
+            }}
+            placeholder={`Add ${name.replace(/_/g, " ")}...`}
+          />
+        </div>
+      );
+    }
 
     case "select":
       return (

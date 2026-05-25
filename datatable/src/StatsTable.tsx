@@ -162,6 +162,7 @@ function format_stats(data: StatItem[]): FormattedStat[] {
       }
 
       case "children":
+      case "id_list":
         break;
       default:
         value = (
