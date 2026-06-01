@@ -1,4 +1,3 @@
-import * as React from "react";
 import { Card, CardHeader, CardTitle } from "@bcl32/utils/Card";
 import { ToggleGroup, ToggleGroupItem } from "@bcl32/utils/ToggleGroup";
 import { useEntityGroups, type GroupVisualResolver } from "./useEntityGroups";
