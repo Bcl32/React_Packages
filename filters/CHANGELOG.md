@@ -1,5 +1,12 @@
 # @bcl32/filters
 
+## 3.1.2
+
+### Patch Changes
+
+- 3ab5612: feat(filters): add EntityGroupCards for grouping entities by attribute
+- dd2b0ef: fix(filters): drop unused React import in EntityGroupCards
+
 ## 3.1.1
 
 ### Patch Changes
