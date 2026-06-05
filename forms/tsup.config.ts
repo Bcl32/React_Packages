@@ -10,6 +10,9 @@ export default defineConfig({
     "src/ButtonDatePicker.tsx",
     "src/ColourField.tsx",
     "src/ColourArrayField.tsx",
+    "src/AutoGrowTextarea.tsx",
+    "src/RelationCollectionField.tsx",
+    "src/useDebouncedCallback.ts",
     "src/index.ts"
   ],
   format: ["esm"],

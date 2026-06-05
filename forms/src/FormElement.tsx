@@ -22,6 +22,8 @@ import type { ModelAttribute, ReferenceInfo } from "@bcl32/data-utils";
 import ButtonDatePicker from "./ButtonDatePicker";
 import { ColourField } from "./ColourField";
 import { ColourArrayField } from "./ColourArrayField";
+import { AutoGrowTextarea } from "./AutoGrowTextarea";
+import { RelationCollectionField } from "./RelationCollectionField";
 
 interface LabelWithHelpProps {
   htmlFor: string;
@@ -61,6 +63,7 @@ export interface FormData {
 export function canRenderFormElement(attr: ModelAttribute): boolean {
   switch (attr.type) {
     case "string":
+    case "textarea":
     case "number":
     case "boolean":
     case "list":
@@ -69,6 +72,7 @@ export function canRenderFormElement(attr: ModelAttribute): boolean {
     case "datetime":
     case "colour":
     case "colour_array":
+    case "relation_collection":
     case "file":
       return true;
     case "id":
@@ -185,6 +189,24 @@ export function FormElement({
               onChange={handleChange}
               type="text"
               placeholder=""
+            />
+          </div>
+        </div>
+      );
+    case "textarea":
+      return (
+        <div className="flex">
+          <div className="w-full">
+            <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
+              {name[0].toUpperCase() + name.slice(1)}:
+            </LabelWithHelp>
+            <AutoGrowTextarea
+              id={"input_" + name}
+              name={name}
+              value={(formData[name] as string) ?? ""}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, [name]: e.target.value }))
+              }
             />
           </div>
         </div>
@@ -349,6 +371,17 @@ export function FormElement({
     case "colour_array":
       return (
         <ColourArrayField
+          entry_data={entry_data}
+          formData={formData}
+          setFormData={setFormData}
+        />
+      );
+    case "relation_collection":
+      // No baseUrl here → create-mode (disabled notice). Detail pages render
+      // RelationCollectionField directly with a resolved baseUrl for live
+      // per-row editing.
+      return (
+        <RelationCollectionField
           entry_data={entry_data}
           formData={formData}
           setFormData={setFormData}

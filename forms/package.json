@@ -44,6 +44,18 @@
     "./ColourArrayField": {
       "types": "./dist/ColourArrayField.d.ts",
       "import": "./dist/ColourArrayField.js"
+    },
+    "./AutoGrowTextarea": {
+      "types": "./dist/AutoGrowTextarea.d.ts",
+      "import": "./dist/AutoGrowTextarea.js"
+    },
+    "./RelationCollectionField": {
+      "types": "./dist/RelationCollectionField.d.ts",
+      "import": "./dist/RelationCollectionField.js"
+    },
+    "./useDebouncedCallback": {
+      "types": "./dist/useDebouncedCallback.d.ts",
+      "import": "./dist/useDebouncedCallback.js"
     }
   },
   "files": [
