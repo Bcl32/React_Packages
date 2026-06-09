@@ -10,6 +10,10 @@ import {
   ExternalLink,
   Pencil,
   Check,
+  Upload,
+  RefreshCw,
+  X,
+  Loader2,
 } from "lucide-react";
 import { apiFetch, useGetRequest } from "@bcl32/hooks";
 import { Input } from "@bcl32/utils/Input";
@@ -57,10 +61,15 @@ export function RelationCollectionField({
   entry_data,
   baseUrl,
   entityLabel = "record",
+  resolveAssetUrl = (path: string) => path,
 }: {
   entry_data: ModelAttribute;
   baseUrl?: string;
   entityLabel?: string;
+  // Resolves a relative `media/...` asset URL to a full URL (the consumer wires
+  // its API-base helper in). Defaults to identity so the shared package stays
+  // framework-agnostic.
+  resolveAssetUrl?: (path: string) => string;
   // Accepted for FormElement compatibility; unused (live editing is per-row).
   formData?: FormData;
   setFormData?: React.Dispatch<React.SetStateAction<FormData>>;
@@ -69,11 +78,15 @@ export function RelationCollectionField({
     title?: string;
     name: string;
     sortable?: boolean;
+    thumbnail?: boolean;
     sub_fields?: SubField[];
   };
   const title = attr.title || attr.name;
   const subFields = attr.sub_fields ?? [];
   const sortable = !!attr.sortable;
+  // When the collection declares `thumbnail`, each row gets a left-side cached
+  // thumbnail (uploaded, or fetched from its link's og:image).
+  const showThumbnail = !!attr.thumbnail;
 
   const categoryField = subFields.find((f) => f.name === "category");
   const categoryOptions = categoryField?.options ?? [];
@@ -82,6 +95,9 @@ export function RelationCollectionField({
     categoryOptions.find((o) => o.value === value)?.label ?? value;
 
   const [editing, setEditing] = React.useState(false);
+  // Per-row thumbnail action state (keyed by row id).
+  const [thumbBusy, setThumbBusy] = React.useState<Record<string, boolean>>({});
+  const [thumbError, setThumbError] = React.useState<Record<string, string>>({});
 
   // Fields shown stacked full-width (multi-line text + the URL line); the rest
   // sit inline on the card header next to the controls.
@@ -224,6 +240,152 @@ export function RelationCollectionField({
     );
   };
 
+  const thumbSrc = (row: ResourceRow) => {
+    const url = (row.thumbnail_url as string) || "";
+    return url ? resolveAssetUrl(url) : "";
+  };
+
+  // Only the thumbnail fields are taken from the server response, so an in-flight
+  // (debounced) text edit on the same row isn't clobbered by a stale value.
+  const applyThumb = (rowId: string, updated: ResourceRow) =>
+    setRows((rs) =>
+      rs.map((r) =>
+        r.id === rowId
+          ? {
+              ...r,
+              thumbnail_url: updated.thumbnail_url,
+              thumbnail_source: updated.thumbnail_source,
+            }
+          : r,
+      ),
+    );
+
+  const runThumbAction = async (rowId: string, req: () => Promise<Response>) => {
+    if (!baseUrl) return;
+    setThumbError((e) => ({ ...e, [rowId]: "" }));
+    setThumbBusy((b) => ({ ...b, [rowId]: true }));
+    try {
+      const res = await req();
+      applyThumb(rowId, (await res.json()) as ResourceRow);
+    } catch (err) {
+      const msg =
+        (err as { message?: string })?.message || "Could not update thumbnail";
+      setThumbError((e) => ({ ...e, [rowId]: msg }));
+      console.error("Thumbnail action failed:", err);
+    } finally {
+      setThumbBusy((b) => ({ ...b, [rowId]: false }));
+    }
+  };
+
+  const fetchThumb = (rowId: string) =>
+    runThumbAction(rowId, () =>
+      apiFetch(`${baseUrl}/${rowId}/thumbnail/fetch`, { method: "POST" }),
+    );
+
+  const clearThumb = (rowId: string) =>
+    runThumbAction(rowId, () =>
+      apiFetch(`${baseUrl}/${rowId}/thumbnail`, { method: "DELETE" }),
+    );
+
+  const uploadThumb = (rowId: string, file: File) =>
+    runThumbAction(rowId, async () => {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      return apiFetch(`${baseUrl}/${rowId}/thumbnail`, {
+        method: "POST",
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ thumbnail_b64: dataUrl }),
+      });
+    });
+
+  // Left-side thumbnail cell: the cached image, else the category icon as a
+  // placeholder. In edit mode it carries Fetch / Upload / Clear controls — Fetch
+  // is hidden once an upload owns the slot ("upload locks it").
+  const renderThumb = (
+    row: ResourceRow,
+    Icon: React.ComponentType<{ className?: string }>,
+    editable: boolean,
+  ) => {
+    const src = thumbSrc(row);
+    const source = (row.thumbnail_source as string) || "";
+    const rowUrl = (row.url as string) || "";
+    const busy = !!thumbBusy[row.id];
+    const err = thumbError[row.id];
+    return (
+      <div className="flex flex-col items-center gap-1 shrink-0">
+        <div className="relative w-20 h-20">
+          {src ? (
+            <img
+              src={src}
+              alt=""
+              className="w-20 h-20 rounded object-cover border"
+            />
+          ) : (
+            <div className="w-20 h-20 rounded border bg-muted/40 flex items-center justify-center">
+              <Icon className="w-8 h-8 text-muted-foreground" />
+            </div>
+          )}
+          {busy && (
+            <div className="absolute inset-0 rounded bg-background/60 flex items-center justify-center">
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            </div>
+          )}
+        </div>
+        {editable && (
+          <div className="flex items-center gap-0.5">
+            {rowUrl && source !== "upload" && (
+              <button
+                type="button"
+                onClick={() => fetchThumb(row.id)}
+                disabled={busy}
+                className="p-1 rounded hover:bg-accent disabled:opacity-40"
+                title="Fetch image from link"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <label
+              className="p-1 rounded hover:bg-accent cursor-pointer"
+              title="Upload image"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (f) uploadThumb(row.id, f);
+                }}
+              />
+            </label>
+            {src && (
+              <button
+                type="button"
+                onClick={() => clearThumb(row.id)}
+                disabled={busy}
+                className="p-1 rounded hover:bg-destructive/10 text-destructive disabled:opacity-40"
+                title="Remove image"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+        {err && (
+          <span className="text-[10px] text-destructive text-center leading-tight max-w-[6rem]">
+            {err}
+          </span>
+        )}
+      </div>
+    );
+  };
+
   if (!baseUrl) {
     return (
       <div className="space-y-2">
@@ -283,72 +445,79 @@ export function RelationCollectionField({
               const Icon = CATEGORY_ICONS[cat] || StickyNote;
               const url = (row.url as string) || "";
               return (
-                <div key={row.id} className="bg-card rounded-lg border p-3 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
-                    {inlineFields.map((f) => (
-                      <div
-                        key={f.name}
-                        className={f.name === "title" ? "flex-1" : "shrink-0"}
-                      >
-                        {renderControl(row, f)}
-                      </div>
-                    ))}
-                    {sortable && (
-                      <div className="flex flex-col shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => move(index, -1)}
-                          disabled={index === 0}
-                          className="p-0.5 rounded hover:bg-accent disabled:opacity-30"
-                          title="Move up"
-                        >
-                          <ChevronUp className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => move(index, 1)}
-                          disabled={index === rows.length - 1}
-                          className="p-0.5 rounded hover:bg-accent disabled:opacity-30"
-                          title="Move down"
-                        >
-                          <ChevronDown className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => deleteRow(row.id)}
-                      className="p-1 rounded hover:bg-destructive/10 shrink-0"
-                      title="Remove"
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </button>
-                  </div>
-
-                  {blockFields.map((f) => (
-                    <div key={f.name}>
-                      {f.name === "url" ? (
-                        <div className="flex items-center gap-2">
-                          <LinkIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                          <div className="flex-1">{renderControl(row, f)}</div>
-                          {url && (
-                            <a
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1 rounded hover:bg-accent text-primary shrink-0"
-                              title="Open link"
+                <div key={row.id} className="bg-card rounded-lg border p-3">
+                  <div className="flex gap-3">
+                    {showThumbnail && renderThumb(row, Icon, true)}
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex items-center gap-2">
+                        {!showThumbnail && (
+                          <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
+                        )}
+                        {inlineFields.map((f) => (
+                          <div
+                            key={f.name}
+                            className={f.name === "title" ? "flex-1" : "shrink-0"}
+                          >
+                            {renderControl(row, f)}
+                          </div>
+                        ))}
+                        {sortable && (
+                          <div className="flex flex-col shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => move(index, -1)}
+                              disabled={index === 0}
+                              className="p-0.5 rounded hover:bg-accent disabled:opacity-30"
+                              title="Move up"
                             >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => move(index, 1)}
+                              disabled={index === rows.length - 1}
+                              className="p-0.5 rounded hover:bg-accent disabled:opacity-30"
+                              title="Move down"
+                            >
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => deleteRow(row.id)}
+                          className="p-1 rounded hover:bg-destructive/10 shrink-0"
+                          title="Remove"
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </button>
+                      </div>
+
+                      {blockFields.map((f) => (
+                        <div key={f.name}>
+                          {f.name === "url" ? (
+                            <div className="flex items-center gap-2">
+                              <LinkIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                              <div className="flex-1">{renderControl(row, f)}</div>
+                              {url && (
+                                <a
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1 rounded hover:bg-accent text-primary shrink-0"
+                                  title="Open link"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                              )}
+                            </div>
+                          ) : (
+                            renderControl(row, f)
                           )}
                         </div>
-                      ) : (
-                        renderControl(row, f)
-                      )}
+                      ))}
                     </div>
-                  ))}
+                  </div>
                 </div>
               );
             })}
@@ -369,44 +538,49 @@ export function RelationCollectionField({
             return (
               <div
                 key={row.id}
-                className="bg-card rounded-lg border p-3 flex flex-col gap-1.5"
+                className="bg-card rounded-lg border p-3 flex gap-3"
               >
-                <div className="flex items-center gap-2">
-                  <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
-                  {url ? (
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium text-sm text-primary hover:underline truncate"
-                    >
-                      {titleText || url}
-                    </a>
-                  ) : (
-                    <span className="font-medium text-sm truncate">
-                      {titleText || "Untitled"}
+                {showThumbnail && renderThumb(row, Icon, false)}
+                <div className="flex flex-col gap-1.5 min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    {!showThumbnail && (
+                      <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
+                    )}
+                    {url ? (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-sm text-primary hover:underline truncate"
+                      >
+                        {titleText || url}
+                      </a>
+                    ) : (
+                      <span className="font-medium text-sm truncate">
+                        {titleText || "Untitled"}
+                      </span>
+                    )}
+                    <span className="ml-auto text-[10px] uppercase tracking-wide text-muted-foreground shrink-0">
+                      {categoryLabel(cat)}
                     </span>
-                  )}
-                  <span className="ml-auto text-[10px] uppercase tracking-wide text-muted-foreground shrink-0">
-                    {categoryLabel(cat)}
-                  </span>
-                  {url && (
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary shrink-0"
-                      title="Open link"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
+                    {url && (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary shrink-0"
+                        title="Open link"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
+                  {note && (
+                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                      {note}
+                    </p>
                   )}
                 </div>
-                {note && (
-                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                    {note}
-                  </p>
-                )}
               </div>
             );
           })}
