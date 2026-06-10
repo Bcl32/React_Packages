@@ -551,12 +551,12 @@ export function RelationCollectionField({
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-medium text-sm text-primary hover:underline truncate"
+                        className="font-medium text-lg text-primary hover:underline truncate"
                       >
                         {titleText || url}
                       </a>
                     ) : (
-                      <span className="font-medium text-sm truncate">
+                      <span className="font-medium text-lg truncate">
                         {titleText || "Untitled"}
                       </span>
                     )}
