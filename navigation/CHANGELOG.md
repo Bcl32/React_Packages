@@ -1,5 +1,11 @@
 # @bcl32/navigation
 
+## 2.1.7
+
+### Patch Changes
+
+- 4e1a98a: chore(deps): make react-router-dom a peer dependency of navigation
+
 ## 2.1.6
 
 ### Patch Changes

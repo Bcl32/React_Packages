@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.6.0
+
+### Minor Changes
+
+- 59253e3: feat(forms): show a thumbnail on each relation-collection row
+- f8a2014: feat(forms): add RelationCollectionField + AutoGrowTextarea + useDebouncedCallback, and FormElement cases for the `relation_collection` and `textarea` form-input types
+
 ## 2.5.10
 
 ### Patch Changes

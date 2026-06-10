@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.7.2
+
+### Patch Changes
+
+- 4e1a98a: chore(deps): make react-router-dom a peer dependency of navigation
+- Updated dependencies [59253e3]
+- Updated dependencies [f8a2014]
+  - @bcl32/forms@2.6.0
+
 ## 2.7.1
 
 ### Patch Changes
