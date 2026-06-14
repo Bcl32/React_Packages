@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.6.1
+
+### Patch Changes
+
+- c23f9c5: style(forms): enlarge relation-collection resource titles to text-lg
+
 ## 2.6.0
 
 ### Minor Changes

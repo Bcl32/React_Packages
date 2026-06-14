@@ -1,5 +1,11 @@
 # @bcl32/navigation
 
+## 2.1.8
+
+### Patch Changes
+
+- 729bc20: fix(navigation): use unique breadcrumb keys to prevent React duplicate-key warning
+
 ## 2.1.7
 
 ### Patch Changes
