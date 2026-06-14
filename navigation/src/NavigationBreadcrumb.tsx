@@ -26,11 +26,11 @@ export default function NavigationBreadcrumb(_props: NavigationBreadcrumbProps) 
           <Link to={"/"}>Home</Link>
         </BreadcrumbLink>
 
-        {navigation?.map((entry) => {
+        {navigation?.map((entry, index) => {
           return (
             <div
               className={"inline-flex items-center gap-1.5"}
-              key={"breadcrumb" + entry.type}
+              key={`breadcrumb-${index}-${entry.url ?? entry.id ?? entry.name}`}
             >
               <BreadcrumbSeparator className="[&>svg]:size-4.5">
                 <Slash />
