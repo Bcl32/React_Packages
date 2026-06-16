@@ -10,8 +10,6 @@ dayjs.extend(timezone);
 import { HelpCircle } from "lucide-react";
 import { Input } from "@bcl32/utils/Input";
 import { Label } from "@bcl32/utils/Label";
-import { Checkbox } from "@bcl32/utils/Checkbox";
-import { Select } from "@bcl32/utils/Select";
 import { CustomTooltip } from "@bcl32/utils/Tooltip";
 
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -22,7 +20,7 @@ import type { ModelAttribute, ReferenceInfo } from "@bcl32/data-utils";
 import ButtonDatePicker from "./ButtonDatePicker";
 import { ColourField } from "./ColourField";
 import { ColourArrayField } from "./ColourArrayField";
-import { AutoGrowTextarea } from "./AutoGrowTextarea";
+import { FieldInput } from "./FieldInput";
 import { RelationCollectionField } from "./RelationCollectionField";
 
 interface LabelWithHelpProps {
@@ -42,11 +40,6 @@ function LabelWithHelp({ htmlFor, children, helpText }: LabelWithHelpProps) {
       )}
     </div>
   );
-}
-
-interface SelectOption {
-  label: string;
-  value: string;
 }
 
 /** @deprecated Use ModelAttribute from @bcl32/data-utils instead */
@@ -153,24 +146,9 @@ export function FormElement({
   const type = entry_data.type;
   const helpText = entry_data.help_text || entry_data.description || null;
 
-  function handleChange(event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
-    const { name, value } = event.target;
-    setFormData((prevFormData) => {
-      return {
-        ...prevFormData,
-        [name]: value,
-      };
-    });
-  }
-
-  function handleCheckboxChange(value: boolean) {
-    setFormData((prevFormData) => {
-      return {
-        ...prevFormData,
-        [name]: value,
-      };
-    });
-  }
+  // Set this field on formData by name — the onChange contract FieldInput expects.
+  const setField = (value: unknown) =>
+    setFormData((prev) => ({ ...prev, [name]: value }));
 
   switch (type) {
     case "string":
@@ -180,15 +158,12 @@ export function FormElement({
             <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
               {name[0].toUpperCase() + name.slice(1)}:
             </LabelWithHelp>
-            <Input
-              variant="background"
-              size="default"
+            <FieldInput
+              attr={entry_data}
               id={"input_" + name}
               name={name}
               value={(formData[name] as string) ?? ""}
-              onChange={handleChange}
-              type="text"
-              placeholder=""
+              onChange={setField}
             />
           </div>
         </div>
@@ -200,13 +175,12 @@ export function FormElement({
             <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
               {name[0].toUpperCase() + name.slice(1)}:
             </LabelWithHelp>
-            <AutoGrowTextarea
+            <FieldInput
+              attr={entry_data}
               id={"input_" + name}
               name={name}
               value={(formData[name] as string) ?? ""}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, [name]: e.target.value }))
-              }
+              onChange={setField}
             />
           </div>
         </div>
@@ -218,15 +192,12 @@ export function FormElement({
             <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
               {name[0].toUpperCase() + name.slice(1)}:
             </LabelWithHelp>
-            <Input
-              variant="background"
-              size="lg"
+            <FieldInput
+              attr={entry_data}
               id={"input_" + name}
               name={name}
-              value={formData[name] as string | number}
-              onChange={handleChange}
-              type="number"
-              placeholder=""
+              value={(formData[name] as string | number) ?? ""}
+              onChange={setField}
             />
           </div>
         </div>
@@ -235,15 +206,12 @@ export function FormElement({
     case "boolean":
       return (
         <div className="flex items-center space-x-3 col-2">
-          <Checkbox
-            name={name}
-            checked={formData[name] as boolean}
-            onCheckedChange={(checked) => {
-              handleCheckboxChange(checked as boolean);
-            }}
-            className="w-6 h-6 border-2"
+          <FieldInput
+            attr={entry_data}
             id={"input_" + name}
-            value={formData[name] as string}
+            name={name}
+            value={formData[name] as boolean}
+            onChange={setField}
           />
           <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
             {name[0].toUpperCase() + name.slice(1)}
@@ -323,19 +291,13 @@ export function FormElement({
             <LabelWithHelp htmlFor={name} helpText={helpText}>
               {name[0].toUpperCase() + name.slice(1)}:
             </LabelWithHelp>
-            <Select
-              name={name}
-              value={formData[name] as string ?? ""}
-              onChange={handleChange}
+            <FieldInput
+              attr={entry_data}
               id={"input_" + name}
-            >
-              <option value="" disabled>Select…</option>
-              {(entry_data.options as SelectOption[]).map((entry) => (
-                <option key={entry.value} value={entry.value}>
-                  {entry.label}
-                </option>
-              ))}
-            </Select>
+              name={name}
+              value={(formData[name] as string) ?? ""}
+              onChange={setField}
+            />
           </div>
         </div>
       );

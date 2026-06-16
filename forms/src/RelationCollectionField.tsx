@@ -16,19 +16,11 @@ import {
   Loader2,
 } from "lucide-react";
 import { apiFetch, useGetRequest } from "@bcl32/hooks";
-import { Input } from "@bcl32/utils/Input";
-import { Select } from "@bcl32/utils/Select";
 import type { ModelAttribute } from "@bcl32/data-utils";
 
-import { AutoGrowTextarea } from "./AutoGrowTextarea";
+import { FieldInput } from "./FieldInput";
 import { useDebouncedCallback } from "./useDebouncedCallback";
 import type { FormData } from "./FormElement";
-
-interface SubField {
-  name: string;
-  type: string;
-  options?: { value: string; label: string }[];
-}
 
 interface ResourceRow {
   id: string;
@@ -79,7 +71,7 @@ export function RelationCollectionField({
     name: string;
     sortable?: boolean;
     thumbnail?: boolean;
-    sub_fields?: SubField[];
+    sub_fields?: ModelAttribute[];
   };
   const title = attr.title || attr.name;
   const subFields = attr.sub_fields ?? [];
@@ -89,7 +81,8 @@ export function RelationCollectionField({
   const showThumbnail = !!attr.thumbnail;
 
   const categoryField = subFields.find((f) => f.name === "category");
-  const categoryOptions = categoryField?.options ?? [];
+  const categoryOptions =
+    (categoryField?.options as { value: string; label: string }[]) ?? [];
   const defaultCategory = categoryOptions[0]?.value ?? "note";
   const categoryLabel = (value: string) =>
     categoryOptions.find((o) => o.value === value)?.label ?? value;
@@ -101,7 +94,7 @@ export function RelationCollectionField({
 
   // Fields shown stacked full-width (multi-line text + the URL line); the rest
   // sit inline on the card header next to the controls.
-  const isBlockField = (f: SubField) => f.type === "textarea" || f.name === "url";
+  const isBlockField = (f: ModelAttribute) => f.type === "textarea" || f.name === "url";
   const inlineFields = subFields.filter((f) => !isBlockField(f));
   const blockFields = subFields.filter(isBlockField);
 
@@ -196,46 +189,31 @@ export function RelationCollectionField({
     }
   };
 
-  const renderControl = (row: ResourceRow, f: SubField) => {
-    const value = (row[f.name] as string) ?? "";
-    const common = {
-      onBlur: () => flush(),
-    };
-    if (f.type === "textarea") {
-      return (
-        <AutoGrowTextarea
-          value={value}
-          placeholder="Add a note…"
-          onChange={(e) => editField(row.id, f.name, e.target.value)}
-          {...common}
-        />
-      );
-    }
-    if (f.type === "select") {
-      return (
-        <Select
-          value={value || defaultCategory}
-          onChange={(e) => editField(row.id, f.name, e.target.value)}
-          className="h-8 w-40 text-sm"
-        >
-          {(f.options ?? []).map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </Select>
-      );
-    }
-    // string (incl. url)
-    const isUrl = f.name === "url";
+  // One field's compact input, wired to the per-row debounced editField. The
+  // type→widget mapping lives in the shared FieldInput — no bespoke switch here.
+  const fieldFor = (row: ResourceRow, f: ModelAttribute) => {
+    const isSelect = f.type === "select";
+    const value = isSelect
+      ? ((row[f.name] as string) || defaultCategory)
+      : ((row[f.name] as string) ?? "");
+    const placeholder =
+      f.type === "textarea"
+        ? "Add a note…"
+        : f.name === "url"
+          ? "https://…"
+          : f.type === "string"
+            ? f.name[0].toUpperCase() + f.name.slice(1)
+            : undefined;
     return (
-      <Input
-        type={isUrl ? "url" : "text"}
+      <FieldInput
+        attr={f}
+        compact
         value={value}
-        placeholder={isUrl ? "https://…" : f.name[0].toUpperCase() + f.name.slice(1)}
-        onChange={(e) => editField(row.id, f.name, e.target.value)}
-        className="h-8 text-sm"
-        {...common}
+        onChange={(v) => editField(row.id, f.name, v)}
+        onBlur={flush}
+        inputType={f.name === "url" ? "url" : "text"}
+        placeholder={placeholder}
+        className={isSelect ? "w-40" : ""}
       />
     );
   };
@@ -458,7 +436,7 @@ export function RelationCollectionField({
                             key={f.name}
                             className={f.name === "title" ? "flex-1" : "shrink-0"}
                           >
-                            {renderControl(row, f)}
+                            {fieldFor(row, f)}
                           </div>
                         ))}
                         {sortable && (
@@ -498,7 +476,7 @@ export function RelationCollectionField({
                           {f.name === "url" ? (
                             <div className="flex items-center gap-2">
                               <LinkIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                              <div className="flex-1">{renderControl(row, f)}</div>
+                              <div className="flex-1">{fieldFor(row, f)}</div>
                               {url && (
                                 <a
                                   href={url}
@@ -512,7 +490,7 @@ export function RelationCollectionField({
                               )}
                             </div>
                           ) : (
-                            renderControl(row, f)
+                            fieldFor(row, f)
                           )}
                         </div>
                       ))}
