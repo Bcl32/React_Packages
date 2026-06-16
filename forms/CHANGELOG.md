@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.6.2
+
+### Patch Changes
+
+- f0e5208: refactor(forms): extract FieldInput; render relation_collection via shared inputs
+
 ## 2.6.1
 
 ### Patch Changes
