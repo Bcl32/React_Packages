@@ -23,11 +23,11 @@ This document outlines the process for migrating React component packages from J
 
 ## 1. Create tsconfig.json
 
-**What:** Add a TypeScript configuration file with strict mode settings.
+**What:** Add a tiny per-package config that extends the shared base config.
 
-**Why:** TypeScript needs this file to know how to compile your code.
+**Why:** Every `@bcl32/*` package shares one strict compiler config — `tsconfig.base.json` at the root of `react-packages/`. Each package only needs a 3-line `tsconfig.json` that `extends` it, so the settings live in exactly one place instead of being copied into nine packages.
 
-**Example tsconfig.json:**
+**Shared `react-packages/tsconfig.base.json` (inherited by every package):**
 
 ```json
 {
@@ -37,22 +37,27 @@ This document outlines the process for migrating React component packages from J
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
-
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
     "esModuleInterop": true,
-
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-
     "declaration": true,
     "declarationMap": true
-  },
+  }
+}
+```
+
+**Per-package `tsconfig.json` (this is the whole file):**
+
+```json
+{
+  "extends": "../tsconfig.base.json",
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }
@@ -62,10 +67,11 @@ This document outlines the process for migrating React component packages from J
 
 | Setting | Purpose |
 |---------|---------|
+| `extends: "../tsconfig.base.json"` | Inherit the shared strict config (set per package) |
 | `strict: true` | Enables all strict type checking (catches more bugs) |
 | `noUnusedLocals` | Errors on unused variables |
 | `noUnusedParameters` | Errors on unused function parameters |
-| `moduleResolution: "node"` | How TypeScript finds imports |
+| `moduleResolution: "bundler"` | How TypeScript finds imports — reads `package.json` `exports` |
 | `lib: ["ESNext", "DOM"]` | What built-in types are available |
 | `declaration: true` | Generate .d.ts files |
 | `jsx: "react-jsx"` | Use modern JSX transform (no React import needed) |
@@ -581,10 +587,11 @@ export default defineConfig({
   ],
   format: ["esm"],
   dts: true,  // Generate .d.ts declaration files
-  splitting: false,
+  splitting: true,
   sourcemap: true,
   clean: true,
-  external: ["react", "react-dom", "react/jsx-runtime"],
+  // Keep React and sibling @bcl32/* packages external (don't bundle them in)
+  external: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", /^@bcl32\//],
   esbuildOptions(options) {
     options.jsx = "automatic";
   }
@@ -661,6 +668,10 @@ import { Button } from "@bcl32/utils/Button";
 // 3. Loads type definitions from that file
 ```
 
+**Inter-package dependencies use the `workspace:^` protocol:**
+
+When one `@bcl32/*` package depends on another, declare it in `dependencies` with pnpm's `workspace:^` protocol (e.g. `"@bcl32/hooks": "workspace:^2.3.0"`) instead of a plain semver range. pnpm links the local workspace copy during development instead of fetching the published package from the GitHub Packages registry, and rewrites it to a normal `^` range at publish time. The `^` floor is bumped over time as the dependency is republished, so the exact numbers drift.
+
 ---
 
 ## 12. Version Bump to 2.0.0
@@ -692,7 +703,8 @@ Adding TypeScript is considered a breaking change because:
 
 Use this checklist when migrating a package:
 
-- [ ] Create `tsconfig.json` with strict mode
+- [ ] Create `tsconfig.json` that `extends` the shared `tsconfig.base.json`
+- [ ] Point any `@bcl32/*` dependencies at the `workspace:^` protocol
 - [ ] Rename all `.js` files to `.ts`
 - [ ] Rename all `.jsx` files to `.tsx`
 - [ ] Add type annotations to all functions

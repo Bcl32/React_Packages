@@ -32,10 +32,10 @@ Both manage Node packages and both read `package.json`, but they store and link 
 ```
 node_modules/
 ├─ react -> .pnpm/react@18.2.0/node_modules/react
-├─ @bcl32/utils -> .pnpm/@bcl32+utils@2.3.9/node_modules/@bcl32/utils
+├─ @bcl32/utils -> .pnpm/@bcl32+utils@X.Y.Z/node_modules/@bcl32/utils
 └─ .pnpm/
    ├─ react@18.2.0/node_modules/react                    (hard link to store)
-   └─ @bcl32+utils@2.3.9/node_modules/
+   └─ @bcl32+utils@X.Y.Z/node_modules/
       ├─ @bcl32/utils                                    (hard link to store)
       └─ react -> ../../react@18.2.0/node_modules/react  (symlink)
 ```
@@ -61,7 +61,7 @@ Every package sees only the deps it *declared*, via precise symlinks. No hoistin
 - **Docker builds → npm.** `Dockerfile.base` / `Dockerfile.deps` use `npm install`:
   - The build context copies a single app directory, not the whole workspace. There's no `pnpm-workspace.yaml` in scope for pnpm to use.
   - `node:18` already has npm. Adding pnpm is another layer and another failure mode.
-  - `npm install @bcl32/utils@^2.3.9` is a straightforward registry install — exactly what npm is good at.
+  - `npm install @bcl32/utils@^X.Y.Z` is a straightforward registry install — exactly what npm is good at.
 
 ### Command translation
 
@@ -106,7 +106,7 @@ prefer-workspace-packages=true
 
 ...the workspace does five things:
 
-1. **Intra-workspace linking.** Declaring `@bcl32/utils@^2.3.9` anywhere in the workspace symlinks `node_modules/@bcl32/utils` → `react-packages/utils/` instead of fetching from GHCR.
+1. **Intra-workspace linking.** Declaring `@bcl32/utils@^X.Y.Z` anywhere in the workspace symlinks `node_modules/@bcl32/utils` → `react-packages/utils/` instead of fetching from GHCR.
 2. **Dep hoisting.** Deps shared across packages (react, dayjs, etc.) are installed once at the root `node_modules/`.
 3. **Recursive commands.** `pnpm -r build` runs `build` in every workspace package in topological order (utils → themes → filters, etc.). The root `package.json`:
    ```json
@@ -151,7 +151,17 @@ services:
     volumes:
       - ./print-tracker-react/src:/app/src
       - ./print-tracker-react/vite.config.js:/app/vite.config.js
-      - ../react-packages:/app/react-packages    # ← key mount
+      # One bind mount per package — each maps the package's src/ into the
+      # container at /app/react-packages/<pkg>/src (← the key mounts):
+      - ../react-packages/utils/src:/app/react-packages/utils/src
+      - ../react-packages/hooks/src:/app/react-packages/hooks/src
+      - ../react-packages/data-utils/src:/app/react-packages/data-utils/src
+      - ../react-packages/themes/src:/app/react-packages/themes/src
+      - ../react-packages/forms/src:/app/react-packages/forms/src
+      - ../react-packages/charts/src:/app/react-packages/charts/src
+      - ../react-packages/navigation/src:/app/react-packages/navigation/src
+      - ../react-packages/datatable/src:/app/react-packages/datatable/src
+      - ../react-packages/filters/src:/app/react-packages/filters/src
 ```
 
 Inside the container:
@@ -174,7 +184,7 @@ So `import { Button } from "@bcl32/utils/Button"`:
 
 **There is no pnpm workspace inside this container.** No `pnpm-workspace.yaml`, no `pnpm install`, no linking. The workspace-like behavior (live `@bcl32` changes) is achieved by **Vite alias + volume mount**, not by the workspace mechanism.
 
-This is why `workspace:^` in consumer `package.json` is dangerous — it reads fine to pnpm on the host but is a hard syntax error to npm in Docker. Plain carets (`^2.3.9`) are understood by both.
+This is why `workspace:^` in consumer `package.json` is dangerous — it reads fine to pnpm on the host but is a hard syntax error to npm in Docker. Plain carets (`^X.Y.Z`) are understood by both.
 
 ### What the host workspace provides *to dev*
 
@@ -208,8 +218,17 @@ Dockerfile.base
   RUN npm install              # public deps only
   ↓
 Dockerfile.deps
-  RUN npm install @bcl32/utils@^2.3.9 @bcl32/themes@^2.1.4 ...
-  ↓                              # private @bcl32/* from GHCR
+  RUN npm install \                       # every @bcl32/* the app uses, explicitly
+      @bcl32/charts@^X.Y.Z \
+      @bcl32/data-utils@^X.Y.Z \
+      @bcl32/datatable@^X.Y.Z \
+      @bcl32/filters@^X.Y.Z \
+      @bcl32/forms@^X.Y.Z \
+      @bcl32/hooks@^X.Y.Z \
+      @bcl32/navigation@^X.Y.Z \
+      @bcl32/themes@^X.Y.Z \
+      @bcl32/utils@^X.Y.Z
+  ↓                              # private @bcl32/* from GHCR; see the app's Dockerfile.deps for current floors
 Dockerfile (stage 1: builder)
   COPY . .                     # source
   RUN npm run build            # Vite → /dist
@@ -234,26 +253,26 @@ Every step: **npm, not pnpm. Registry, not workspace.**
 
 ## 6. Package declaration patterns in consumer apps
 
-The consumer apps declare `@bcl32/*` inconsistently:
+Consumer apps declare the `@bcl32/*` packages they use in `package.json` — coverage varies by app, since each declares only what it consumes:
 
-**`Label-Designer/react/package.json`** — declares them:
+**`Label-Designer/react/package.json`** — declares the four it uses, with plain carets:
 ```json
 "dependencies": {
-  "@bcl32/utils": "^2.0.0",
-  "@bcl32/hooks": "^2.0.0",
-  "@bcl32/themes": "^2.0.0",
-  "@bcl32/navigation": "^2.0.0"
+  "@bcl32/utils": "^X.Y.Z",
+  "@bcl32/hooks": "^X.Y.Z",
+  "@bcl32/themes": "^X.Y.Z",
+  "@bcl32/navigation": "^X.Y.Z"
 }
 ```
 
-**`Print-Tracker/print-tracker-react/package.json`** — does NOT declare any `@bcl32/*`. They are installed only by `Dockerfile.deps` at image build time.
+**`Print-Tracker/print-tracker-react/package.json`** — declares **all nine** `@bcl32/*` under `dependencies` (it uses all of them), each with a plain caret. The same set is also installed explicitly by its `Dockerfile.deps` for the Docker build (see §5); the two should be kept in sync (per the `deps-sync` skill). Current floors live in that `package.json` — they are not reproduced here.
 
 ### Why declarations matter
 
-The app works in either case (workspace linker + explicit Dockerfile installs cover it). But missing declarations cost you:
+An app can technically work even without declarations (workspace linker + explicit Dockerfile installs cover it), but missing declarations cost you the following — which is why both example apps above declare what they use:
 
-- **IDE / type checker** — opening `print-tracker-react/` in isolation shows "Cannot find module '@bcl32/utils/Card'" until the workspace linker has run at the monorepo root.
-- **`pnpm outdated` is blind** — only checks declared deps. Drift in `Dockerfile.deps` versions is invisible.
+- **IDE / type checker** — opening an app in isolation shows "Cannot find module '@bcl32/utils/Card'" for any undeclared package until the workspace linker has run at the monorepo root.
+- **`pnpm outdated` is blind** — only checks declared deps. Drift in any package installed solely via `Dockerfile.deps` is invisible.
 - **`pnpm audit` is blind** — security scans skip undeclared deps.
 - **Dual source of truth** — "what does this app depend on?" splits between `package.json` and `Dockerfile.deps`. Anyone reading the app standalone can't tell.
 
@@ -263,17 +282,18 @@ Declare every `@bcl32/*` an app uses (including transitive, if peerDeps are adop
 
 ```json
 "dependencies": {
-  "@bcl32/charts": "^2.1.5",
-  "@bcl32/data-utils": "^2.1.8",
-  "@bcl32/datatable": "^2.6.0",
-  "@bcl32/filters": "^3.0.3",
-  "@bcl32/forms": "^2.5.7",
-  "@bcl32/hooks": "^2.2.6",
-  "@bcl32/navigation": "^2.1.5",
-  "@bcl32/themes": "^2.1.4",
-  "@bcl32/utils": "^2.3.9"
+  "@bcl32/charts": "^X.Y.Z",
+  "@bcl32/data-utils": "^X.Y.Z",
+  "@bcl32/datatable": "^X.Y.Z",
+  "@bcl32/filters": "^X.Y.Z",
+  "@bcl32/forms": "^X.Y.Z",
+  "@bcl32/hooks": "^X.Y.Z",
+  "@bcl32/navigation": "^X.Y.Z",
+  "@bcl32/themes": "^X.Y.Z",
+  "@bcl32/utils": "^X.Y.Z"
 }
 ```
+(Use each package's current published version as the caret floor — read it from that package's `package.json` or the registry; don't copy a hard-coded number from this doc.)
 
 ### Why plain caret, not `workspace:^`
 
@@ -294,7 +314,7 @@ Today, inter-`@bcl32/*` links live in `dependencies`:
 ```jsonc
 // react-packages/themes/package.json
 "dependencies": {
-  "@bcl32/utils": "workspace:^2.3.5"
+  "@bcl32/utils": "workspace:^X.Y.Z"
 }
 ```
 
@@ -305,7 +325,7 @@ Today, inter-`@bcl32/*` links live in `dependencies`:
 ```jsonc
 // react-packages/themes/package.json (recommended)
 "peerDependencies": {
-  "@bcl32/utils": "^2.3.5"   // no "workspace:" prefix in peerDeps
+  "@bcl32/utils": "^X.Y.Z"   // no "workspace:" prefix in peerDeps
 },
 "dependencies": {
   "lucide-react": "^0.447.0"
@@ -339,7 +359,7 @@ Without peerDeps, you get what's described in §9 — a dormant multi-copy time 
 
 ### Recommended order of operations
 
-1. Add plain-caret `@bcl32/*` declarations to `print-tracker-react/package.json` (per §6). This must come first — flipping to peerDeps without declarations produces a wall of warnings.
+1. Ensure every consumer app declares (with plain carets) the `@bcl32/*` it uses (per §6). This must come first — flipping to peerDeps without declarations produces a wall of warnings. `print-tracker-react` already declares all nine; audit the remaining apps for full coverage before proceeding.
 2. Refresh stale workspace-protocol floors in `react-packages/*/package.json` (per §8).
 3. Flip inter-package deps from `dependencies` to `peerDependencies` across `react-packages/`.
 4. Publish the next release — new tarballs reflect the new structure. Existing GHCR images keep working until next consumer rebuild.
@@ -350,16 +370,18 @@ Without peerDeps, you get what's described in §9 — a dormant multi-copy time 
 
 Each `@bcl32/*` package pins a caret floor for its inter-package deps. Those floors drift behind reality as sibling packages are republished.
 
-Example snapshot (floors for `@bcl32/utils`, current version 2.3.9):
+Example snapshot of the floors each sibling pins for `@bcl32/utils` (shape only — the real values live in each `react-packages/*/package.json`):
 
-| Package | Pins `@bcl32/utils` | Lag |
-|---------|--------------------|-----|
-| themes | `workspace:^2.3.5` | 4 patches |
-| charts | `workspace:^2.3.5` | 4 patches |
-| navigation | `workspace:^2.3.5` | 4 patches |
-| datatable | `workspace:^2.3.6` | 3 patches |
-| filters | `workspace:^2.3.8` | 1 patch |
-| forms | `workspace:^2.3.9` | 0 ✓ |
+| Package | Pins `@bcl32/utils` | Lag behind current |
+|---------|--------------------|--------------------|
+| themes | `workspace:^X.Y.Z` | several patches behind |
+| charts | `workspace:^X.Y.Z` | several patches behind |
+| navigation | `workspace:^X.Y.Z` | several patches behind |
+| datatable | `workspace:^X.Y.Z` | a few patches behind |
+| filters | `workspace:^X.Y.Z` | a patch or two behind |
+| forms | `workspace:^X.Y.Z` | up to date |
+
+Don't hard-code these numbers — read each pin from the dependent's `package.json` and compare against the current `@bcl32/utils` version (its own `package.json` / the registry). The floors drift on every republish.
 
 ### Why it works in dev
 
@@ -367,33 +389,33 @@ Example snapshot (floors for `@bcl32/utils`, current version 2.3.9):
 
 ### Where it breaks: published tarballs
 
-When `@bcl32/themes@2.1.4` is published to GHCR, the tarball's `package.json` has:
+When `@bcl32/themes` is published to GHCR, the tarball's `package.json` has its pin rewritten to a literal caret:
 
 ```json
-"dependencies": { "@bcl32/utils": "^2.3.5" }
+"dependencies": { "@bcl32/utils": "^X.Y.Z" }
 ```
 
-(The `workspace:` prefix is stripped at publish time and replaced with the literal caret.)
+(The `workspace:` prefix is stripped at publish time and replaced with the literal caret — whatever floor was pinned.)
 
-Then `Dockerfile.deps` installs `themes@^2.1.4` into a Docker image with `npm install`. npm reads the tarball's pins and resolves — it picks the highest version that satisfies every floor. For overlapping ranges within major 2, that's usually fine: `utils@2.3.9` satisfies every floor above and a single copy is installed.
+Then `Dockerfile.deps` installs `themes@^X.Y.Z` into a Docker image with `npm install`. npm reads the tarball's pins and resolves — it picks the highest version that satisfies every floor. For overlapping ranges within the same major, that's usually fine: a recent `utils` satisfies every floor above and a single copy is installed.
 
 ### The real cost today
 
 Stale floors are not currently causing runtime bugs in the overlapping-range case — but:
 
-1. **The floor is no longer documenting "minimum tested version."** If a bug later turns out to require 2.3.7 to manifest, the `^2.3.5` pin misleadingly suggests the package was validated against 2.3.5.
+1. **The floor is no longer documenting "minimum tested version."** If a bug later turns out to require a newer patch to manifest, an outdated floor misleadingly suggests the package was validated against that older version.
 2. **Major-version bumps will explode.** See §9.
 
 ### Recommended fix
 
-After publishing package X, bump every dependent's floor to the published version:
+After publishing package X, bump every dependent's floor to the just-published version (read the new version from X's `package.json`):
 
 ```
-themes/package.json:     workspace:^2.3.5 → workspace:^2.3.9
-charts/package.json:     workspace:^2.3.5 → workspace:^2.3.9
-navigation/package.json: workspace:^2.3.5 → workspace:^2.3.9
-datatable/package.json:  workspace:^2.3.6 → workspace:^2.3.9
-filters/package.json:    workspace:^2.3.8 → workspace:^2.3.9
+themes/package.json:     workspace:^<old> → workspace:^<published>
+charts/package.json:     workspace:^<old> → workspace:^<published>
+navigation/package.json: workspace:^<old> → workspace:^<published>
+datatable/package.json:  workspace:^<old> → workspace:^<published>
+filters/package.json:    workspace:^<old> → workspace:^<published>
 ```
 
 Same treatment for `@bcl32/data-utils` and `@bcl32/forms`. This is a natural extension of the existing `deps-sync` skill, which handles consumer `Dockerfile.deps` but not intra-`react-packages/` pins.
@@ -404,12 +426,12 @@ Same treatment for `@bcl32/data-utils` and `@bcl32/forms`. This is a natural ext
 
 ### Case A: overlapping carets (today)
 
-All internal pins are within major version 2. `^2.3.5`, `^2.3.8`, `^2.3.9` all overlap. npm/pnpm dedupe to a **single copy** of `@bcl32/utils@2.3.9`:
+All internal pins currently sit within the same major. Overlapping carets (floors like `^X.Y.Z` that all fall under one major) let npm/pnpm dedupe to a **single copy** of `@bcl32/utils`:
 
 ```
 ┌─ Print-Tracker app
-├─ @bcl32/themes@2.1.4  ──┐
-├─ @bcl32/filters@3.0.3 ──┼──→ one @bcl32/utils@2.3.9
+├─ @bcl32/themes   ──┐
+├─ @bcl32/filters  ──┼──→ one @bcl32/utils@X.Y.Z
 └─ (direct use of utils) ─┘
 ```
 
@@ -417,20 +439,20 @@ This is why nothing is broken today.
 
 ### Case B: non-overlapping ranges (time bomb)
 
-The moment you publish `@bcl32/utils@3.0.0` (breaking change), the picture changes:
+The moment you publish a new major of `@bcl32/utils` (a breaking change — call it `@bcl32/utils@<next-major>.0.0`), the picture changes:
 
-- `themes@2.1.4` tarball still declares `"@bcl32/utils": "^2.3.5"` — does NOT satisfy 3.0.0.
-- App wants `utils@^3.0.0` — does NOT satisfy 2.3.5.
+- the `themes` tarball still declares a floor from the previous major (`"@bcl32/utils": "^X.Y.Z"`) — does NOT satisfy the new major.
+- App wants `utils@^<next-major>.0.0` — does NOT satisfy the old floor.
 - No single version satisfies both.
 
 npm/pnpm cannot dedupe. It installs **both**:
 
 ```
 node_modules/
-├─ @bcl32/utils/              (3.0.0 — for the app)
+├─ @bcl32/utils/              (new major — for the app)
 └─ @bcl32/themes/
    └─ node_modules/
-      └─ @bcl32/utils/        (2.3.9 — for themes)
+      └─ @bcl32/utils/        (previous major — for themes)
 ```
 
 Both get bundled. Vite doesn't know they're "the same package." Things break in subtle ways:
@@ -446,7 +468,7 @@ pnpm is stricter than npm: it won't silently hoist incompatible versions. That's
 
 ### How the fixes interact
 
-- **Keeping floors fresh** (§8) doesn't prevent the time bomb by itself, but it means a `utils@3.0.0` release can be coordinated — every dependent's floor already reflects current state, and bumping them all to `^3.0.0` at once becomes a tractable checklist.
+- **Keeping floors fresh** (§8) doesn't prevent the time bomb by itself, but it means a new-major `utils` release can be coordinated — every dependent's floor already reflects current state, and bumping them all to the new major at once becomes a tractable checklist.
 - **peerDependencies** (§7) defuses the time bomb at the root: peers are never installed transitively, so there can't be a nested `utils` inside `themes`. pnpm will print a peer-range warning if the app's `utils` version doesn't satisfy `themes`'s peer range — that's the signal to coordinate the upgrade, but no silent multi-copy install.
 
 ---
@@ -496,15 +518,15 @@ Read-only report comparing three numbers per declared dep:
 - **Wanted** — highest version satisfying the declared caret.
 - **Latest** — newest version in the registry.
 
-Sample (Print-Tracker, after `@bcl32/*` is declared):
+Sample shape (Print-Tracker declares all nine, so the report covers them — run it for the real numbers):
 
 ```
 Package         Current   Wanted   Latest
-@bcl32/utils    2.3.5     2.3.9    2.3.9
-@bcl32/themes   2.1.4     2.1.4    2.1.4
+@bcl32/utils    X.Y.Z     X.Y.Z    X.Y.Z
+@bcl32/themes   X.Y.Z     X.Y.Z    X.Y.Z
 ```
 
-Top row = drift inside the caret range (patch bump available).
+A row where **Current < Wanted** = drift inside the caret range (a bump is available without changing the declared floor).
 
 Run with `-r` at the monorepo root for cross-package drift:
 
@@ -512,7 +534,7 @@ Run with `-r` at the monorepo root for cross-package drift:
 pnpm outdated -r
 ```
 
-**Critical limitation:** `pnpm outdated` only checks `package.json`-declared deps. Anything installed imperatively in `Dockerfile.deps` is invisible to it. This is exactly why Print-Tracker is blind to `@bcl32/*` drift today.
+**Critical limitation:** `pnpm outdated` only checks `package.json`-declared deps. Anything installed imperatively in `Dockerfile.deps` *without* a matching `package.json` declaration is invisible to it — which is exactly why the recommended pattern (§6) is to declare every `@bcl32/*` an app uses. Now that Print-Tracker declares all nine, its `@bcl32/*` drift shows up here; an app that omitted a declaration would still be blind to that one package.
 
 ### Peer-dep warnings at install time
 
@@ -520,10 +542,10 @@ When inter-`@bcl32/*` deps become peerDeps and a consumer app doesn't declare th
 
 ```
  WARN  Issues with peer dependencies found
-print-tracker-react
-├─┬ @bcl32/filters 3.0.3
-│ └── ✕ missing peer @bcl32/utils@^2.3.8
-│ └── ✕ missing peer @bcl32/hooks@^2.2.6
+some-consumer-app
+├─┬ @bcl32/filters X.Y.Z
+│ └── ✕ missing peer @bcl32/utils@^X.Y.Z
+│ └── ✕ missing peer @bcl32/hooks@^X.Y.Z
 ```
 
 These warnings mean the declared graph doesn't match the real graph. The app may still work (workspace linker covers for missing peers in dev), but anyone running outside the workspace would hit real failures.

@@ -4,16 +4,19 @@ Shared React component library for the web-app-monorepo. All packages are writte
 
 ## Packages
 
-| Package | Description | Version |
-|---------|-------------|---------|
-| `@bcl32/utils` | Core UI components (Button, Card, Dialog, Input, etc.) | 2.0.0 |
-| `@bcl32/hooks` | React hooks (useGetRequest, useDatabaseMutation, useBokehChart) | 2.0.0 |
-| `@bcl32/themes` | Theme system with 8 color themes | 2.0.0 |
-| `@bcl32/forms` | Form components (AddModelForm, EditModelForm, FormElement) | 2.0.0 |
-| `@bcl32/charts` | Chart components (BokehLineChart, Recharts wrappers) | 2.0.0 |
-| `@bcl32/filters` | 16 filter components for data filtering UI | 2.0.0 |
-| `@bcl32/datatable` | DataTable with sorting, pagination, row selection | 2.0.0 |
-| `@bcl32/navigation` | Navigation components (Breadcrumb, NavigationProvider) | 2.0.0 |
+| Package | Description |
+|---------|-------------|
+| `@bcl32/utils` | Core UI components (Button, Card, Dialog, Input, etc.) |
+| `@bcl32/hooks` | React hooks (useGetRequest, useDatabaseMutation, useBokehChart) |
+| `@bcl32/data-utils` | Domain data utilities (CalculateFeatureStats, ComputeTimeBounds, ComputeGroupedStats, dayjs_sorter, StringFunctions) |
+| `@bcl32/themes` | Theme system with 10 color themes |
+| `@bcl32/forms` | Form components (AddModelForm, EditModelForm, FormElement) |
+| `@bcl32/charts` | Chart components (BokehLineChart, Recharts wrappers) |
+| `@bcl32/filters` | Filter context, 10+ filter/chart UI components, and data-processing utilities |
+| `@bcl32/datatable` | DataTable with sorting, pagination, row selection |
+| `@bcl32/navigation` | Navigation components (Breadcrumb, NavigationProvider) |
+
+> Versions are intentionally not listed here — they change on every publish. The source of truth for each package's current version is its own `package.json` (mirrored by the GitHub Package Registry); cross-package version floors live in each package's `package.json` and the workspace is defined in `pnpm-workspace.yaml`.
 
 ## Installation
 
@@ -82,7 +85,7 @@ const props: ButtonProps = {
 
 ### tsconfig Requirements
 
-For subpath imports to resolve correctly, use `moduleResolution: "bundler"` or `"node16"`:
+For subpath imports to resolve correctly, use `moduleResolution: "bundler"` — this is the setting in `react-packages/tsconfig.base.json`:
 
 ```json
 {
@@ -103,15 +106,20 @@ pnpm build
 
 ### Publishing
 
-```bash
-# Single package
-./publish-package.sh utils
+Publishing is automated through changeset-based CI — there are no `publish-package.sh` or `publish-all.sh` scripts.
 
-# All packages (in dependency order)
-./publish-all.sh
-```
+- `.githooks/post-commit` auto-generates a changeset file (`.changeset/auto-*.md`, one `patch` entry per touched package) whenever a commit touches a package directory.
+- Pushing those changesets to `main` triggers `.github/workflows/publish-react-packages.yml`, which runs `pnpm changeset version`, `pnpm -r build`, and `pnpm -r publish` to GitHub Packages, then creates git tags and commits the version bumps.
 
-Publish order: utils → themes → hooks → filters → datatable → forms → charts → navigation
+See `CHANGESETS-MIGRATION.md` and the `npm-publishing` skill for the full flow.
+
+#### Build/publish tiers (informational)
+
+There is no valid linear publish order — the packages depend on each other as a graph, not a line (the old `utils → themes → …` ordering was circular and wrong). Because publishing is automated, build order is resolved topologically by `pnpm -r` from the workspace graph; you never run it by hand. For reference, the packages form a 3-tier dependency DAG:
+
+- **Tier 0** (no `@bcl32` dependencies): `utils`, `hooks`, `data-utils`
+- **Tier 1** (depend on Tier 0): `themes`, `forms`, `charts`, `navigation`
+- **Tier 2** (depend on Tier 0/1): `datatable`, `filters`
 
 ## Documentation
 

@@ -13,3 +13,11 @@ if git diff --cached --name-only | grep -q 'package.json'; then
     exit 1
   fi
 fi
+
+# doc-sync-guard — staged-coupling check. Bypass once with: git commit --no-verify
+BUN="$HOME/.bun/bin/bun"; [ -x "$BUN" ] || BUN="$(command -v bun 2>/dev/null || true)"
+if [ -x "$BUN" ]; then
+  "$BUN" run "$HOME/.claude/githooks/DocPrecommit.ts" || exit 1
+else
+  echo "[doc-sync] bun not found on PATH; skipping doc check"
+fi

@@ -55,7 +55,7 @@ Created a new `@bcl32/data-utils` package and moved domain-specific data utiliti
 
 ### 8. Build verification and type error fixes
 
-Changed all 8 package `tsconfig.json` files from `moduleResolution: "node"` to `"bundler"`, and changed all inter-workspace `@bcl32/*` dependencies to use the `workspace:^2.0.0` protocol. This exposed and required fixing many pre-existing type errors (detailed below).
+Switched all 9 packages from `moduleResolution: "node"` to `"bundler"` — the setting now lives in a shared `tsconfig.base.json` that every package's 3-line `tsconfig.json` inherits via `extends`. Also moved all inter-workspace `@bcl32/*` dependencies onto the `workspace:^` protocol (the `^` floors are bumped over time as packages are republished, so the exact numbers drift). This exposed and required fixing many pre-existing type errors (detailed below).
 
 ---
 
@@ -73,7 +73,7 @@ Changed all 8 package `tsconfig.json` files from `moduleResolution: "node"` to `
 
 **Fix:**
 - Added `link-workspace-packages=true` and `prefer-workspace-packages=true` to root `.npmrc`
-- Changed all inter-workspace `@bcl32/*` dependencies to `workspace:^2.0.0` protocol
+- Changed all inter-workspace `@bcl32/*` dependencies to the `workspace:^` protocol (the `^` floors are bumped over time as packages are republished)
 - Regenerated `pnpm-lock.yaml`
 
 ### `Object.groupBy` not available (data-utils)
@@ -212,9 +212,9 @@ data-utils ────────── (leaf - no @bcl32 deps)
 navigation ────────── utils
 themes ────────────── utils
 charts ────────────── utils, hooks
-forms ─────────────── utils, hooks
+forms ─────────────── utils, hooks, data-utils
 datatable ─────────── utils, hooks, forms, data-utils
-filters ───────────── utils, charts, data-utils
+filters ───────────── utils, hooks, charts, data-utils
 ```
 
 All 9 packages build successfully (ESM + DTS) with `pnpm -r build`.

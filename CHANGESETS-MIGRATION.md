@@ -1,8 +1,10 @@
-# Changesets Migration Plan
+# Changesets Migration
+
+**Status: COMPLETED.** This document is kept as a record of the migration. Every step below has been carried out, and the `@changesets/cli` pipeline described here is the one currently in use.
 
 ## Context
 
-The current auto-bump system (post-commit hook + PackageManager.ts `bumpCommand`) is broken — it uses `git diff --cached` in a post-commit context where no staged files exist. This plan replaces the entire versioning pipeline with `@changesets/cli`, the industry standard for monorepo publishing. This also simplifies the 4-job CI workflow into a single job.
+The old auto-bump system (post-commit hook + PackageManager.ts `bumpCommand`) was broken — it used `git diff --cached` in a post-commit context where no staged files exist. This migration replaced the entire versioning pipeline with `@changesets/cli`, the industry standard for monorepo publishing, and collapsed the 4-job CI workflow into a single job.
 
 ## Current vs Changesets
 
@@ -61,8 +63,9 @@ Triggers: push to `main` when `.changeset/**` changes, plus `workflow_dispatch`.
 - Replace `case 'bump'` (line 1384) with `case 'changeset'` that spawns `pnpm changeset` interactively
 - Update help text and error messages
 
-### 5. Remove post-commit hook bump logic
-- Delete `.githooks/post-commit` (its only purpose is auto-bumping)
+### 5. Rewrite the post-commit hook
+- `.githooks/post-commit` was **rewritten, not deleted** (it still exists, ~1.8 KB). The old version only did the broken auto-bump; the new version auto-generates a changeset for whichever of the 9 package dirs a commit touches.
+- It detects changed packages with `git diff-tree --no-commit-id --name-only -r HEAD`, writes a `patch` changeset under `.changeset/`, then stages it and `--amend`s the commit. A `PAI_SKIP_CHANGESET=1` guard prevents infinite recursion on the amend, and a changeset created manually in the same commit suppresses the auto one.
 
 ### 6. Cleanup
 - Delete `publish-all.sh` and `publish-package.sh` (replaced by CI)
@@ -85,7 +88,7 @@ git push
 
 Multiple changesets accumulate — if you make 3 commits each with a `minor` changeset for `@bcl32/forms`, CI consolidates them into a single minor bump.
 
-Commits without a changeset file are invisible to the publish system.
+You don't have to create a changeset by hand: the post-commit hook auto-generates a `patch` changeset for any commit that touches one of the 9 package dirs, so those commits are still picked up by the publish system. Run `pnpm changeset` manually only when you want a `minor`/`major` bump or a custom description.
 
 ## Files Modified
 - `.changeset/config.json` — new
@@ -93,7 +96,7 @@ Commits without a changeset file are invisible to the publish system.
 - `package.json` — add devDep + scripts
 - `.github/workflows/publish-react-packages.yml` — full rewrite
 - `~/.claude/tools/PackageManager.ts` — remove bump, add changeset
-- `.githooks/post-commit` — delete
+- `.githooks/post-commit` — rewritten (auto-generates a `patch` changeset for touched packages instead of bumping)
 - `publish-all.sh` — delete
 - `publish-package.sh` — delete
 - `pnpm-lock.yaml` — updated from install
