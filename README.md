@@ -109,7 +109,7 @@ pnpm build
 Publishing is automated through changeset-based CI — there are no `publish-package.sh` or `publish-all.sh` scripts.
 
 - `.githooks/post-commit` auto-generates a changeset file (`.changeset/auto-*.md`, one `patch` entry per touched package) whenever a commit touches a package directory.
-- Pushing those changesets to `main` triggers `.github/workflows/publish-react-packages.yml`, which runs `pnpm changeset version`, `pnpm -r build`, and `pnpm -r publish` to GitHub Packages, then creates git tags and commits the version bumps.
+- Pushing those changesets to `main` triggers `.github/workflows/publish-react-packages.yml`, which runs `pnpm changeset version`, `pnpm -r build`, and `pnpm -r publish` to GitHub Packages, then commits the version bumps.
 
 See `CHANGESETS-MIGRATION.md` and the `npm-publishing` skill for the full flow.
 

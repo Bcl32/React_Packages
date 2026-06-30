@@ -195,7 +195,7 @@ CI lives at `react-packages/.github/workflows/publish-react-packages.yml`. On pu
 4. If present: `pnpm changeset version` (bump versions + CHANGELOGs) → refresh lockfile.
 5. `pnpm -r build` (topological order).
 6. `pnpm -r publish --no-git-checks` (409s for already-published versions are logged).
-7. Create per-package git tags (`@bcl32/{pkg}@{version}`), commit with `[skip ci]`, push with tags.
+7. Commit version changes (`[skip ci]`) and push.
 
 Auth uses `secrets.GITHUB_TOKEN`. Packages publish to `https://npm.pkg.github.com` under the `@bcl32` scope.
 

@@ -53,8 +53,7 @@ Single job replacing the current 4-job pipeline:
 3. If found: `pnpm changeset version` (bumps versions, updates changelogs)
 4. `pnpm -r build` (topological order — replaces explicit tiers)
 5. `pnpm -r publish --no-git-checks` (topological order, skip 409 conflicts)
-6. Create git tags (`@bcl32/{pkg}@{version}`)
-7. Commit version changes and push with tags
+6. Commit version changes and push
 
 Triggers: push to `main` when `.changeset/**` changes, plus `workflow_dispatch`.
 
@@ -104,5 +103,5 @@ You don't have to create a changeset by hand: the post-commit hook auto-generate
 ## Verification
 1. Run `pnpm changeset` locally — should interactively create a changeset file
 2. Commit all changes + the test changeset, push to main
-3. Watch CI: should detect changeset, bump version, build, publish, tag, commit back
+3. Watch CI: should detect changeset, bump version, build, publish, commit back
 4. Verify package appears in GitHub Packages with new version
