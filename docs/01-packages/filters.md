@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Package** | `@bcl32/filters` |
-| **Version** | `3.1.2` |
+| **Version** | `3.2.0` |
 | **Tier** | `composite` |
 
 See the [packages overview](../00-OVERVIEW.md) for how this package fits into the monorepo.
@@ -34,7 +34,7 @@ This is a workspace package; consumers depend on it via the `workspace:` protoco
 // package.json
 {
   "dependencies": {
-    "@bcl32/filters": "workspace:^3.1.2"
+    "@bcl32/filters": "workspace:^3.2.0"
   }
 }
 ```
@@ -76,8 +76,8 @@ import type { ModelData, Filters } from "@bcl32/filters/types";
 | `DebouncedTextFilter` | component | `({ name: string }) => JSX.Element \| null` | Text input with 500ms debounce and equals/contains rule toggle. Reads/writes its filter from `FilterContext` by name. |
 | `DebouncedNumberFilter` | component | `({ name: string }) => JSX.Element \| null` | Dual-thumb Radix slider plus numeric inputs with Min/Max snap buttons and nudge controls; 500ms debounce to `FilterContext`. |
 | `OptionsFilter` | component | `({ name, options, display?, selection?, source_kind?, colour_presets? }) => JSX.Element \| null` | Multi-display options filter supporting combobox, dropdown, chip-toggle, toggle-buttons, and swatch-grid (colour picker with API fetch) display modes, with any/all rule toggle. |
-| `TimeFilter` | component | `({ name: string }) => JSX.Element \| null` | MUI `MobileDateTimePicker` pair for start/end times, with a Reset button and Edit Shortcuts dialog. Reads/writes from `FilterContext`. |
-| `TimeEditDialog` | component | `({ filters, name, change_time_filter, change_filters }) => JSX.Element` | Dialog body for time filter shortcuts (Past Day/Week/Month/Year) and incremental +/- adjustments by a configurable unit. |
+| `TimeFilter` | component | `({ name: string }) => JSX.Element \| null` | `@bcl32/utils/DateTimePicker` pair for start/end times (MUI's `MobileDateTimePicker` removed in 3.2.0), with a Reset button and Edit Shortcuts dialog. Reads/writes from `FilterContext`. |
+| `TimeEditDialog` | component | `({ filters, name, change_time_filter, change_filters }) => JSX.Element` | Dialog body for time filter shortcuts (Past Day/Week/Month/Year) and incremental +/- adjustments by a configurable unit; date/time inputs use `@bcl32/utils/DateTimePicker`. |
 
 ### Chart filter components
 
@@ -96,7 +96,7 @@ import type { ModelData, Filters } from "@bcl32/filters/types";
 | Name | Kind | Signature / Props | Description |
 |---|---|---|---|
 | `useEntityFilters` | hook | `(dataset, ModelData) => UseEntityFiltersReturn` | Top-level orchestration: runs `useOptionsEnrichment`, initialises `Filters` from `ModelData` + `DatasetStats`, re-syncs options on enrichment, applies filters via `ProcessDataset`. Returns filters, callbacks, filtered data, stats, counts, and `enrichedModelData`. |
-| `useDataTableFilterBar` | hook | `({ filters, changeFilters, activeFilters, filteredCount, totalCount }) => DataTableFilter` | Renders a compact inline filter toolbar (tab buttons + active-filter chips) and a collapsible panel. Returns `{ toolbar, panel, filteredCount, totalCount }`. **Creates its own `FilterProvider` internally.** |
+| `useDataTableFilterBar` | hook | `({ filters, changeFilters, activeFilters, filteredCount, totalCount }) => DataTableFilter` | Renders a compact inline filter toolbar (tab buttons + active-filter chips, `ListFilter`/`X` lucide icons since 3.2.0 — MUI icons removed) and a collapsible panel. Returns `{ toolbar, panel, filteredCount, totalCount }`. **Creates its own `FilterProvider` internally.** |
 | `useEntityGroups` | hook | `(dataset, modelData, attrName, options?) => { groups: EntityGroup[], attr: ModelAttribute \| null }` | Groups a dataset by a named options attribute, counting occurrences per value across `scalar`, `scalar-array`, and `object-array` source kinds; resolves an optional visual via `GroupVisualResolver`. |
 | `getGroupableAttrs` | util | `(modelData: ModelData) => ModelAttribute[]` | Returns attributes where `filter === true` and `filter_type === 'options'`; used to populate groupBy selectors. |
 | `EntityGroupCards` | component | `({ dataset, modelData, groupBy, groupableAttrs, onGroupByChange, onSelect, resolveVisual?, title?, onEmptySwitchToTable? }) => JSX.Element` | Card grid grouping entities by an options attribute; includes a `ToggleGroup` to switch groupBy field, click-to-select cards, and an optional empty-state escape hatch. |
@@ -170,13 +170,14 @@ import type { ModelData, Filters } from "@bcl32/filters/types";
 
 | Package | Range |
 |---|---|
-| `@mui/material` | `^5.15.7` |
-| `@mui/icons-material` | `^5.15.7` |
-| `@mui/x-date-pickers` | `^6.19.3` |
+| `lucide-react` | `^0.447.0` |
+
+_(`@mui/material`, `@mui/icons-material`, and `@mui/x-date-pickers` were removed in 3.2.0.)_
 
 ### UI libraries
 
-- **MUI** — `@mui/material`, `@mui/icons-material`, `@mui/x-date-pickers` (TimeFilter / TimeEditDialog date pickers and icon buttons).
+- **lucide-react** — icons throughout (`Pencil`, `Plus`/`Minus`, `ListFilter`, `X`), replacing the old MUI icon buttons.
+- **`@bcl32/utils/DateTimePicker`** — `TimeFilter` / `TimeEditDialog` date+time inputs (replaces MUI's `MobileDateTimePicker`).
 - **Radix UI** — `@radix-ui/react-slider` (number filter), `@radix-ui/react-toggle-group` (toggle controls).
 - **Tailwind CSS** — utility classes used throughout.
 - **recharts** — consumed via the `@bcl32/charts` wrapper.
@@ -270,7 +271,7 @@ These are documented quirks in the current source — be aware of them when rely
 | `AllFilters` / `FiltersSummary` | **Inconsistent context access:** both call `React.useContext(FilterContext)` directly with an unsafe cast instead of using the guarded `useFilterContext` hook (`AllFilters.tsx` L11, `FiltersSummary.tsx` L24, L93). |
 | Exports map | `EntityGroupCards`, `useEntityGroups`, `getGroupableAttrs`, and `useDataTableFilterBar` have **no dedicated subpath entries** in `package.json` exports or `tsup.config.ts`; only the `.` barrel reaches them, blocking tree-shaking for subpath importers. |
 | `src/utils.ts` | Not listed in `tsup.config.ts` entries or `package.json` exports. It is an internal helper (`capitalize`, `buildChartConfig`, `extractLabels`). |
-| Mixed UI primitives | `DebouncedNumberFilter` uses `@radix-ui/react-slider` while `TimeFilter` / `TimeEditDialog` use `@mui/x-date-pickers` + MUI `IconButton` — no single UI-primitive strategy within the same component family. |
+| Mixed UI primitives (**resolved in 3.2.0**) | `DebouncedNumberFilter` used `@radix-ui/react-slider` while `TimeFilter` / `TimeEditDialog` used `@mui/x-date-pickers` + MUI `IconButton` — no single UI-primitive strategy within the same component family. As of 3.2.0, `TimeFilter`/`TimeEditDialog` use `@bcl32/utils/DateTimePicker` and lucide icons, closing the MUI half of this gap (Radix vs. the package's own `@bcl32/utils` primitives is a separate, still-open question). |
 
 ### Dead code
 

@@ -21,8 +21,8 @@ See also:
 | Build tool | Vite 5 (`^5.0.8`) + `@vitejs/plugin-react` (`^4.2.1`) |
 | Data fetching | TanStack Query v5 (`^5.18.1`, resolved `5.100.9`) + react-query-devtools |
 | Routing | React Router v6 (`react-router-dom` `^6.30.0`) |
-| Styling | Tailwind CSS v3 (`^3.4.1`) + `tw-colors` (`^3.3.2`) + `@tailwindcss/forms` |
-| Component libraries | MUI v5 (`@mui/material` `^5.15.7`, resolved `5.18.0`) + `@mui/icons-material`; Radix UI (dialog, dropdown-menu, select, checkbox, slider, tooltip, label, separator, slot, focus-scope, toggle-group); `@headlessui/react` (pinned `2.1.1`) |
+| Styling | Tailwind CSS v3 (`^3.4.1`) + `tw-colors` (`^3.3.2`) + `@tailwindcss/forms`; `tailwind.config.js` uses the shared `@bcl32/themes/tailwind-preset` (see [§4](#4-theming-wiring)) |
+| Component libraries | Radix UI (dialog, dropdown-menu, select, checkbox, slider, tooltip, label, separator, slot, focus-scope, toggle-group); `@headlessui/react` (pinned `2.1.1`). **Zero `@mui/*`/`@emotion/*`** as of the 2026-07-04 MUI-removal refactor — the app previously had no direct MUI usage of its own, but its `@bcl32/*` deps (`datatable`, `filters`) did. |
 | Toasts | Sonner v2 (`^2.0.7`) |
 | Icons | `lucide-react` (`^0.344.0`) |
 | Dates | `dayjs` (`^1.11.10`) |
@@ -37,14 +37,14 @@ The HTML root (`index.html`) injects runtime config from a container-generated `
 
 | Package | Version (`package.json`) | How it is used |
 | --- | --- | --- |
-| `@bcl32/utils` | `^2.4.4` | `Sidebar`/`SidebarProvider` (`Layout.jsx`), `Button`, `Card`, `Dialog`, `Input`, `Label`, `Select`, `cn` — subpath imports across components and pages. |
-| `@bcl32/datatable` | `^2.7.2` | `DataTable` in `RunsListPage`, `RunDetailPage`, `BenchmarksPage`, `ModelEndpointsPage`, and `RecordsDataTable`; `Table`/`TableHeader`/`TableBody`/`TableRow`/`TableHead`/`TableCell` primitives in `MetricsTable`. |
-| `@bcl32/filters` | `^3.1.2` | `useEntityFilters` + `useDataTableFilterBar` for client-side filter state and filter-bar rendering in `RunsListPage` and `RecordsDataTable`. |
+| `@bcl32/utils` | `^2.5.0` | `Sidebar`/`SidebarProvider` (`Layout.jsx`), `Button`, `Card`, `Dialog`, `Input`, `Label`, `Select`, `cn` — subpath imports across components and pages. |
+| `@bcl32/datatable` | `^2.8.0` | `DataTable` in `RunsListPage`, `RunDetailPage`, `BenchmarksPage`, `ModelEndpointsPage`, and `RecordsDataTable`; `Table`/`TableHeader`/`TableBody`/`TableRow`/`TableHead`/`TableCell` primitives in `MetricsTable`. |
+| `@bcl32/filters` | `^3.2.0` | `useEntityFilters` + `useDataTableFilterBar` for client-side filter state and filter-bar rendering in `RunsListPage` and `RecordsDataTable`. |
 | `@bcl32/hooks` | `^2.3.0` | `apiFetch` and `ApiError`/`isApiError` in `src/api.js`; `useGetRequest` in `useTasks.js` and `useRegistry.js`; `useApiMutation` in `useRuns.js` and `useRegistry.js`. |
-| `@bcl32/navigation` | `^2.1.7` | `NavigationProvider` wraps `SidebarProvider` in `Layout.jsx`; `NavigationBreadcrumb` and `useNavigation` consumed in `RunDetailPage` and `TaskDetailPage` for breadcrumb state. |
-| `@bcl32/charts` | `^2.1.6` | **Declared but never imported** anywhere in `src/`. |
-| `@bcl32/forms` | `^2.6.0` | **Declared but never imported** anywhere in `src/`. |
-| `@bcl32/themes` | `^2.1.5` | **Declared but never imported**; theme tokens are inlined directly in `tailwind.config.js` instead. |
+| `@bcl32/navigation` | `^2.1.8` | `NavigationProvider` wraps `SidebarProvider` in `Layout.jsx`; `NavigationBreadcrumb` and `useNavigation` consumed in `RunDetailPage` and `TaskDetailPage` for breadcrumb state. |
+| `@bcl32/charts` | `^3.0.0` | **Declared but never imported** anywhere in `src/`. |
+| `@bcl32/forms` | `^3.0.0` | **Declared but never imported** anywhere in `src/`. |
+| `@bcl32/themes` | `^2.2.0` | **Now imported (changed 2026-07-04).** `Layout.jsx` imports `ThemeProvider` from `@bcl32/themes/ThemeProvider` and wraps the app in it (`defaultTheme="system"`); `tailwind.config.js` uses `@bcl32/themes/tailwind-preset` instead of an inline `createThemes()` call. See [§4](#4-theming-wiring). |
 | `@bcl32/data-utils` | `^2.1.10` | **Declared but never imported** anywhere in `src/`. |
 
 ### `src/api.js` — the shared-hooks integration point
@@ -83,18 +83,46 @@ Reads flow through `useGetRequest`; mutations through `useApiMutation`; both thr
 
 ## 4. Theming Wiring
 
-Theming is configured entirely in `tailwind.config.js`, which calls `tw-colors`' `createThemes()` inline with a full **light** and **dark** palette (`background`, `foreground`, `muted`, `primary`, `secondary`, `accent`, `destructive`, `warning`, `chart-1..5`, and the `sidebar-*` tokens). The `produceCssVariable` option emits `--token-name` CSS variables:
+> **Changed 2026-07-04** as part of the workspace-wide MUI-removal / theming
+> refactor. The description below reflects the current state; see
+> [`05-INCONSISTENCIES.md`](../05-INCONSISTENCIES.md) C94/C96 for the before/after.
+
+Theming is now driven by the shared `@bcl32/themes` package rather than an inline
+palette. `tailwind.config.js` reads:
 
 ```js
-const { createThemes } = require("tw-colors");
-// ...
-createThemes(
-  { light: { /* ... */ }, dark: { /* ... */ } },
-  { produceCssVariable: (colorName) => `--${colorName}` }
-)
+/** @type {import('tailwindcss').Config} */
+export default {
+  presets: [require("@bcl32/themes/tailwind-preset")],
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+    "./node_modules/@bcl32/**/*.{js,ts,jsx,tsx}",
+    "./react-packages/*/src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: { extend: {} },
+  plugins: [require("@tailwindcss/forms")],
+};
 ```
 
-The HTML root is hardcoded to the light theme: `index.html` line 2 is `<html lang="en" class="light">`, and `<body>` carries `class="bg-background text-foreground"`. There is **no** `ThemeProvider`, `ThemeToggle`, or `useTheme` anywhere in the app — the theme is always light with no runtime toggle, so the `dark` block in the config is unreachable. `@bcl32/themes` is a declared dependency but is never imported; the token set is duplicated locally rather than consumed from the shared package.
+`@bcl32/themes/tailwind-preset` wraps `tw-colors`' `createThemes()` around the
+shared `themes.json` palette (`produceCssVariable: (name) => \`--${name}\``), so
+all **ten** named themes (`light, dark, green, yellow, purple, blue, dark-green,
+dark-blue, light-blue, light-gold`) are available — not just the light/dark pair
+the app used to hand-copy — including the `warning`/`warning-foreground` tokens
+added in `themes` 2.2.0.
+
+`src/Layout.jsx` now imports and renders `ThemeProvider` from
+`@bcl32/themes/ThemeProvider` (`defaultTheme="system"`, `storageKey="vite-ui-theme"`),
+which writes the resolved theme to `data-theme` on `document.documentElement`.
+`index.html` no longer hardcodes `<html lang="en" class="light">` — it is a plain
+`<html lang="en">`. This means the theme now follows the OS
+`prefers-color-scheme` automatically via `ThemeProvider`'s `"system"` resolution.
+
+**Still open:** there is no in-app manual toggle — no `ThemeDropdownSelect` or
+`Theming` component is rendered anywhere in `src/`, so a user cannot override the
+OS-derived theme from within the app itself (see
+[`06-REFACTOR-PROPOSALS.md`](../06-REFACTOR-PROPOSALS.md) §5).
 
 ---
 
@@ -102,11 +130,11 @@ The HTML root is hardcoded to the light theme: `index.html` line 2 is `<html lan
 
 | # | Issue | Evidence / location | Severity |
 | --- | --- | --- | --- |
-| 1 | `@bcl32/themes` declared but unused; the full `tw-colors` token palette is duplicated inline rather than sourced from the shared theme package. | `package.json` (`@bcl32/themes ^2.1.5`); `tailwind.config.js` lines 14–91 (`createThemes()` with hardcoded HSL); no `src/` import. | Medium |
+| 1 | ~~`@bcl32/themes` declared but unused; the full `tw-colors` token palette is duplicated inline rather than sourced from the shared theme package.~~ **RESOLVED 2026-07-04** — `tailwind.config.js` now uses `@bcl32/themes/tailwind-preset`, and `Layout.jsx` imports `ThemeProvider` from `@bcl32/themes/ThemeProvider`. See [§4](#4-theming-wiring). | `package.json` (`@bcl32/themes ^2.2.0`); `tailwind.config.js` (`presets: [require("@bcl32/themes/tailwind-preset")]`); `src/Layout.jsx` (`ThemeProvider`). | resolved (was medium) |
 | 2 | `pnpm-lock.yaml` specifiers are stale for **6 of 9** `@bcl32` packages, so installed versions are older than what `package.json` requests — `pnpm install` has not been re-run since the bumps. | `pnpm-lock.yaml` lines 14–37 vs `package.json` lines 16–24: data-utils (`^2.1.9` vs `^2.1.10`), datatable (`^2.6.4` vs `^2.7.2`), filters (`^3.1.0` vs `^3.1.2`), forms (`^2.5.9` vs `^2.6.0`), navigation (`^2.1.6` vs `^2.1.7`), utils (`^2.4.2` vs `^2.4.4`). | Medium |
 | 3 | Nine Radix UI primitives are installed directly even though `@bcl32/utils` already re-exports Radix-backed components the app imports — a parallel install that can drift in version. | `package.json` lines 30–48 (`@radix-ui/react-checkbox` … `@radix-ui/react-tooltip`); `@bcl32/utils` provides Radix-backed `Button`, `Dialog`, `Input`, `Label`, `Select`. | Medium |
-| 4 | Three `@bcl32` packages declared but never imported, bloating `node_modules` and the lockfile. | `package.json` lines 16–18 (`@bcl32/charts ^2.1.6`, `@bcl32/data-utils ^2.1.10`, `@bcl32/forms ^2.6.0`); zero `src/` imports. | Low |
-| 5 | No dark-mode toggle is wired — the dark palette can never be activated at runtime. | `index.html` line 2 (`<html lang="en" class="light">`); no toggle/class-switching code in `src/`. | Low |
+| 4 | Three `@bcl32` packages declared but never imported, bloating `node_modules` and the lockfile. **Note:** this used to be four (`themes` included) — `@bcl32/themes` is now genuinely used (see #1, resolved). | `package.json` (`@bcl32/charts ^3.0.0`, `@bcl32/data-utils ^2.1.10`, `@bcl32/forms ^3.0.0`); zero `src/` imports. | Low |
+| 5 | ~~No dark-mode toggle is wired — the dark palette can never be activated at runtime.~~ **PARTIALLY RESOLVED 2026-07-04** — `index.html` no longer hardcodes `class="light"`, and `ThemeProvider` (`defaultTheme="system"`) now activates dark mode automatically from the OS preference. There is still no in-app manual toggle (`ThemeDropdownSelect`/`Theming`). | `index.html`; `src/Layout.jsx` (`ThemeProvider`). | partially resolved (was low) |
 | 6 | `@headlessui/react` is pinned to an exact version while every other peer-dep uses caret ranges, blocking patch/minor pickup on re-install. | `package.json` line 27: `"@headlessui/react": "2.1.1"`. | Low |
 
 ### Versioning convention (for context)
@@ -140,8 +168,8 @@ The app uses **caret ranges** (`^x.y.z`) against the GitHub Packages registry (`
 | Priority | Opportunity | Rationale | Effort |
 | --- | --- | --- | --- |
 | 1 | **Run `pnpm install` to sync the lockfile with `package.json`.** | Six `@bcl32` specifiers in `pnpm-lock.yaml` lag `package.json`; the installed build doesn't reflect intended versions. A reinstall regenerates the lockfile. | S |
-| 2 | **Remove unused `@bcl32` packages** (`charts`, `forms`, `data-utils`, `themes`). | Declared but never imported; removing them trims the dependency tree, speeds installs/Docker builds, and cuts version-drift noise. | S |
+| 2 | **Remove unused `@bcl32` packages** (`charts`, `forms`, `data-utils`). | Declared but never imported; removing them trims the dependency tree, speeds installs/Docker builds, and cuts version-drift noise. (`@bcl32/themes` was on this list too, but as of 2026-07-04 it's genuinely used — see Inconsistencies #1.) | S |
 | 3 | **Extract shared `formatDate` / `formatDuration`** into a module (or use `dayjs`). | Eliminates copy-pasted helpers across pages; future formatting changes become a single edit. | S |
-| 4 | **Wire a dark-mode toggle or delete the dead dark theme.** | The full dark palette is unreachable behind a hardcoded `class="light"`. Either add a `ThemeToggle` from `@bcl32/utils/ThemeToggle` or remove the dark block. | S |
+| 4 | **Wire an in-app dark-mode toggle.** *(Partially done 2026-07-04 — see Inconsistencies #5.)* | The dark theme is no longer unreachable (`ThemeProvider` activates it from the OS preference), but there is still no manual override UI. Add `@bcl32/themes/ThemeDropdownSelect` or `Theming` to the sidebar footer, matching Print-Tracker/Label-Designer/image-poc-react. | S |
 | 5 | **Drop direct Radix UI installs and rely on `@bcl32/utils`.** | Nine Radix packages are installed directly while `@bcl32/utils` already exposes the Radix-backed primitives the app imports; removing them eliminates duplicate installs and version skew. | M |
 | 6 | **Add the app to `pnpm-workspace.yaml` for local-source development.** | As a non-workspace app, consuming a `@bcl32/*` change requires publishing + bumping `package.json` first. Adding it to the workspace (and switching deps to `workspace:^`) lets the `USE_LOCAL_PACKAGES` Vite alias flow resolve locally alongside the compose-dev path. | M |

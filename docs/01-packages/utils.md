@@ -6,7 +6,7 @@
 | | |
 | --- | --- |
 | **Name** | `@bcl32/utils` |
-| **Version** | `2.4.4` |
+| **Version** | `2.5.0` |
 | **Tier** | `foundational` |
 | **Internal `@bcl32` deps** | _none_ |
 
@@ -54,7 +54,7 @@ import { Button, buttonVariants } from "@bcl32/utils/Button";
 ### Available subpaths
 
 `Alert`, `AnimatedTabs`, `AnimatedFileSystem`, `ShowHierarchy`, `ToggleGroup`,
-`Dialog`, `DialogButton`, `Sidebar`, `Select`, `Button`, `Input`, `Label`,
+`DateTimePicker`, `Dialog`, `DialogButton`, `Sidebar`, `Select`, `Button`, `Input`, `Label`,
 `Card`, `Separator`, `Skeleton`, `Sheet`, `Checkbox`, `Dropdown`, `Tooltip`,
 `RadioButton`, `Slider`, `Breadcrumb`, `Stepper`, `useIsMobile`, `FileSystem`,
 `StatusBanner`, `ColourPickerPopover`, `Combobox`, `cn`.
@@ -73,6 +73,7 @@ These must be provided by the consuming app:
 | --- | --- |
 | `react` | `^18.2.0` |
 | `react-dom` | `^18.2.0` |
+| `dayjs` | `^1.11.10` (new in 2.5.0 — required by `DateTimePicker`) |
 | `@radix-ui/react-checkbox` | `^1.1.2` |
 | `@radix-ui/react-dialog` | `^1.1.1` |
 | `@radix-ui/react-dropdown-menu` | `^2.1.2` |
@@ -94,6 +95,7 @@ These must be provided by the consuming app:
 | `@heroicons/react` | `^2.1.0` |
 | `clsx` | `^2.1.0` |
 | `lucide-react` | `^0.447.0` |
+| `react-day-picker` | `^9.4.0` (new in 2.5.0 — powers `DateTimePicker`'s calendar) |
 | `tailwind-merge` | `^2.5.2` |
 | `class-variance-authority` | `^0.2.2` |
 
@@ -106,6 +108,7 @@ These must be provided by the consuming app:
 - **framer-motion** — `AnimatedTabs`, `AnimatedFileSystem`
 - **lucide-react** — icons throughout
 - **@heroicons/react** — `FileSystem.tsx` only
+- **react-day-picker** — `DateTimePicker`'s calendar grid (new in 2.5.0)
 
 ## Public Exports
 
@@ -148,6 +151,13 @@ These must be provided by the consuming app:
 | `toggleVariants` | other | CVA config | Exported for consumers to extend. |
 | `Combobox` | component | `({ options?, value: string[], onChange, placeholder?, freeSolo?, multiple?, showBadges?, className? }) => JSX` | Keyboard-navigable combobox with optional multi-select, `freeSolo`, and badge-chip display. Built on the local `Input` primitive; dropdown closes on outside `pointerdown`. |
 | `ComboboxProps` | type | — | Props interface for `Combobox`. |
+
+### Date & time
+
+| Name | Kind | Signature / Props | Description |
+| --- | --- | --- | --- |
+| `DateTimePicker` | component | `({ value: Dayjs \| null, onChange: (value: Dayjs \| null) => void, id?, disabled?, format?, placeholder?, triggerVariant?, className? }) => JSX.Element` | Modal date+time picker (new in 2.5.0). A `Button` trigger (`triggerVariant` default `"outline"`) opens a `Dialog` containing a `react-day-picker` `DayPicker` (`mode="single"`) plus an `Input type="time"`. Edits accumulate on an internal draft state and only commit to `onChange` when the user clicks **OK** — clicking **Cancel** or dismissing the dialog discards the draft. `format` (default `"MMM, D YYYY - h:mma"`) controls the trigger's display label; `placeholder` (default `"Pick a date"`) is shown when `value` is `null`/invalid. Replaces `@bcl32/forms`' MUI-based `ButtonDatePicker`, which was removed in `forms` 3.0.0. |
+| `DateTimePickerProps` | type | — | Props interface for `DateTimePicker`. |
 
 ### Dialog (modal)
 
@@ -328,6 +338,9 @@ These must be provided by the consuming app:
   `SidebarMenuAction`, `SidebarMenuSubButton`, `StepperNext`, `StepperPrevious`.
 - **`Combobox` is always array-valued** (`value: string[]`) even in single-select
   mode — read `value[0]` for a single selection.
+- **`DateTimePicker` commits on OK, not per keystroke/step.** Consumers wiring it
+  into a filter or live-save context should expect a single `onChange` call when
+  the dialog is confirmed — not one per calendar click or time-input keystroke.
 
 ## Known smells & caveats
 

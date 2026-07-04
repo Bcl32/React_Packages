@@ -38,8 +38,8 @@ Routing is centralized in `src/main.jsx`: a single layout route (`Layout`) wraps
 | --- | --- | --- |
 | `@bcl32/hooks` | `^2.2.7` | `useGetRequest` (TanStack Query wrapper) in `CaffeineMeter`, `IntensityMeter`, `TemplateGallery`, `TemplateExplorer`; `useApiMutation` in `CoffeeLabel`. |
 | `@bcl32/navigation` | `^2.1.6` | `NavigationProvider` + `useNavigation` for breadcrumb state on every page; `NavigationBreadcrumb` in the `Layout` header. |
-| `@bcl32/themes` | `^2.1.5` | `ThemeProvider` wraps the whole app in `Layout`; `Theming` renders the theme-switcher UI inside a `DialogButton` in the sidebar footer. |
-| `@bcl32/utils` | `^2.4.0` | Sidebar primitives (`Sidebar`, `SidebarProvider`, `SidebarTrigger`, `SidebarHeader`, `SidebarContent`, `SidebarGroup`, `SidebarGroupLabel`, `SidebarGroupContent`, `SidebarMenu`, `SidebarMenuItem`, `SidebarMenuButton`, `SidebarFooter`, `SidebarRail`, `useSidebar`); `Separator`, `StatusBanner`, `DialogButton`; `Card`/`CardContent`/`CardHeader`/`CardTitle`/`CardDescription`; `Button`, `Input`, `Label`, `Slider`, `Skeleton`, `Checkbox`, `Select`, `Dialog`/`DialogContent`/`DialogHeader`/`DialogTitle`; `useIsMobile`. |
+| `@bcl32/themes` | `^2.2.0` | `ThemeProvider` wraps the whole app in `Layout`; `Theming` renders the theme-switcher UI inside a `DialogButton` in the sidebar footer. `tailwind.config.js` now uses `@bcl32/themes/tailwind-preset` (see [§4](#4-theming-wiring)). |
+| `@bcl32/utils` | `^2.5.0` | Sidebar primitives (`Sidebar`, `SidebarProvider`, `SidebarTrigger`, `SidebarHeader`, `SidebarContent`, `SidebarGroup`, `SidebarGroupLabel`, `SidebarGroupContent`, `SidebarMenu`, `SidebarMenuItem`, `SidebarMenuButton`, `SidebarFooter`, `SidebarRail`, `useSidebar`); `Separator`, `StatusBanner`, `DialogButton`; `Card`/`CardContent`/`CardHeader`/`CardTitle`/`CardDescription`; `Button`, `Input`, `Label`, `Slider`, `Skeleton`, `Checkbox`, `Select`, `Dialog`/`DialogContent`/`DialogHeader`/`DialogTitle`; `useIsMobile`. |
 
 ### Provider composition (`src/Layout.jsx`)
 
@@ -89,8 +89,14 @@ This app uses **plain caret ranges** (e.g. `"@bcl32/hooks": "^2.2.7"`) resolved 
 
 ## 4. Theming Wiring
 
-- **Theme definitions** live directly in `tailwind.config.js` via the `tw-colors` `createThemes(...)` plugin. **8 named themes** are wired: `light`, `dark`, `green`, `yellow`, `purple`, `blue`, `dark-green`, `dark-blue`.
-- The plugin is configured with `produceCssVariable: (colorName) => '--${colorName}'`, so each color becomes a `--token` CSS variable consumed by Tailwind utilities (`bg-background`, `text-primary`, `bg-card`, etc.).
+- **Theme definitions** are consumed from the shared `@bcl32/themes` package via
+  `presets: [require("@bcl32/themes/tailwind-preset")]` in `tailwind.config.js`
+  (changed 2026-07-04 — previously this app hand-wired `tw-colors`' `createThemes(...)`
+  inline with its own copy of **8** named themes). The shared preset exposes all
+  **10** themes.json entries: `light`, `dark`, `green`, `yellow`, `purple`, `blue`,
+  `dark-green`, `dark-blue`, `light-blue`, `light-gold` — the two this app's old
+  inline config was missing are now available for free.
+- The preset is configured with `produceCssVariable: (colorName) => '--${colorName}'`, so each color becomes a `--token` CSS variable consumed by Tailwind utilities (`bg-background`, `text-primary`, `bg-card`, etc.).
 - The token set (`sidebar-*`, `chart-*`, `popover-*`, `card-*`, etc.) exactly matches the shadcn-style convention used by the other monorepo apps.
 - `ThemeProvider` (from `@bcl32/themes`) persists the user selection to `localStorage` under the key `"vite-ui-theme"` and applies the active theme class to the document root. It is mounted in `Layout` with `defaultTheme="system"`.
 - The `Theming` component (from `@bcl32/themes`) renders the in-app switcher, surfaced through a `DialogButton` in the sidebar footer.

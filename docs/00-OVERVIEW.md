@@ -102,15 +102,15 @@ Tier 2 (composite):                     │   │            │
 
 | Package | Tier | Version | One-line role |
 | --- | --- | --- | --- |
-| [`@bcl32/utils`](./01-packages/) | foundational | `2.4.4` | Radix UI + Headless UI + Tailwind component library: styled primitives, layout, and a few data-display utilities. |
+| [`@bcl32/utils`](./01-packages/) | foundational | `2.5.0` | Radix UI + Headless UI + Tailwind component library: styled primitives, layout, a modal `DateTimePicker` (react-day-picker-based), and a few data-display utilities. |
 | [`@bcl32/data-utils`](./01-packages/) | foundational | `2.1.10` | Pure data-processing utilities (stats, time bounds, grouped counts, datetime sorting, string helpers, form defaults) — no UI, no React. |
 | [`@bcl32/hooks`](./01-packages/) | foundational | `2.3.0` | Shared React hooks + fetch utilities wrapping TanStack Query for typed FastAPI access and `ModelData` options enrichment. |
-| [`@bcl32/charts`](./01-packages/) | mid | `2.1.6` | Two chart systems: a Bokeh server-rendered line chart and a shadcn-style recharts wrapper (`ChartContainer` + tooltip/legend primitives). |
+| [`@bcl32/charts`](./01-packages/) | mid | `3.0.0` | recharts-only now: a shadcn-style wrapper (`ChartContainer` + tooltip/legend primitives). `BokehLineChart` and its MUI/Bokeh dependencies were removed in 3.0.0. |
 | [`@bcl32/navigation`](./01-packages/) | mid | `2.1.8` | Context-based navigation-state manager + breadcrumb UI built on `react-router-dom` and `@bcl32/utils` Breadcrumb primitives. |
-| [`@bcl32/themes`](./01-packages/) | mid | `2.1.5` | HSL-based theming system: theme provider/persistence, live CSS-variable editor UI, and hex/RGB/HSL colour utilities. |
-| [`@bcl32/forms`](./01-packages/) | composite | `2.6.1` | Data-driven CRUD form components (add/edit/bulk-edit/delete) driven by a `ModelData` descriptor, plus standalone field primitives. |
-| [`@bcl32/datatable`](./01-packages/) | composite | `2.7.2` | TanStack Table v8 data table with built-in CRUD dialogs, column visibility, selection, virtualization, expandable rows, pagination, plus `KeyValueTable`/`StatsTable`. |
-| [`@bcl32/filters`](./01-packages/) | composite | `3.1.2` | Filter-and-chart library: filter context, UI filter controls (text/number/options/datetime), chart drill-down filters, and pure filter data utilities. |
+| [`@bcl32/themes`](./01-packages/) | mid | `2.2.0` | HSL-based theming system: theme provider/persistence, a shared Tailwind preset (`./tailwind-preset`) that generates the palette for consumer apps, live CSS-variable editor UI, `isLightTheme`/`LIGHT_THEMES` derivation, and hex/RGB/HSL colour utilities. |
+| [`@bcl32/forms`](./01-packages/) | composite | `3.0.0` | Data-driven CRUD form components (add/edit/bulk-edit/delete) driven by a `ModelData` descriptor, plus standalone field primitives. `ButtonDatePicker` (MUI) was removed in 3.0.0 — the `datetime` field type now renders `@bcl32/utils/DateTimePicker` directly. |
+| [`@bcl32/datatable`](./01-packages/) | composite | `2.8.0` | TanStack Table v8 data table with built-in CRUD dialogs, column visibility, selection, virtualization, expandable rows, pagination, plus `KeyValueTable`/`StatsTable`. Icons are lucide-react (MUI icons removed in 2.8.0). |
+| [`@bcl32/filters`](./01-packages/) | composite | `3.2.0` | Filter-and-chart library: filter context, UI filter controls (text/number/options/datetime), chart drill-down filters, and pure filter data utilities. `TimeFilter`/`TimeEditDialog` use `@bcl32/utils/DateTimePicker` and icons are lucide-react (MUI removed in 3.2.0). |
 
 Per-package API reference (key exports, peer deps, usage) lives in [`./01-packages/`](./01-packages/).
 
@@ -118,13 +118,13 @@ Per-package API reference (key exports, peer deps, usage) lives in [`./01-packag
 
 | Package | Representative exports |
 | --- | --- |
-| `@bcl32/utils` | `Alert`, `AnimatedTabs`, `TabContent`, `AnimatedFileSystem`, `ShowHierarchy`, `ToggleGroup`, `Dialog`, `DialogTrigger`, … (127 total) |
+| `@bcl32/utils` | `Alert`, `AnimatedTabs`, `TabContent`, `AnimatedFileSystem`, `ShowHierarchy`, `ToggleGroup`, `DateTimePicker`, `Dialog`, `DialogTrigger`, … (129 total) |
 | `@bcl32/data-utils` | `CalculateFeatureStats`, `ComputeGroupedStats`, `ComputeTimeBounds`, `dayjs_sorter`, `Capitalize`, `Truncate`, `getFormDefault`, types `ModelData`/`ModelAttribute`/`RowData` (14 total) |
 | `@bcl32/hooks` | `apiFetch`, `ApiError`, `isApiError`, `useGetRequest`, `useApiMutation`, `useDatabaseMutation`, `useBokehChart`, `useDataLoader`, `useOptionsEnrichment` (11 total) |
-| `@bcl32/charts` | `BokehLineChart`, `ChartContainer`, `ChartTooltip`, `ChartTooltipContent`, `ChartLegend`, `ChartStyle`, type `ChartConfig` (9 total) |
+| `@bcl32/charts` | `ChartContainer`, `ChartTooltip`, `ChartTooltipContent`, `ChartLegend`, `ChartLegendContent`, `ChartStyle`, type `ChartConfig` (8 total — `BokehLineChart` removed in 3.0.0) |
 | `@bcl32/navigation` | `NavigationProvider`, `useNavigation`, `NavigationBreadcrumb`, type `NavigationEntry` (4 total) |
-| `@bcl32/themes` | `ThemeProvider`, `useTheme`, `ThemeDropdownSelect`, `ThemeGenerator`, `ThemePanel`, `ColourConverter`, `ColourPicker`, types `HSLColor`/`RGBColor` (30 total) |
-| `@bcl32/forms` | `AddModelForm`, `EditModelForm`, `BulkEditModelForm`, `DeleteModelForm`, `FormElement`, `ButtonDatePicker`, `ColourField`, `RelationCollectionField` (15 total) |
+| `@bcl32/themes` | `ThemeProvider`, `useTheme`, `ThemeDropdownSelect`, `ThemeGenerator`, `ThemePanel`, `ColourConverter`, `ColourPicker`, `isLightTheme`, `LIGHT_THEMES`, plus the `./tailwind-preset` and `./themes.json` non-JS exports, types `HSLColor`/`RGBColor` (32 total) |
+| `@bcl32/forms` | `AddModelForm`, `EditModelForm`, `BulkEditModelForm`, `DeleteModelForm`, `FormElement`, `ColourField`, `RelationCollectionField` (14 total — `ButtonDatePicker` removed in 3.0.0) |
 | `@bcl32/datatable` | `DataTable`, `ColumnGenerator`, `RowActions`, `DataTablePagination`, `KeyValueTable`, `StatsTable`, plus low-level `Table*` primitives (16 total) |
 | `@bcl32/filters` | `FilterProvider`, `useFilterContext`, `AllFilters`, `DebouncedTextFilter`, `OptionsFilter`, `TimeFilter`, `ChartFilter`, `BarChartFilter` (54 total) |
 
@@ -219,8 +219,8 @@ Tier 2:  datatable, filters
 ┌──────────────────────────────────────────────┐
 │  Consumer app (Vite + React 18 + Tailwind)    │
 │                                                │
-│  package.json:  "@bcl32/datatable": "^2.7.2"  │   (plain caret — NOT workspace:)
-│                 "@bcl32/forms":     "^2.6.1"   │
+│  package.json:  "@bcl32/datatable": "^2.8.0"  │   (plain caret — NOT workspace:)
+│                 "@bcl32/forms":     "^3.0.0"   │
 │                 …peers: react, react-dom,      │
 │                 @tanstack/react-query, dayjs,  │
 │                 recharts, @radix-ui/*          │

@@ -4,6 +4,110 @@ Documentation of the refactoring work performed across all `@bcl32/*` packages, 
 
 ---
 
+## 2026-07-04 — MUI removal / shared Tailwind preset
+
+Removed `@mui/*`, `@emotion/*`, and `@bokeh/*` from every shared `@bcl32/*` package.
+The workspace's own component library (`utils`, `themes`, `charts`, `forms`,
+`filters`, `datatable`) now has **zero** MUI/Emotion/Bokeh dependencies. Published
+versions: `utils@2.5.0`, `themes@2.2.0`, `charts@3.0.0` (major), `forms@3.0.0`
+(major), `filters@3.2.0`, `datatable@2.8.0`.
+
+### New: `@bcl32/utils` `DateTimePicker` (2.5.0)
+
+Added `utils/src/DateTimePicker.tsx` — a modal date+time picker built on
+`react-day-picker` v9 plus the package's own Radix `Dialog` and an
+`Input type="time"`. It replaces every prior MUI date/time picker in the
+system. Props: `{ value: Dayjs | null, onChange(v: Dayjs | null), id?, disabled?,
+format?, placeholder?, triggerVariant?, className? }`. It commits the draft value
+on **OK**, not per keystroke — important for consumers (like filter contexts)
+that persist on every `onChange`. New dependency `react-day-picker ^9.4.0`; new
+peer `dayjs ^1.11.10`.
+
+### New: `@bcl32/themes` shared Tailwind preset (2.2.0)
+
+Added `themes/tailwind-preset.cjs`, exported as `@bcl32/themes/tailwind-preset`.
+It is plain CommonJS (the package itself is `"type": "module"`, but
+Tailwind/Node load presets via `require()`) and wraps `tw-colors`' `createThemes()`
+around `themes.json`, plus a `shine` keyframe/animation extension backing
+`@bcl32/utils` `Button`'s `shine` variant. Every consumer app's
+`tailwind.config.js` now reads:
+
+```js
+presets: [require("@bcl32/themes/tailwind-preset")],
+```
+
+instead of hand-copying the full HSL palette into each app. This closes the
+long-standing "per-app duplicated theme palette" gap (Print-Tracker,
+Security-Benchmarks, and image-poc-react each used to carry their own copy).
+Also added: `@bcl32/themes/themes.json` (raw palette export, resolved directly to
+`src/themes.json`, no build step) and `@bcl32/themes/themeMeta`
+(`isLightTheme(name)`, `LIGHT_THEMES`) — see below. New dependency
+`tw-colors ^3.3.2`.
+
+### Fixed: `ThemeProvider`'s theme-type classification (2.2.0)
+
+`ThemeProvider` previously classified light vs. dark with a hard-coded array
+(`['light', 'light-green', 'light-blue', 'light-gold']`) that had already drifted
+out of sync with `themes.json` (`light-green` was never a real theme). It now
+calls the new `isLightTheme()` — derived from each theme's `background` HSL
+lightness (`>= 50` = light) — so there is nothing to hand-maintain. `ThemeProvider`
+also now resolves `'system'` to a concrete `'light'`/`'dark'` name **before**
+writing the `data-theme` attribute and before classifying `theme_type`, fixing a
+bug where `'system'` could be misclassified as dark even when the OS preference
+resolved to light. Every theme also gained a `warning` / `warning-foreground`
+token pair (and a matching `style_metadata.json` description).
+
+### Removed: `@bcl32/charts` `BokehLineChart` (3.0.0, MAJOR)
+
+Deleted the Bokeh-backed, server-rendered line chart along with its `@mui/material`
+and `@bokeh/bokehjs` dependencies. `@bcl32/charts` is now recharts-only
+(`ChartContainer`/`ChartTooltip`/`ChartLegend`/`ChartStyle` + `ChartConfig`). No app
+in the workspace imported `BokehLineChart` directly (Print-Tracker's Stats page
+already used Recharts directly), so this had no consumer migration burden. Note:
+`@bcl32/hooks` is still declared as a `charts` dependency but is no longer imported
+anywhere in `charts/src` — it was only needed by the deleted component's
+`useBokehChart` call. Left as a follow-up dependency-hygiene cleanup.
+
+### Removed: `@bcl32/forms` `ButtonDatePicker` (3.0.0, MAJOR)
+
+Deleted the MUI `MobileDateTimePicker`-backed button component (it required a
+parent `@mui/x-date-pickers` `LocalizationProvider`). `FormElement`'s `"datetime"`
+case now renders `@bcl32/utils/DateTimePicker` directly — no provider needed.
+`DeleteModelForm`'s delete-button icon switched from `@mui/icons-material`'s
+`DeleteIcon` to lucide's `Trash2`. All three `@mui/*` dependencies were removed.
+
+### Icon and date-picker swaps in `filters` (3.2.0) and `datatable` (2.8.0)
+
+- `@bcl32/filters`: `TimeFilter`/`TimeEditDialog` now use
+  `@bcl32/utils/DateTimePicker` instead of MUI's `MobileDateTimePicker`;
+  `useDataTableFilterBar`'s toolbar icons switched to lucide (`ListFilter`, `X`).
+  All three `@mui/*` dependencies removed; `lucide-react` added.
+- `@bcl32/datatable`: icons switched to lucide (`Plus`, `Pencil`, `Columns3`,
+  `Trash2`, `ChevronDown`, `ChevronUp`) — the `@radix-ui/react-icons`
+  `DotsHorizontalIcon` used by `RowActions`' row menu is unaffected. Both
+  `@mui/*` dependencies removed; `lucide-react` added.
+
+### Consumer app migration
+
+All four consumer apps (`Print-Tracker`, `Security-Benchmarks`, `Label-Designer`,
+`Base-POC/image-poc-react`) switched their `tailwind.config.js` to
+`presets: [require("@bcl32/themes/tailwind-preset")]`, and none of their
+`package.json`s declare `@mui/*`/`@emotion/*` anymore.
+`Security-Benchmarks/security-benchmarks-react` — previously the one app with no
+`ThemeProvider` and a hardcoded `<html class="light">` — now wraps its `Layout` in
+`@bcl32/themes` `ThemeProvider` (`defaultTheme="system"`) and the hardcoded
+`class="light"` is gone from `index.html`.
+
+One caveat found while verifying this entry: `Base-POC/image-poc-react`'s own
+`package.json` (and the `package.base.json` it derives from) still declare
+`@bokeh/bokehjs` (and, in `package.base.json`, `@mui/material`/`@mui/icons-material`/
+`@emotion/*`) as dependencies, even though `src/` imports none of them — this
+predates the current refactor (already tracked as an unused-dependency smell in
+`docs/04-apps/image-poc-react.md` and `docs/06-REFACTOR-PROPOSALS.md` §2) and was
+left untouched here.
+
+---
+
 ## What Was Done
 
 ### 1. Deleted 6 hand-maintained `.d.ts` ambient declaration files

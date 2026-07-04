@@ -135,6 +135,8 @@ These are documented issues to be aware of when consuming the package.
 
 - **`useOptionsEnrichment` silently swallows fetch errors.** A failed options fetch resolves to `[]` with no observable error state. A broken options endpoint produces empty selects rather than a surfaced error — verify endpoints independently if a select renders empty.
 
+- **`useBokehChart` is now consumerless.** `@bcl32/charts` deleted its `BokehLineChart` component (the only in-repo consumer of Bokeh-shaped chart data) in `charts` 3.0.0. `useBokehChart`, `BokehChartData`, and `GraphOptions` are unchanged and still exported, but no app or package in the workspace calls `useBokehChart` anymore — treat it as dead public API pending a decision on whether to keep, deprecate, or remove it.
+
 - **`useApiMutation` and `useDatabaseMutation` are near-duplicate abstractions** over the same build-body + `apiFetch` + `res.json()` flow. The only meaningful differences are payload-binding time and the invalidation argument shape. They are not unified, so pick based on form architecture (see Conventions).
 
 - **`RequestBody` / `buildRequestBody` are effectively private.** They are exported from `_buildRequestBody.ts` but not surfaced through the public `exports` map — do not depend on them from outside the package.

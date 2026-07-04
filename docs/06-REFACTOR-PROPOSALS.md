@@ -16,10 +16,10 @@ The table is ordered by *value-to-risk ratio*: high-impact, low-risk items first
 | --- | --- | --- | --- | --- | --- |
 | 1 | [Dead code & debug artifacts](#1-dead-code--debug-artifacts) | Strip leftover debug code: `test` layoutId, `console.log`s, `#007/#bada55` scrollbars, proxy logging, `StepperDemo` route | utils, charts; all 4 apps | S | Low |
 | 2 | [Dependency hygiene](#2-dependency-hygiene) | Remove unused declared deps (peer & runtime) across packages and apps | utils, hooks, datatable; image-poc, security-benchmarks, label-designer | S | Low |
-| 3 | [Dependency hygiene](#2-dependency-hygiene) | Move heavy libs to `peerDependencies` / lighter subpackages (MUI, bokeh, d3) | charts, data-utils | M | Medium |
+| 3 | [Dependency hygiene](#2-dependency-hygiene) | **DONE 2026-07-04 (charts half; stronger than proposed).** Move heavy libs to `peerDependencies` / lighter subpackages (MUI, bokeh, d3) | charts, data-utils | M | Medium |
 | 4 | [Display-name & naming correctness](#3-display-name--naming-correctness) | Fix mismatched/typo `displayName`s and misleading prop names | utils, charts | S | Low |
 | 5 | [Reinvented wheels in apps](#4-reinvented-wheels-in-consumer-apps) | Extract per-app duplicated helpers (`fileToBase64`, `formatDuration`, `getLayoutColor`, `fetchJSON`, badges) | all apps + dashboard | S–M | Low |
-| 6 | [Theming unification](#5-theming-unification) | Replace hardcoded `dark:`/palette badge colours with semantic tokens; single light-theme source of truth | themes, print-tracker, image-poc, security-benchmarks, dashboard | M | Medium |
+| 6 | [Theming unification](#5-theming-unification) | **PARTIALLY DONE 2026-07-04** (single light-theme source of truth + shared preset shipped; hardcoded badge colours mostly still open). Replace hardcoded `dark:`/palette badge colours with semantic tokens; single light-theme source of truth | themes, print-tracker, image-poc, security-benchmarks, dashboard | M | Medium |
 | 7 | [Internal duplication in packages](#6-internal-duplication-within-packages) | Collapse copy-paste within packages (overlays, file-trees, `LabelWithHelp`, mutation hooks, alpha convention) | utils, hooks, themes, forms, datatable | M | Medium |
 | 8 | [API consistency & correctness bugs](#7-api-consistency--correctness-bugs) | Fix correctness bugs: `useDataLoader` cache key, falsy-`0` rendering, render-time DOM mutation, bespoke prop APIs | hooks, charts, utils, filters, datatable | M | Medium |
 | 9 | [Subpath export completeness](#8-subpath-export-completeness--tree-shaking) | Add missing subpath exports / tsup entries to restore tree-shaking and type access | data-utils, filters, forms, hooks | M | Low |
@@ -72,16 +72,24 @@ Unused / misleading declarations (verified against `package.json` + source):
 
 Heavy libs in the wrong dependency class:
 
-- `@bcl32/charts` declares `@mui/material` and `@bokeh/bokehjs` as **`dependencies`** (`charts/package.json:49-50`). MUI especially should be a `peerDependency` so every consumer doesn't bundle its own copy.
-- `@bcl32/data-utils` depends on all of **`d3@7`** (`data-utils/package.json:65`) but only uses d3's `bin()` — that lives in `d3-array`.
+- ~~`@bcl32/charts` declares `@mui/material` and `@bokeh/bokehjs` as **`dependencies`** (`charts/package.json:49-50`). MUI especially should be a `peerDependency` so every consumer doesn't bundle its own copy.~~
+  **DONE 2026-07-04 — stronger than proposed.** Rather than reclassifying these as
+  `peerDependencies`, `charts` 3.0.0 deleted `BokehLineChart` (the only consumer of
+  either library) outright, removing both dependencies entirely. `charts/package.json`
+  now declares zero `@mui/*`/`@bokeh/*` packages in any dependency class. One
+  residual smell from the same change: `@bcl32/hooks` is still declared as a
+  `charts` dependency but is no longer imported anywhere in `charts/src` (it was
+  only needed by `BokehLineChart`'s `useBokehChart` call) — a good target for a
+  follow-up patch.
+- `@bcl32/data-utils` depends on all of **`d3@7`** (`data-utils/package.json:65`) but only uses d3's `bin()` — that lives in `d3-array`. *(Not addressed by the 2026-07-04 refactor — still open.)*
 
-**Proposed change.** Remove the unused declarations. Reclassify `@mui/material` (and likely `@bokeh/bokehjs`) in `charts` to `peerDependencies`. Swap `d3` for `d3-array` in `data-utils`. For `security-benchmarks-react`, drop the unused `@bcl32/*` and direct `@radix-ui/*` installs, relying on the Radix-backed primitives already exported by `@bcl32/utils`.
+**Proposed change.** Remove the unused declarations. ~~Reclassify `@mui/material` (and likely `@bokeh/bokehjs`) in `charts` to `peerDependencies`.~~ *(Superseded — see DONE note above.)* Swap `d3` for `d3-array` in `data-utils`. For `security-benchmarks-react`, drop the unused `@bcl32/*` and direct `@radix-ui/*` installs, relying on the Radix-backed primitives already exported by `@bcl32/utils`.
 
 **Affected.** Packages: `utils`, `hooks`, `datatable`, `charts`, `data-utils`. Apps: `image-poc-react`, `security-benchmarks-react`, `label-designer-react`.
 
-**Effort.** Removals = S; the MUI/bokeh peer-dep reclassification = M (consumers must now declare the peer).
+**Effort.** Removals = S; the MUI/bokeh peer-dep reclassification = M (consumers must now declare the peer). *(Moot for charts — the dependency was deleted, not reclassified.)*
 
-**Risk.** Removals: Low. Peer-dep moves: **Medium** — moving a `dependency` to a `peerDependency` is a breaking change for any consumer that wasn't already declaring it; do it in a minor/major bump and update each app's `package.json` + `Dockerfile.deps` in the same release.
+**Risk.** Removals: Low. Peer-dep moves: **Medium** — moving a `dependency` to a `peerDependency` is a breaking change for any consumer that wasn't already declaring it; do it in a minor/major bump and update each app's `package.json` + `Dockerfile.deps` in the same release. *(Charts avoided this risk entirely by deleting the feature instead of reclassifying its dependencies.)*
 
 ---
 
@@ -131,27 +139,45 @@ Heavy libs in the wrong dependency class:
 
 ## 5. Theming unification
 
+> **Status: PARTIALLY IMPLEMENTED 2026-07-04.** Point 2 below (single light-theme
+> source of truth) shipped as `@bcl32/themes` `isLightTheme()`/`LIGHT_THEMES`
+> (`themeMeta`), plus a new shared Tailwind preset (`@bcl32/themes/tailwind-preset`)
+> that goes further than originally proposed — see the "Duplicated theme source of
+> truth" update below. Point 1 (hardcoded status-badge colours) is still open in
+> Print-Tracker; see the per-item notes.
+
 **Problem.** The theming story is fragmented in two ways: (a) status indicators use hardcoded Tailwind palette classes that ignore the active named theme, and (b) the set of "light" themes is maintained in more than one place.
 
 Hardcoded colours that bypass theme tokens:
 
-- `print-tracker-react` `SpoolsTableData.jsx` and `FilamentDetailGrid.jsx` use `bg-green-100 … dark:bg-green-900` style pairs — they only flip on the OS `dark` class, not on the custom named themes (`green`, `purple`, `yellow`, …).
-- `image-poc-react` `getConfidenceColor`/`sentimentColors`/`barColors`/`ModelCard` labels use raw palette classes.
-- `security-benchmarks-react` `StatusBadge` uses `bg-emerald-600`, a non-theme colour, and dark mode is unreachable anyway (`<html class="light">` hardcoded, no toggle).
+- `print-tracker-react` `SpoolsTableData.jsx` and `FilamentDetailGrid.jsx` use `bg-green-100 … dark:bg-green-900` style pairs — they only flip on the OS `dark` class, not on the custom named themes (`green`, `purple`, `yellow`, …). *(Still open as of 2026-07-04 — `@bcl32/themes` 2.2.0 added `warning`/`warning-foreground` tokens that these badges could migrate to, but they haven't yet.)*
+- `image-poc-react` `getConfidenceColor`/`sentimentColors`/`barColors`/`ModelCard` labels use raw palette classes. *(Still open.)*
+- `security-benchmarks-react` `StatusBadge` uses `bg-emerald-600`, a non-theme colour, and dark mode is unreachable anyway (`<html class="light">` hardcoded, no toggle). *(The dark-mode-unreachable half is resolved — see [`05-INCONSISTENCIES.md`](./05-INCONSISTENCIES.md) C96 — but the hardcoded `bg-emerald-600` badge colour itself is still open.)*
 - `dashboard` `StatusBadge`/`HealthBadge` use `status-*` classes (dev tool, dark-only — lower priority).
 
 Duplicated theme source of truth:
 
-- `print-tracker-react/src/utils/viewerBackdrop.js` keeps a `LIGHT_THEMES` set documented as "mirrors ThemeProvider's own set" — and it is **already out of sync** (contains `light-green`, which does not exist in `tailwind.config.js`).
-- Multiple apps (print-tracker, security-benchmarks) duplicate the full theme palette inline in `tailwind.config.js` rather than referencing `@bcl32/themes`.
+- ~~`print-tracker-react/src/utils/viewerBackdrop.js` keeps a `LIGHT_THEMES` set documented as "mirrors ThemeProvider's own set" — and it is **already out of sync** (contains `light-green`, which does not exist in `tailwind.config.js`).~~
+  **DONE 2026-07-04.** `viewerBackdrop.js` now imports `isLightTheme` from the new
+  `@bcl32/themes/themeMeta` subpath instead of hand-maintaining `LIGHT_THEMES` — see
+  point 2 of the proposed change below, and [`05-INCONSISTENCIES.md`](./05-INCONSISTENCIES.md) C89.
+- ~~Multiple apps (print-tracker, security-benchmarks) duplicate the full theme palette inline in `tailwind.config.js` rather than referencing `@bcl32/themes`.~~
+  **DONE 2026-07-04 — went further than proposed.** `@bcl32/themes` 2.2.0 ships a
+  shared Tailwind preset (`@bcl32/themes/tailwind-preset`, wrapping `tw-colors`'
+  `createThemes()` around `themes.json`). All four consumer apps (Print-Tracker,
+  Security-Benchmarks, Label-Designer, image-poc-react) now use
+  `presets: [require("@bcl32/themes/tailwind-preset")]` in `tailwind.config.js`
+  instead of hand-copying the palette; Security-Benchmarks additionally gained a
+  `ThemeProvider` it previously lacked entirely (see C94/C96 in
+  `05-INCONSISTENCIES.md`).
 
 **Proposed change.**
-1. Replace hardcoded status-badge colour pairs with semantic tokens (e.g. `bg-success`/`text-success`, `bg-destructive`, …) or, at minimum, CSS-variable-driven classes so badges follow the active theme.
-2. Expose a single source of truth for "is this theme light?" — either a `theme_type`/`isLightTheme()` API from `@bcl32/themes` (the package already classifies light themes in `ThemeProvider`) or an exported constant — and have `viewerBackdrop.js` consume it instead of a hand-maintained copy. Fix the stale `light-green` entry.
+1. Replace hardcoded status-badge colour pairs with semantic tokens (e.g. `bg-success`/`text-success`, `bg-destructive`, or the new `bg-warning`/`text-warning-foreground`, …) or, at minimum, CSS-variable-driven classes so badges follow the active theme. *(Still open — see the per-app notes above.)*
+2. ~~Expose a single source of truth for "is this theme light?" — either a `theme_type`/`isLightTheme()` API from `@bcl32/themes` (the package already classifies light themes in `ThemeProvider`) or an exported constant — and have `viewerBackdrop.js` consume it instead of a hand-maintained copy. Fix the stale `light-green` entry.~~ **DONE 2026-07-04** — implemented essentially as proposed, via `@bcl32/themes/themeMeta`'s `isLightTheme()`/`LIGHT_THEMES`.
 
 **Affected.** Packages: `themes` (new derivation/export API). Apps: `print-tracker-react`, `image-poc-react`, `security-benchmarks-react`, `dashboard`.
 
-**Effort.** M. **Risk.** Medium — visual regression is possible if a semantic token doesn't map cleanly to the old palette colour; do it theme-by-theme with screenshots.
+**Effort.** M. **Risk.** Medium — visual regression is possible if a semantic token doesn't map cleanly to the old palette colour; do it theme-by-theme with screenshots. *(Applies to the still-open point 1; point 2 shipped without reported regressions.)*
 
 ---
 
@@ -182,9 +208,9 @@ Duplicated theme source of truth:
 | --- | --- | --- |
 | Wrong query key | `@bcl32/hooks` `useDataLoader.ts:22` uses `['useBokehChart', url, file_url]` (copy-paste from `useBokehChart`) | A `useDataLoader` and `useBokehChart` call for the same `url`+`file_url` collide on one cache entry → stale/mismatched data. |
 | Falsy-`0` suppressed | `@bcl32/charts` `ChartTooltipContent` `{item.value && …}` (`Chart.tsx:271`) | A legitimate value of `0` is never rendered. |
-| DOM mutation during render | `@bcl32/charts` `BokehLineChart` calls `update_bokeh_graph` in the render body (`:63-78`) | Breaks Strict Mode double-invocation; should be in `useEffect`. |
-| Singleton DOM ids | `BokehLineChart` hardcodes `#myplot`/`#graphContainer` (`:65-73`) | Cannot render two instances on one page. |
-| Stale closure | `BokehLineChart` initialises `anomalies` from `metadata` once, never updates on prop change (`:45`) | Stale anomalies after `metadata` changes. |
+| ~~DOM mutation during render~~ **MOOT 2026-07-04** | `@bcl32/charts` `BokehLineChart` called `update_bokeh_graph` in the render body (`:63-78`) | `BokehLineChart` was deleted in `charts` 3.0.0 rather than fixed — the bug no longer exists because the component doesn't. |
+| ~~Singleton DOM ids~~ **MOOT 2026-07-04** | `BokehLineChart` hardcoded `#myplot`/`#graphContainer` (`:65-73`) | Same — moot; component deleted. |
+| ~~Stale closure~~ **MOOT 2026-07-04** | `BokehLineChart` initialised `anomalies` from `metadata` once, never updated on prop change (`:45`) | Same — moot; component deleted. |
 | Inverted alpha | `@bcl32/themes` `ColourControls` (0–100, 0 = opaque) vs 0–1 fraction elsewhere | Round-trips and consumers misinterpret alpha. |
 | `hslToHex` drops alpha | `@bcl32/themes` `colorUtils.ts:96-115` returns 6-char hex despite an `a` param | Misleading given `ColourPicker` expects 8-char alpha hex. |
 | Bespoke/awkward prop APIs | `useBokehChart` two positional booleans + `unknown`; `RadioButton` `unknown` props; filters `GetActiveFilters.ts:37` spuriously adds `timespan_begin: 'filter'` | Error-prone call sites; corrupted `ActiveFilters` entry. |
@@ -193,7 +219,7 @@ Duplicated theme source of truth:
 | Generics | `@bcl32/datatable` `ColumnGenerator` typed against `RowData` not `<TData>` (`:65`); `action_column` requires `update_api_url` not enforced at the type level | Forces `as unknown` casts; runtime type mismatch in `RowActions`. |
 | Unstable defaults | `@bcl32/datatable` default sort hardcoded to `time_created` desc (`DataTable.tsx:106`); array-index React keys in `KeyValueTable`/`StatsTable` | Invalid sort id for tables without that column; fragile keys on reorder. |
 
-**Proposed change.** Fix the query key, the falsy-`0` guard (`item.value != null`), and move `BokehLineChart` DOM work into a `useEffect` keyed by `metadata`, parameterising the container id (accept an `id`/`ref` prop). Make `ColumnGenerator` generic (`<TData extends RowData>`). Normalise the `themes` alpha convention to a single 0–1 fraction and append the alpha byte in `hslToHex`. Convert positional-boolean APIs (`useBokehChart`) to an options object behind a deprecation. Remove the spurious `timespan_begin: 'filter'` mutation in `GetActiveFilters`. Surface (don't swallow) options-enrichment errors. Replace `import.meta.env.DEV` with a runtime-agnostic check.
+**Proposed change.** Fix the query key, the falsy-`0` guard (`item.value != null`). ~~Move `BokehLineChart` DOM work into a `useEffect` keyed by `metadata`, parameterising the container id (accept an `id`/`ref` prop).~~ *(Moot — `BokehLineChart` was deleted in `charts` 3.0.0.)* Make `ColumnGenerator` generic (`<TData extends RowData>`). Normalise the `themes` alpha convention to a single 0–1 fraction and append the alpha byte in `hslToHex`. Convert positional-boolean APIs (`useBokehChart`) to an options object behind a deprecation. Remove the spurious `timespan_begin: 'filter'` mutation in `GetActiveFilters`. Surface (don't swallow) options-enrichment errors. Replace `import.meta.env.DEV` with a runtime-agnostic check.
 
 **Affected.** Packages: `hooks`, `charts`, `themes`, `utils`, `filters`, `datatable`.
 

@@ -6,7 +6,7 @@
 | | |
 | --- | --- |
 | **Package** | `@bcl32/forms` |
-| **Version** | `2.6.1` |
+| **Version** | `3.0.0` |
 | **Tier** | `composite` |
 
 ## Purpose
@@ -30,7 +30,7 @@ This is a workspace package; it is consumed via the pnpm `workspace:` protocol:
 // package.json
 {
   "dependencies": {
-    "@bcl32/forms": "workspace:^2.6.1"
+    "@bcl32/forms": "workspace:^3.0.0"
   }
 }
 ```
@@ -62,13 +62,22 @@ import { ColourField } from "@bcl32/forms/ColourField";
 | `BulkEditModelForm` | component | Lets the user enable individual fields to patch across multiple selected rows. POSTs `{ ids, data, merge_fields }` to `update_api_url/bulk-update`. Handles the `colour_array` paired `_ids` sibling, merge-vs-replace mode for `list`/`id_list` fields, and avoids the rowSelection-clear-before-`isSuccess` unmount bug via refs. | `(props: { ModelData: ModelData & { update_api_url: string }; query_invalidation: string[]; rowSelection: Record<string, boolean>; setRowSelection: Dispatch<SetStateAction<Record<string, boolean>>>; onSuccess?: (ids: string[], data: FormData) => void; onClose?: () => void }) => JSX.Element` |
 | `DeleteModelForm` | component | Confirms and POSTs deletion of selected row ids to `delete_api_url/bulk`. Handles `409` conflict responses with a structured skip-or-cascade resolution UI (internal `DeleteConflictView`). | `(props: { delete_api_url: string; query_invalidation: string[]; rowSelection: Record<string, boolean>; setRowSelection: Dispatch<SetStateAction<Record<string, boolean>>>; onClose?: () => void; onSuccess?: () => void }) => JSX.Element` |
 
+> **`ButtonDatePicker` was removed in 3.0.0 (MAJOR).** The old MUI
+> `MobileDateTimePicker`-backed button (which required a parent
+> `@mui/x-date-pickers` `LocalizationProvider`) is gone; `FormElement`'s
+> `"datetime"` case now renders [`@bcl32/utils/DateTimePicker`](./utils.md) directly
+> — no `LocalizationProvider` wrapper needed. If you imported `ButtonDatePicker`
+> directly (rather than only through `FormElement`), switch to
+> `@bcl32/utils/DateTimePicker`, whose props are `{ value: Dayjs | null, onChange,
+> id?, disabled?, format?, placeholder?, triggerVariant?, className? }` (it commits
+> on OK, not per keystroke — see the utils package doc).
+
 ### Field renderers & primitives
 
 | Name | Kind | Description | Signature / Props |
 | --- | --- | --- | --- |
-| `FormElement` | component | Single-field renderer dispatched on `ModelAttribute.type`. Supported types: `string`, `textarea`, `number`, `boolean`, `list` (freeSolo Combobox), `id_list` (multi-select with value/label mapping), `select`, `datetime` (`ButtonDatePicker` inside a `LocalizationProvider`), `colour`, `colour_array`, `relation_collection`, `id` (with `reference` → `IdReferenceField` Combobox), `file`. Returns `null` for unrecognised types. | `(props: { entry_data: ModelAttribute; formData: FormData; setFormData: Dispatch<SetStateAction<FormData>>; change_datetime: (value: Dayjs \| null, name: string) => void }) => JSX.Element \| null` |
+| `FormElement` | component | Single-field renderer dispatched on `ModelAttribute.type`. Supported types: `string`, `textarea`, `number`, `boolean`, `list` (freeSolo Combobox), `id_list` (multi-select with value/label mapping), `select`, `datetime` (`@bcl32/utils/DateTimePicker`, since 3.0.0 — see caveat below), `colour`, `colour_array`, `relation_collection`, `id` (with `reference` → `IdReferenceField` Combobox), `file`. Returns `null` for unrecognised types. | `(props: { entry_data: ModelAttribute; formData: FormData; setFormData: Dispatch<SetStateAction<FormData>>; change_datetime: (value: Dayjs \| null, name: string) => void }) => JSX.Element \| null` |
 | `canRenderFormElement` | util | Predicate that mirrors `FormElement`'s non-null branches. Used by `BulkEditModelForm` and `EditModelForm` to filter out "ghost" cards for attributes that would render `null` (e.g. an `id` without `reference`, or unknown types). | `(attr: ModelAttribute) => boolean` |
-| `ButtonDatePicker` | component | MUI `MobileDateTimePicker` wrapped so it renders as an **outlined MUI Button** (not an input). The button's text is the formatted label; clicking opens the picker modal. Manages its own open state. **Requires a parent `LocalizationProvider`.** | `(props: Omit<MobileDateTimePickerProps<Dayjs>, 'open' \| 'onOpen' \| 'onClose'> & { id?: string }) => JSX.Element` |
 | `ColourField` | component | Single-colour picker button backed by `ColourPickerPopover`. When the field name matches `*_colour(s)` it writes a parallel `*_ids` array into `formData` for FK tracking. Colour presets are fetched via `useGroupedSwatches` using `ModelAttribute.colour_presets`. **Subpath-only export.** | `(props: { entry_data: ModelAttribute; formData: FormData; setFormData: Dispatch<SetStateAction<FormData>> }) => JSX.Element` |
 | `ColourArrayField` | component | Multi-colour swatch array editor. Each colour renders as a clickable circle with a remove badge; a `+` button adds new colours. Tracks a parallel `*_ids` FK array alongside the hex array. Edit/add each open a `ColourPickerPopover`. | `(props: { entry_data: ModelAttribute; formData: FormData; setFormData: Dispatch<SetStateAction<FormData>> }) => JSX.Element` |
 | `AutoGrowTextarea` | component | A controlled `<textarea>` that auto-sizes its height to `scrollHeight` on every value change (via `useLayoutEffect`). Accepts a `ref`. No dependencies beyond React. | `React.ForwardRefExoticComponent<AutoGrowTextareaProps & React.RefAttributes<HTMLTextAreaElement>>`, where `AutoGrowTextareaProps` extends `TextareaHTMLAttributes` with a required `value: string` |
@@ -112,12 +121,15 @@ These must be supplied by the consuming app:
 
 ### External (bundled) dependencies
 
-`@mui/material`, `@mui/icons-material`, `@mui/x-date-pickers`, `lucide-react`.
+`lucide-react`. (`@mui/material`, `@mui/icons-material`, and `@mui/x-date-pickers`
+were removed in 3.0.0 along with `ButtonDatePicker`.)
 
 ### UI libraries
 
-- **MUI** — `@mui/material` and `@mui/x-date-pickers` (the latter powers `ButtonDatePicker`'s
-  `MobileDateTimePicker`; `@mui/icons-material` supplies e.g. `DeleteModelForm`'s `DeleteIcon`).
+- **lucide-react** — icons throughout, e.g. `DeleteModelForm`'s `Trash2` (replaces
+  the old `@mui/icons-material` `DeleteIcon` — see [Conventions](#conventions--patterns)).
+- **`@bcl32/utils/DateTimePicker`** — powers the `datetime` field type (replaces
+  MUI's `MobileDateTimePicker`-based `ButtonDatePicker`, removed in 3.0.0).
 - **Radix** — used indirectly via `@bcl32/utils`' `ToggleGroup` in `DeleteModelForm`'s conflict view.
 - **Tailwind CSS** — utility classes used throughout for layout, spacing, and colour.
 
@@ -137,10 +149,10 @@ Things a consumer **must** know to use this package correctly:
   `/_colours?$/` with `/_ids/`). The backend schema must include this sibling key.
   `BulkEditModelForm` propagates it automatically, but `AddModelForm` / `EditModelForm`
   callers should be aware it will be submitted.
-- **`ButtonDatePicker` needs a `LocalizationProvider`.** It requires a parent
-  `@mui/x-date-pickers` `LocalizationProvider` with `AdapterDayjs`. `FormElement` wraps this
-  internally for `datetime` fields, but **direct** `ButtonDatePicker` usage requires the
-  consumer to supply the provider.
+- **`datetime` fields need no provider (as of 3.0.0).** `FormElement`'s `"datetime"`
+  case renders `@bcl32/utils/DateTimePicker` directly — there is no
+  `LocalizationProvider` (or any other ancestor requirement) to wire up, unlike the
+  old MUI-based `ButtonDatePicker` it replaced.
 - **`RelationCollectionField` is dual-mode.** Without `baseUrl` it is a disabled placeholder;
   with `baseUrl` it fetches and manages child rows directly via `apiFetch` (bypassing the
   TanStack Query write path). On detail pages, pass `baseUrl` resolved to the parent entity's

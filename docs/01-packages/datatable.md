@@ -5,7 +5,7 @@
 | | |
 | --- | --- |
 | **Package** | `@bcl32/datatable` |
-| **Version** | `2.7.2` |
+| **Version** | `2.8.0` |
 | **Tier** | `composite` |
 
 ## Purpose
@@ -21,7 +21,7 @@ This package is consumed through the pnpm workspace. Application `package.json` 
 ```jsonc
 {
   "dependencies": {
-    "@bcl32/datatable": "workspace:^2.7.2"
+    "@bcl32/datatable": "workspace:^2.8.0"
   }
 }
 ```
@@ -222,14 +222,15 @@ interface DataTableFilter {
 | --- | --- |
 | `@tanstack/react-table` | `^8.11.8` |
 | `@tanstack/react-virtual` | `^3.10.8` |
-| `@mui/material` | `^5.15.7` |
-| `@mui/icons-material` | `^5.15.7` |
 | `@radix-ui/react-icons` | `^1.3.0` |
+| `lucide-react` | `^0.447.0` (new in 2.8.0) |
+
+_(`@mui/material` and `@mui/icons-material` were removed in 2.8.0.)_
 
 ### UI libraries used
 
-- **MUI** — icons (`Add`, `Edit`, `Delete`, `ViewColumn`, `ExpandMore`, `ExpandLess`).
-- **Radix UI** — Dialog (via `@bcl32/utils/DialogButton`), Dropdown (via `@bcl32/utils/Dropdown`), icons (`@radix-ui/react-icons`).
+- **lucide-react** — icons: `Plus`, `Pencil`, `Columns3`, `Trash2` (`DataTable.tsx`), `ChevronDown`/`ChevronUp`/`Pencil` (`ColumnGenerator.tsx`). Replaces the old MUI icon set (`Add`, `Edit`, `Delete`, `ViewColumn`, `ExpandMore`, `ExpandLess`).
+- **Radix UI** — Dialog (via `@bcl32/utils/DialogButton`), Dropdown (via `@bcl32/utils/Dropdown`), `DotsHorizontalIcon` from `@radix-ui/react-icons` (`RowActions`'s row menu trigger — unaffected by the MUI removal).
 - **Tailwind CSS** — all layout and typography classes.
 
 ## Conventions a Consumer Must Follow

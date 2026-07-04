@@ -164,7 +164,7 @@ The apps do **not** all consume the packages the same way:
 
 - **Workspace-linked consumers** — `print-tracker-react`,
   `security-benchmarks-react`, and `label-designer-react` declare normal
-  semver carets (e.g. `"@bcl32/utils": "^2.4.4"`). With `link-workspace-packages`
+  semver carets (e.g. `"@bcl32/utils": "^2.5.0"`). With `link-workspace-packages`
   and `prefer-workspace-packages` enabled (see [§5](#5-version-pinning-conventions)),
   pnpm resolves these to the local workspace build when the floor is satisfied,
   and only falls back to the GitHub Packages registry otherwise. Each app also
@@ -189,7 +189,7 @@ the top of the tree supplies a single concrete copy that every package shares.
 | --- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | `react ^18.2.0` | ● | | ● | ● | ● | ● | ● ¹ | ● | ● |
 | `react-dom ^18.2.0` | ● | | ● | ● | ● | ● | ● ¹ | ● | ● |
-| `dayjs ^1.11.10` | | ● | ● | | ● | ● | ● ¹ | | |
+| `dayjs ^1.11.10` | ● ³ | ● | ● | | ● | ● | ● ¹ | | |
 | `recharts ^2.12.0` | | | | ● | | ● | | | |
 | `@tanstack/react-query ^5.18.1` | | | ● | | | | ● ¹ | | |
 | `react-router-dom ^6.22.0` | | | | | | | | ● | |
@@ -208,6 +208,10 @@ entries pin the matching versions (`@tanstack/react-query ^5.18.1`,
 wraps: `react-checkbox`, `react-dropdown-menu`, `react-focus-scope`,
 `react-label`, `react-select`, `react-separator`, `react-slot`, and
 `react-tooltip` (alongside the dialog/toggle-group/slider rows above).
+
+³ `dayjs` became a peer of `@bcl32/utils` in 2.5.0 — required by the new
+`DateTimePicker` component (which formats/parses the selected value as a
+`Dayjs`).
 
 ### Why peers matter for singleton dedup
 
@@ -245,21 +249,21 @@ Every internal `@bcl32/*` dependency is declared with the pnpm
 
 ```jsonc
 "dependencies": {
-  "@bcl32/utils":      "workspace:^2.4.4",
+  "@bcl32/utils":      "workspace:^2.5.0",
   "@bcl32/hooks":      "workspace:^2.3.0",
   "@bcl32/data-utils": "workspace:^2.1.10",
-  "@bcl32/charts":     "workspace:^2.1.6"
+  "@bcl32/charts":     "workspace:^3.0.0"
 }
 ```
 
 - `workspace:` forces resolution to the **local package in the workspace**,
   never the GitHub Packages registry, during development and build.
 - The `^x.y.z` floor is the minimum version the dependent relies on. On publish,
-  pnpm rewrites `workspace:^2.4.4` to a concrete caret range (`^2.4.4`) so the
+  pnpm rewrites `workspace:^2.5.0` to a concrete caret range (`^2.5.0`) so the
   published package on the registry carries a normal semver constraint.
 - Root and `react-packages/` `.npmrc` both set
   `link-workspace-packages=true` and `prefer-workspace-packages=true`, so even
-  app-level plain carets (`"@bcl32/utils": "^2.4.4"`) link to the local build
+  app-level plain carets (`"@bcl32/utils": "^2.5.0"`) link to the local build
   when its version satisfies the range.
 
 ### App consumption: plain caret
@@ -269,15 +273,15 @@ which is what gets published/installed for non-workspace contexts:
 
 ```jsonc
 // Print-Tracker/print-tracker-react/package.json
-"@bcl32/charts":     "^2.1.6",
+"@bcl32/charts":     "^3.0.0",
 "@bcl32/data-utils": "^2.1.10",
-"@bcl32/datatable":  "^2.7.2",
-"@bcl32/filters":    "^3.1.2",
-"@bcl32/forms":      "^2.6.1",
+"@bcl32/datatable":  "^2.8.0",
+"@bcl32/filters":    "^3.2.0",
+"@bcl32/forms":      "^3.0.0",
 "@bcl32/hooks":      "^2.3.0",
 "@bcl32/navigation": "^2.1.8",
-"@bcl32/themes":     "^2.1.5",
-"@bcl32/utils":      "^2.4.4"
+"@bcl32/themes":     "^2.2.0",
+"@bcl32/utils":      "^2.5.0"
 ```
 
 ### Why caret floors must be kept honest
