@@ -40,6 +40,10 @@
     "./getFormDefault": {
       "types": "./dist/getFormDefault.d.ts",
       "import": "./dist/getFormDefault.js"
+    },
+    "./pivotTimeSeries": {
+      "types": "./dist/pivotTimeSeries.d.ts",
+      "import": "./dist/pivotTimeSeries.js"
     }
   },
   "files": [

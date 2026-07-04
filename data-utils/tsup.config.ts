@@ -8,6 +8,7 @@ export default defineConfig({
     "src/StringFunctions.ts",
     "src/dayjs_sorter.ts",
     "src/getFormDefault.ts",
+    "src/pivotTimeSeries.ts",
     "src/index.ts"
   ],
   format: ["esm"],

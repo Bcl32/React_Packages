@@ -5,3 +5,4 @@ export * from "./CalculateFeatureStats";
 export * from "./StringFunctions";
 export * from "./dayjs_sorter";
 export * from "./getFormDefault";
+export * from "./pivotTimeSeries";

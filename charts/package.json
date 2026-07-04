@@ -16,6 +16,18 @@
     "./Charts": {
       "types": "./dist/Charts.d.ts",
       "import": "./dist/Charts.js"
+    },
+    "./TimeSeriesChart": {
+      "types": "./dist/TimeSeriesChart.d.ts",
+      "import": "./dist/TimeSeriesChart.js"
+    },
+    "./StatCard": {
+      "types": "./dist/StatCard.d.ts",
+      "import": "./dist/StatCard.js"
+    },
+    "./DonutChart": {
+      "types": "./dist/DonutChart.d.ts",
+      "import": "./dist/DonutChart.js"
     }
   },
   "files": [

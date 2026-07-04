@@ -3,6 +3,9 @@ import { defineConfig } from "tsup";
 export default defineConfig({
   entry: [
     "src/Charts.tsx",
+    "src/TimeSeriesChart.tsx",
+    "src/StatCard.tsx",
+    "src/DonutChart.tsx",
     "src/index.ts"
   ],
   format: ["esm"],
