@@ -24,7 +24,7 @@ importers:
         specifier: workspace:^2.2.6
         version: link:../hooks
       '@bcl32/utils':
-        specifier: workspace:^2.3.9
+        specifier: workspace:^2.5.0
         version: link:../utils
       react:
         specifier: ^18.2.0
@@ -71,13 +71,13 @@ importers:
         specifier: workspace:^2.1.10
         version: link:../data-utils
       '@bcl32/forms':
-        specifier: workspace:^2.6.0
+        specifier: workspace:^3.0.0
         version: link:../forms
       '@bcl32/hooks':
         specifier: workspace:^2.2.8
         version: link:../hooks
       '@bcl32/utils':
-        specifier: workspace:^2.4.4
+        specifier: workspace:^2.5.0
         version: link:../utils
       '@radix-ui/react-dialog':
         specifier: ^1.1.1
@@ -117,7 +117,7 @@ importers:
   filters:
     dependencies:
       '@bcl32/charts':
-        specifier: workspace:^2.1.6
+        specifier: workspace:^3.0.0
         version: link:../charts
       '@bcl32/data-utils':
         specifier: workspace:^2.1.10
@@ -126,7 +126,7 @@ importers:
         specifier: workspace:^2.3.0
         version: link:../hooks
       '@bcl32/utils':
-        specifier: workspace:^2.4.4
+        specifier: workspace:^2.5.0
         version: link:../utils
       '@radix-ui/react-slider':
         specifier: ^1.2.1
@@ -169,7 +169,7 @@ importers:
         specifier: workspace:^2.2.8
         version: link:../hooks
       '@bcl32/utils':
-        specifier: workspace:^2.4.4
+        specifier: workspace:^2.5.0
         version: link:../utils
       dayjs:
         specifier: ^1.11.10
@@ -256,7 +256,7 @@ importers:
   themes:
     dependencies:
       '@bcl32/utils':
-        specifier: workspace:^2.3.9
+        specifier: workspace:^2.5.0
         version: link:../utils
       lucide-react:
         specifier: ^0.447.0
