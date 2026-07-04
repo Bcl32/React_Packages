@@ -11,13 +11,11 @@ import { HelpCircle } from "lucide-react";
 import { Input } from "@bcl32/utils/Input";
 import { Label } from "@bcl32/utils/Label";
 import { CustomTooltip } from "@bcl32/utils/Tooltip";
+import { DateTimePicker } from "@bcl32/utils/DateTimePicker";
 
-import { LocalizationProvider } from "@mui/x-date-pickers";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { useGetRequest } from "@bcl32/hooks/useGetRequest";
 import { Combobox } from "@bcl32/utils/Combobox";
 import type { ModelAttribute, ReferenceInfo } from "@bcl32/data-utils";
-import ButtonDatePicker from "./ButtonDatePicker";
 import { ColourField } from "./ColourField";
 import { ColourArrayField } from "./ColourArrayField";
 import { FieldInput } from "./FieldInput";
@@ -308,18 +306,11 @@ export function FormElement({
             {name[0].toUpperCase() + name.slice(1)}:
           </LabelWithHelp>
 
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <ButtonDatePicker
-              label={
-                dayjs(formData[name] as string) == null
-                  ? null
-                  : dayjs(formData[name] as string).format("MMM, D YYYY - h:mma")
-              }
-              value={dayjs(formData[name] as string)}
-              onChange={(newValue) => change_datetime(newValue, name)}
-              id={"input_" + name}
-            />
-          </LocalizationProvider>
+          <DateTimePicker
+            id={"input_" + name}
+            value={formData[name] ? dayjs(formData[name] as string) : null}
+            onChange={(newValue) => change_datetime(newValue, name)}
+          />
         </div>
       );
     case "colour":

@@ -2,7 +2,6 @@ import { defineConfig } from "tsup";
 
 export default defineConfig({
   entry: [
-    "src/BokehLineChart.tsx",
     "src/Charts.tsx",
     "src/index.ts"
   ],

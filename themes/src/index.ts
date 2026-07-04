@@ -9,3 +9,4 @@ export * from "./ColourConverter";
 export * from "./ColourPicker";
 export * from "./CopyTheme";
 export * from "./colorUtils";
+export * from "./themeMeta";

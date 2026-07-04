@@ -1,4 +1,3 @@
-export { BokehLineChart } from "./BokehLineChart";
 export {
   ChartContainer,
   ChartTooltip,

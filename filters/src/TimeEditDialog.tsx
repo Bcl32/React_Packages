@@ -9,16 +9,12 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(duration);
 
-import { MobileDateTimePicker } from "@mui/x-date-pickers/MobileDateTimePicker";
-import { LocalizationProvider } from "@mui/x-date-pickers";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { Plus, Minus } from "lucide-react";
+import { DateTimePicker } from "@bcl32/utils/DateTimePicker";
 
 import { Button } from "@bcl32/utils/Button";
 import { RadioButton } from "@bcl32/utils/RadioButton";
 
-import IconButton from "@mui/material/IconButton";
-import AddIcon from "@mui/icons-material/Add";
-import RemoveIcon from "@mui/icons-material/Remove";
 import type { Filters, DatetimeFilterValue } from "./types";
 
 interface TimeEditDialogProps {
@@ -87,63 +83,63 @@ export function TimeEditDialog({
       <div className="grid xl:grid-cols-2">
         <div>
           <h1>Start Time</h1>
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <MobileDateTimePicker
-              value={dayjs(filterValue["timespan_begin"])}
-              onChange={(newValue) =>
-                newValue && change_time_filter(name, "timespan_begin", newValue)
-              }
-            />
-          </LocalizationProvider>
+          <DateTimePicker
+            value={dayjs(filterValue["timespan_begin"])}
+            onChange={(newValue) =>
+              newValue && change_time_filter(name, "timespan_begin", newValue)
+            }
+          />
           <br />
-          <IconButton
+          <Button
             type="button"
-            sx={{ p: "10px" }}
+            variant="ghost"
+            size="icon"
             aria-label="removeTime"
             onClick={() => removeTime("timespan_begin")}
           >
-            <RemoveIcon sx={{ width: 35, height: 35 }} />
-          </IconButton>
+            <Minus size={28} />
+          </Button>
 
-          <IconButton
+          <Button
             type="button"
-            sx={{ p: "10px" }}
+            variant="ghost"
+            size="icon"
             aria-label="addTime"
             onClick={() => addTime("timespan_begin")}
           >
-            <AddIcon sx={{ width: 35, height: 35 }} />
-          </IconButton>
+            <Plus size={28} />
+          </Button>
         </div>
 
         <div>
           <h1>End Time</h1>
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <MobileDateTimePicker
-              value={dayjs(filterValue["timespan_end"])}
-              onChange={(newValue) =>
-                newValue && change_time_filter(name, "timespan_end", newValue)
-              }
-            />
-          </LocalizationProvider>
+          <DateTimePicker
+            value={dayjs(filterValue["timespan_end"])}
+            onChange={(newValue) =>
+              newValue && change_time_filter(name, "timespan_end", newValue)
+            }
+          />
 
           <br />
-          <IconButton
+          <Button
             type="button"
-            sx={{ p: "10px" }}
+            variant="ghost"
+            size="icon"
             aria-label="removeTime"
             onClick={() => removeTime("timespan_end")}
           >
-            <RemoveIcon sx={{ width: 35, height: 35 }} />
-          </IconButton>
+            <Minus size={28} />
+          </Button>
 
-          <IconButton
+          <Button
             type="button"
-            sx={{ p: "10px" }}
+            variant="ghost"
+            size="icon"
             aria-label="addTime"
             onClick={() => addTime("timespan_end")}
           >
-            <AddIcon sx={{ width: 35, height: 35 }} />
-          </IconButton>
+            <Plus size={28} />
+          </Button>
         </div>
       </div>
 

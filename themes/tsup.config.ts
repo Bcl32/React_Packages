@@ -13,6 +13,7 @@ export default defineConfig({
     "src/ColourPicker.tsx",
     "src/CopyTheme.tsx",
     "src/colorUtils.ts",
+    "src/themeMeta.ts",
     "src/index.ts"
   ],
   format: ["esm"],

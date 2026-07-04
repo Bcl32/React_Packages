@@ -31,10 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@bcl32/utils/Dropdown";
 
-import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
-import ViewColumnIcon from "@mui/icons-material/ViewColumn";
-import DeleteIcon from "@mui/icons-material/Delete";
+import { Plus, Pencil, Columns3, Trash2 } from "lucide-react";
 import { DataTablePagination } from "./TablePagination";
 
 import { DialogButton } from "@bcl32/utils/DialogButton";
@@ -199,7 +196,7 @@ export function DataTable<TData extends RowData>(
                 onOpenChange={setAddDialogOpen}
                 button={
                   <Button size="sm">
-                    <AddIcon style={{ fontSize: 16 }} />
+                    <Plus size={16} />
                     {"Create New"}
                   </Button>
                 }
@@ -219,7 +216,7 @@ export function DataTable<TData extends RowData>(
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" title="Toggle Columns">
-                  <ViewColumnIcon style={{ fontSize: 18 }} />
+                  <Columns3 size={18} />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -254,7 +251,7 @@ export function DataTable<TData extends RowData>(
                   onOpenChange={setBulkEditDialogOpen}
                   button={
                     <Button size="sm">
-                      <EditIcon style={{ fontSize: 16 }} />
+                      <Pencil size={16} />
                       {`Edit (${selectedIds.length})`}
                     </Button>
                   }
@@ -273,7 +270,7 @@ export function DataTable<TData extends RowData>(
                 <CustomTooltip content="Select records to edit" delayDuration={300}>
                   <span>
                     <Button variant="ghost" size="icon" disabled className="opacity-40">
-                      <EditIcon style={{ fontSize: 18 }} />
+                      <Pencil size={18} />
                     </Button>
                   </span>
                 </CustomTooltip>
@@ -304,7 +301,7 @@ export function DataTable<TData extends RowData>(
                 onOpenChange={setDeleteDialogOpen}
                 button={
                   <Button size="sm" variant="danger">
-                    <DeleteIcon style={{ fontSize: 16 }} />
+                    <Trash2 size={16} />
                     {`Delete (${selectedIds.length})`}
                   </Button>
                 }
@@ -323,7 +320,7 @@ export function DataTable<TData extends RowData>(
               <CustomTooltip content="Select records to delete" delayDuration={300}>
                 <span>
                   <Button variant="ghost" size="icon" disabled className="opacity-40">
-                    <DeleteIcon style={{ fontSize: 18 }} />
+                    <Trash2 size={18} />
                   </Button>
                 </span>
               </CustomTooltip>

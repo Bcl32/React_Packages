@@ -1,8 +1,6 @@
 import * as React from "react";
 import { createColumnHelper, type ColumnDef, type Row } from "@tanstack/react-table";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import EditIcon from "@mui/icons-material/Edit";
+import { ChevronDown, ChevronUp, Pencil } from "lucide-react";
 import { Checkbox } from "@bcl32/utils/Checkbox";
 
 import dayjs from "dayjs";
@@ -33,7 +31,7 @@ function EditCell({ row, ModelData, query_invalidation, onEditSuccess }: EditCel
         onOpenChange={setOpen}
         button={
           <Button size="icon">
-            <EditIcon />
+            <Pencil size={18} />
           </Button>
         }
         variant="default"
@@ -140,7 +138,7 @@ export function ColumnGenerator({
           onClick={row.getToggleExpandedHandler()}
           style={{ cursor: "pointer" }}
         >
-          {row.getIsExpanded() ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          {row.getIsExpanded() ? <ChevronUp /> : <ChevronDown />}
         </button>
       ) : (
         "🔵"

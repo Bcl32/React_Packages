@@ -8,11 +8,8 @@ import timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-import EditIcon from "@mui/icons-material/Edit";
-
-import { MobileDateTimePicker } from "@mui/x-date-pickers/MobileDateTimePicker";
-import { LocalizationProvider } from "@mui/x-date-pickers";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { Pencil } from "lucide-react";
+import { DateTimePicker } from "@bcl32/utils/DateTimePicker";
 
 import { Button } from "@bcl32/utils/Button";
 import { DialogButton } from "@bcl32/utils/DialogButton";
@@ -63,26 +60,22 @@ export function TimeFilter({ name }: TimeFilterProps): JSX.Element | null {
       <div className="grid xl:grid-cols-3">
         <div>
           <h1>Start Time</h1>
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <MobileDateTimePicker
-              value={dayjs(filterValue["timespan_begin"])}
-              onChange={(newValue) =>
-                newValue && change_time_filter(name, "timespan_begin", newValue)
-              }
-            />
-          </LocalizationProvider>
+          <DateTimePicker
+            value={dayjs(filterValue["timespan_begin"])}
+            onChange={(newValue) =>
+              newValue && change_time_filter(name, "timespan_begin", newValue)
+            }
+          />
         </div>
 
         <div>
           <h1>End Time</h1>
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <MobileDateTimePicker
-              value={dayjs(filterValue["timespan_end"])}
-              onChange={(newValue) =>
-                newValue && change_time_filter(name, "timespan_end", newValue)
-              }
-            />
-          </LocalizationProvider>
+          <DateTimePicker
+            value={dayjs(filterValue["timespan_end"])}
+            onChange={(newValue) =>
+              newValue && change_time_filter(name, "timespan_end", newValue)
+            }
+          />
         </div>
 
         <div>
@@ -90,7 +83,7 @@ export function TimeFilter({ name }: TimeFilterProps): JSX.Element | null {
             key={"dialog-time-edit" + name}
             button={
               <Button variant="default" size="default">
-                <EditIcon /> Edit Shortcuts
+                <Pencil size={18} className="mr-1" /> Edit Shortcuts
               </Button>
             }
             size="big"

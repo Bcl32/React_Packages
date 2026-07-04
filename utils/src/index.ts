@@ -4,6 +4,7 @@ export * from "./AnimatedTabs";
 export * from "./AnimatedFileSystem";
 export * from "./ShowHierarchy";
 export * from "./ToggleGroup";
+export * from "./DateTimePicker";
 export * from "./Dialog";
 export * from "./DialogButton";
 export * from "./Sidebar";

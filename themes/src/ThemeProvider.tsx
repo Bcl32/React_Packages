@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import Themes from "./themes.json";
+import { isLightTheme } from "./themeMeta";
 
 export type Theme = keyof typeof Themes | "system";
 type ThemeType = "light" | "dark";
@@ -38,24 +39,22 @@ export function ThemeProvider({
     () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
   );
 
-  useEffect(() => {
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
+  // Resolve "system" once, before both the attribute write and the type
+  // classification — so theme_type can never disagree with the data-theme
+  // attribute actually applied to <html>.
+  const resolvedTheme: string =
+    theme === "system"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
         ? "dark"
-        : "light";
+        : "light"
+      : theme;
 
-      document.documentElement.setAttribute("data-theme", systemTheme);
-      return;
-    }
-
-    document.documentElement.setAttribute("data-theme", theme);
-  }, [theme]);
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", resolvedTheme);
+  }, [resolvedTheme]);
 
   const theme_options = Object.keys(Themes);
-  const theme_type: ThemeType = ["light", "light-green", "light-blue", "light-gold"].includes(theme as string)
-    ? "light"
-    : "dark";
+  const theme_type: ThemeType = isLightTheme(resolvedTheme) ? "light" : "dark";
 
   const value: ThemeProviderState = {
     theme,

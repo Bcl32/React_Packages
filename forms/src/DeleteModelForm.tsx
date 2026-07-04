@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@bcl32/hooks/ApiError";
 import { apiFetch } from "@bcl32/hooks/apiFetch";
-import DeleteIcon from "@mui/icons-material/Delete";
+import { Trash2 } from "lucide-react";
 import { Button } from "@bcl32/utils/Button";
 import { ToggleGroup, ToggleGroupItem } from "@bcl32/utils/ToggleGroup";
 
@@ -343,7 +343,7 @@ export function DeleteModelForm({
         variant="danger"
         size="default"
       >
-        <DeleteIcon /> Delete
+        <Trash2 size={18} className="mr-1" /> Delete
       </Button>
     </div>
   );

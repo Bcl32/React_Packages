@@ -5,8 +5,7 @@ import { FilterProvider } from "./FilterProvider";
 import { GroupFilters } from "./GroupFilters";
 import { FilterElement } from "./FilterElement";
 import type { Filters, FilterValue, FilterOption } from "./types";
-import FilterListIcon from "@mui/icons-material/FilterList";
-import CloseIcon from "@mui/icons-material/Close";
+import { ListFilter, X } from "lucide-react";
 
 function formatOptionsLabel(value: string[], options: FilterOption[] | undefined): string {
   if (!options || options.length === 0) return value.join(", ");
@@ -103,7 +102,7 @@ export function useDataTableFilterBar({
 
   const toolbar = (
     <>
-      <FilterListIcon className="text-muted-foreground shrink-0" style={{ fontSize: 16 }} />
+      <ListFilter size={16} className="text-muted-foreground shrink-0" />
       <div className="flex items-center gap-0.5">
         {tabs.map((tab) => (
           <button
@@ -130,7 +129,7 @@ export function useDataTableFilterBar({
               onClick={() => resetFilter(key)}
               className="hover:text-destructive transition-colors"
             >
-              <CloseIcon style={{ fontSize: 12 }} />
+              <X size={12} />
             </button>
           </span>
         ))}

@@ -7,6 +7,7 @@ export default defineConfig({
     "src/AnimatedFileSystem.tsx",
     "src/ShowHierarchy.tsx",
     "src/ToggleGroup.tsx",
+    "src/DateTimePicker.tsx",
     "src/Dialog.tsx",
     "src/DialogButton.tsx",
     "src/Sidebar.tsx",

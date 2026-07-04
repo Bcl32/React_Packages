@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/themes",
-  "version": "2.1.5",
+  "version": "2.2.0",
   "description": "Theme components and functions",
   "author": "",
   "license": "ISC",
@@ -56,12 +56,19 @@
     "./colorUtils": {
       "types": "./dist/colorUtils.d.ts",
       "import": "./dist/colorUtils.js"
-    }
+    },
+    "./themeMeta": {
+      "types": "./dist/themeMeta.d.ts",
+      "import": "./dist/themeMeta.js"
+    },
+    "./tailwind-preset": "./tailwind-preset.cjs",
+    "./themes.json": "./src/themes.json"
   },
   "files": [
     "dist",
     "src/themes.json",
-    "src/style_metadata.json"
+    "src/style_metadata.json",
+    "tailwind-preset.cjs"
   ],
   "scripts": {
     "build": "tsup",
@@ -82,7 +89,8 @@
   },
   "dependencies": {
     "@bcl32/utils": "workspace:^2.3.9",
-    "lucide-react": "^0.447.0"
+    "lucide-react": "^0.447.0",
+    "tw-colors": "^3.3.2"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

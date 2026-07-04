@@ -65,6 +65,14 @@
     "description": "Foreground used for destructive actions such as Delete Buttons",
     "group": "main"
   },
+  "warning": {
+    "description": "Used for warning states such as caution badges and partial-success statuses",
+    "group": "main"
+  },
+  "warning-foreground": {
+    "description": "Paired text colour for warning components",
+    "group": "main"
+  },
   "ring": { "description": "Used for focus ring", "group": "main" },
   "chart-1": { "description": "Main colour for charting", "group": "chart" },
   "chart-2": {
