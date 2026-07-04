@@ -7,11 +7,11 @@ Shared React component library for the web-app-monorepo. All packages are writte
 | Package | Description |
 |---------|-------------|
 | `@bcl32/utils` | Core UI components (Button, Card, Dialog, Input, etc.) |
-| `@bcl32/hooks` | React hooks (useGetRequest, useDatabaseMutation, useBokehChart) |
+| `@bcl32/hooks` | React hooks (useGetRequest, useDatabaseMutation) |
 | `@bcl32/data-utils` | Domain data utilities (CalculateFeatureStats, ComputeTimeBounds, ComputeGroupedStats, dayjs_sorter, StringFunctions) |
 | `@bcl32/themes` | Theme system with 10 color themes; ships a shared Tailwind preset (`@bcl32/themes/tailwind-preset`) so consumer apps no longer hand-copy the palette |
 | `@bcl32/forms` | Form components (AddModelForm, EditModelForm, FormElement) |
-| `@bcl32/charts` | Recharts wrapper components (`BokehLineChart` was removed in 3.0.0 — see `REFACTORING-LOG.md`) |
+| `@bcl32/charts` | Recharts primitives (`ChartContainer`, `ChartTooltip`, `ChartLegend`, and related config types) for building themed charts |
 | `@bcl32/filters` | Filter context, 10+ filter/chart UI components, and data-processing utilities |
 | `@bcl32/datatable` | DataTable with sorting, pagination, row selection |
 | `@bcl32/navigation` | Navigation components (Breadcrumb, NavigationProvider) |

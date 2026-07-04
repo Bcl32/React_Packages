@@ -67,7 +67,7 @@
   "dependencies": {
     "@bcl32/utils": "workspace:^2.5.0",
     "@bcl32/data-utils": "workspace:^2.1.10",
-    "@bcl32/hooks": "workspace:^2.2.8",
+    "@bcl32/hooks": "workspace:^3.0.0",
     "@bcl32/forms": "workspace:^3.0.0",
     "@radix-ui/react-icons": "^1.3.0",
     "@tanstack/react-table": "^8.11.8",
