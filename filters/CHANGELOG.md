@@ -1,5 +1,13 @@
 # @bcl32/filters
 
+## 3.2.1
+
+### Patch Changes
+
+- Updated dependencies [1c61ce6]
+  - @bcl32/hooks@4.0.0
+  - @bcl32/charts@3.0.1
+
 ## 3.2.0
 
 ### Minor Changes

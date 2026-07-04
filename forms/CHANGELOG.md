@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.0.1
+
+### Patch Changes
+
+- Updated dependencies [1c61ce6]
+  - @bcl32/hooks@4.0.0
+
 ## 3.0.0
 
 ### Major Changes

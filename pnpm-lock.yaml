@@ -21,7 +21,7 @@ importers:
   charts:
     dependencies:
       '@bcl32/hooks':
-        specifier: workspace:^3.0.0
+        specifier: workspace:^4.0.0
         version: link:../hooks
       '@bcl32/utils':
         specifier: workspace:^2.5.0
@@ -71,10 +71,10 @@ importers:
         specifier: workspace:^2.1.10
         version: link:../data-utils
       '@bcl32/forms':
-        specifier: workspace:^3.0.0
+        specifier: workspace:^3.0.1
         version: link:../forms
       '@bcl32/hooks':
-        specifier: workspace:^3.0.0
+        specifier: workspace:^4.0.0
         version: link:../hooks
       '@bcl32/utils':
         specifier: workspace:^2.5.0
@@ -117,13 +117,13 @@ importers:
   filters:
     dependencies:
       '@bcl32/charts':
-        specifier: workspace:^3.0.0
+        specifier: workspace:^3.0.1
         version: link:../charts
       '@bcl32/data-utils':
         specifier: workspace:^2.1.10
         version: link:../data-utils
       '@bcl32/hooks':
-        specifier: workspace:^3.0.0
+        specifier: workspace:^4.0.0
         version: link:../hooks
       '@bcl32/utils':
         specifier: workspace:^2.5.0
@@ -166,7 +166,7 @@ importers:
         specifier: workspace:^2.1.10
         version: link:../data-utils
       '@bcl32/hooks':
-        specifier: workspace:^3.0.0
+        specifier: workspace:^4.0.0
         version: link:../hooks
       '@bcl32/utils':
         specifier: workspace:^2.5.0

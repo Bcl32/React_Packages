@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/charts",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Custom recharts chart components",
   "author": "",
   "license": "ISC",
@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@bcl32/utils": "workspace:^2.5.0",
-    "@bcl32/hooks": "workspace:^3.0.0"
+    "@bcl32/hooks": "workspace:^4.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
