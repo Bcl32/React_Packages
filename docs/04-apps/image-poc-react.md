@@ -35,19 +35,19 @@ See also: [Interop overview](../02-INTEROP.md) · [Refactor proposals](../06-REF
 
 ## 2. Shared `@bcl32` packages — what and how
 
-The app consumes nine shared packages. **None are declared in `package.json`** — they are installed at Docker image build time via explicit `npm install` lines in `Dockerfile.deps` (see [§4](#4-dependency-wiring-the-docker-deps-strategy)).
+The app consumes nine shared packages. **Eight of the nine are absent from `package.json`** — they are installed at Docker image build time via explicit `npm install` lines in `Dockerfile.deps` (see [§4](#4-dependency-wiring-the-docker-deps-strategy)). As of 2026-07-04, `@bcl32/themes` is the one exception: it is now declared directly in `package.json` (`"@bcl32/themes": "^2.2.0"`), needed so `tailwind.config.js`'s `require("@bcl32/themes/tailwind-preset")` resolves at build time — see [§9](#9-theming-wiring).
 
 | Package | Version (Dockerfile.deps) | How it is used |
 | --- | --- | --- |
-| `@bcl32/utils` | `^2.4.2` | The full `Sidebar` family (`Sidebar`, `SidebarProvider`, `SidebarTrigger`, `SidebarContent`, `SidebarGroup`, `SidebarGroupContent`, `SidebarGroupLabel`, `SidebarMenu`, `SidebarMenuButton`, `SidebarMenuAction`, `SidebarHeader`, `SidebarMenuItem`, `SidebarMenuSub`, `SidebarMenuSubButton`, `SidebarMenuSubItem`, `SidebarRail`, `SidebarFooter`, `useSidebar`); `Button`; `Card`/`CardContent`/`CardDescription`/`CardHeader`/`CardTitle`; `Label`; `Slider`; `Separator`; `StatusBanner`; `DialogButton`/`SimpleDialog`; `AnimatedTabs`/`TabContent`; `CustomTooltip`; `ShowHierarchy` |
-| `@bcl32/themes` | `^2.1.5` | `ThemeProvider` (wraps `Layout`, drives system/local-storage theme); `Theming` (theme-switcher shown in the sidebar footer dialog) |
-| `@bcl32/navigation` | `^2.1.6` | `NavigationProvider` (context in `Layout`); `NavigationBreadcrumb` (rendered in the `Layout` header); `useNavigation` (called in each page to set the breadcrumb trail) |
-| `@bcl32/hooks` | `^2.2.8` | `useGetRequest` — drives the TanStack Query GET calls in `LoadAllEntities`/`LoadEntity` |
-| `@bcl32/forms` | `^2.5.9` | `EditModelForm` — inline entity editing inside a `DialogButton` in `Metadata.jsx` and `MLModel.jsx` |
-| `@bcl32/datatable` | `^2.6.4` | `DataTable` (`AllMLModels`, `AllClients`, `AllServices`, `MLModel`, `EntityViewerUnified`); `KeyValueTable` (`Metadata`, `MetadataAccordion`); `StatsTable` (`EntityViewerUnified`) |
-| `@bcl32/filters` | `^2.3.0` | `ProcessDataset`, `AllFilters`, `ChartFilter`, `InitializeFilters`, `FiltersSummary`, `FilterContext`, `GetSubkeyValues` — the filter + chart panel in `EntityViewerUnified.jsx` |
-| `@bcl32/charts` | `^2.1.6` | **No direct import in app `src/`** — consumed transitively by `ChartFilter` inside `@bcl32/filters` |
-| `@bcl32/data-utils` | `^2.1.9` | `Capitalize` (from `StringFunctions`) — capitalises child-tab labels in `Metadata.jsx` |
+| `@bcl32/utils` | `^2.5.0` | The full `Sidebar` family (`Sidebar`, `SidebarProvider`, `SidebarTrigger`, `SidebarContent`, `SidebarGroup`, `SidebarGroupContent`, `SidebarGroupLabel`, `SidebarMenu`, `SidebarMenuButton`, `SidebarMenuAction`, `SidebarHeader`, `SidebarMenuItem`, `SidebarMenuSub`, `SidebarMenuSubButton`, `SidebarMenuSubItem`, `SidebarRail`, `SidebarFooter`, `useSidebar`); `Button`; `Card`/`CardContent`/`CardDescription`/`CardHeader`/`CardTitle`; `Label`; `Slider`; `Separator`; `StatusBanner`; `DialogButton`/`SimpleDialog`; `AnimatedTabs`/`TabContent`; `CustomTooltip`; `ShowHierarchy` |
+| `@bcl32/themes` | `^2.2.0` (declared directly in `package.json`, not just `Dockerfile.deps` — see above) | `ThemeProvider` (wraps `Layout`, drives system/local-storage theme); `Theming` (theme-switcher shown in the sidebar footer dialog) |
+| `@bcl32/navigation` | `^2.1.8` | `NavigationProvider` (context in `Layout`); `NavigationBreadcrumb` (rendered in the `Layout` header); `useNavigation` (called in each page to set the breadcrumb trail) |
+| `@bcl32/hooks` | `^2.3.0` | `useGetRequest` — drives the TanStack Query GET calls in `LoadAllEntities`/`LoadEntity` |
+| `@bcl32/forms` | `^3.0.0` | `EditModelForm` — inline entity editing inside a `DialogButton` in `Metadata.jsx` and `MLModel.jsx` |
+| `@bcl32/datatable` | `^2.8.0` | `DataTable` (`AllMLModels`, `AllClients`, `AllServices`, `MLModel`, `EntityViewerUnified`); `KeyValueTable` (`Metadata`, `MetadataAccordion`); `StatsTable` (`EntityViewerUnified`) |
+| `@bcl32/filters` | `^3.2.0` | `ProcessDataset`, `AllFilters`, `ChartFilter`, `InitializeFilters`, `FiltersSummary`, `FilterContext`, `GetSubkeyValues` — the filter + chart panel in `EntityViewerUnified.jsx` |
+| `@bcl32/charts` | `^3.0.0` | **No direct import in app `src/`** — consumed transitively by `ChartFilter` inside `@bcl32/filters`. As of `charts` 3.0.0, this package is recharts-only (`BokehLineChart` was removed); no impact on this app since it never imported `BokehLineChart`. |
+| `@bcl32/data-utils` | `^2.1.10` | `Capitalize` (from `StringFunctions`) — capitalises child-tab labels in `Metadata.jsx` |
 
 > **Note:** Imports use the subpath-`exports` form, e.g. `@bcl32/utils/AnimatedTabs`, `@bcl32/datatable/KeyValueTable`, `@bcl32/data-utils/StringFunctions`.
 
@@ -86,20 +86,20 @@ RUN --mount=type=secret,id=github_token \
     echo "Cache bust: $CACHEBUST" && \
     export GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
     npm install \
-      @bcl32/charts@^2.1.6 \
-      @bcl32/data-utils@^2.1.9 \
-      @bcl32/datatable@^2.6.4 \
-      @bcl32/filters@^2.3.0 \
-      @bcl32/forms@^2.5.9 \
-      @bcl32/hooks@^2.2.8 \
-      @bcl32/navigation@^2.1.6 \
-      @bcl32/themes@^2.1.5 \
-      @bcl32/utils@^2.4.2 \
+      @bcl32/charts@^3.0.0 \
+      @bcl32/data-utils@^2.1.10 \
+      @bcl32/datatable@^2.8.0 \
+      @bcl32/filters@^3.2.0 \
+      @bcl32/forms@^3.0.0 \
+      @bcl32/hooks@^2.3.0 \
+      @bcl32/navigation@^2.1.8 \
+      @bcl32/themes@^2.2.0 \
+      @bcl32/utils@^2.5.0 \
       --no-audit && \
     rm -f .npmrc
 ```
 
-This multi-stage Docker caching strategy is the deliberate alternative to the `workspace:` protocol, and it works — but it means `@bcl32` updates require bumping carets in `Dockerfile.deps` rather than just running `pnpm install`, and a developer running `npm install` outside Docker gets a broken install. `vite.config.js` provides an opt-in `USE_LOCAL_PACKAGES=true` alias path that points the `@bcl32/*` specifiers at `react-packages/*/src` for local development.
+This multi-stage Docker caching strategy is the deliberate alternative to the `workspace:` protocol, and it works — but it means `@bcl32` updates require bumping carets in `Dockerfile.deps` rather than just running `pnpm install`, and a developer running `npm install` outside Docker gets a broken install (except for `@bcl32/themes`, which — as of 2026-07-04 — is also declared in `package.json` directly; see [§2](#2-shared-bcl32-packages--what-and-how)). `vite.config.js` provides an opt-in `USE_LOCAL_PACKAGES=true` alias path that points the `@bcl32/*` specifiers at `react-packages/*/src` for local development.
 
 ---
 
@@ -109,7 +109,7 @@ Drift vs. the shared system and internal inconsistencies, ranked by severity.
 
 | # | Severity | Location | Issue |
 | --- | --- | --- | --- |
-| 1 | **Medium** | `package.json` + `Dockerfile.deps` | `@bcl32/*` packages are absent from `package.json`; installed only at Docker build time. `npm install` outside Docker produces a broken install. The `react-website-dev` convention is to declare packages with `workspace:^2.0.0`. |
+| 1 | **Medium** | `package.json` + `Dockerfile.deps` | `@bcl32/*` packages are absent from `package.json`; installed only at Docker build time. `npm install` outside Docker produces a broken install. The `react-website-dev` convention is to declare packages with `workspace:^2.0.0`. **Partially changed 2026-07-04:** `@bcl32/themes` is now the exception — it's declared directly in `package.json` (`^2.2.0`) so `tailwind.config.js`'s `require("@bcl32/themes/tailwind-preset")` resolves. The other 8 packages are still Docker-only, so the core inconsistency persists for them. |
 | 2 | **Medium** | `ImageClassifier.jsx`, `SentimentAnalyzer.jsx`, `components/ModelCard.jsx` | Hardcoded non-semantic Tailwind color classes (`text-green-600`, `bg-red-100`, `dark:bg-green-900`) for confidence/sentiment states. In non-light/dark themes (yellow, purple, green, dark-blue) these clash with the active palette and will not theme-switch correctly. |
 | 3 | **Medium** | `vite.config.js` line 29 | `build: { minify: false }` ships unminified JS to production. With MUI, Radix, Framer Motion, and multiple `@bcl32/*` packages, this significantly inflates bundle size. No comment explains why. |
 | 4 | **Low** | `package.json` line 2 | App name is `"time-series"`, a stale copy-paste artifact unrelated to the app's purpose. |
@@ -163,22 +163,28 @@ Effort key: **S** = small, **M** = medium.
 | 3 | Replace the duplicated toggle with a shared primitive | S | `SettingsPanel` and `ObjectDetector` both hand-roll `button[role=switch]`. Extract a `ToggleSwitch` (or use `@radix-ui/react-toggle-group`) to standardise and cut ~20 lines per toggle. |
 | 4 | Remove unused heavy deps (`moment`, `@bokeh/bokehjs`) | S | Both have zero imports. Removing them shrinks the dependency surface and prevents accidental inclusion — compounded by `minify: false`. |
 | 5 | Enable build minification | S | `vite.config.js` sets `minify: false`. Enable the default esbuild minifier for production; if disabled for debugging, document the reason in a comment. |
-| 6 | Consolidate duplicate theme definitions | S | Three palette copies exist: `tailwind.config.js` (canonical, used by `tw-colors`), `themes.css` (unused, divergent values), and `themes.json` (used by the `@bcl32/themes` Theming picker). Delete `themes.css`; validate `themes.json` against `tailwind.config.js` so the picker previews are accurate. |
-| 7 | Declare `@bcl32/*` in `package.json` | M | They are installed only inside Docker via `Dockerfile.deps`, so `npm install` outside Docker breaks. Declaring them (with an npm/GitHub auth note) improves DX and makes the dependency graph explicit for tooling. |
+| 6 | Consolidate duplicate theme definitions | S | *(Narrowed 2026-07-04 — `tailwind.config.js` no longer holds an inline palette; it just references `@bcl32/themes/tailwind-preset`.)* Two stale local copies remain: `themes.css` (unused, divergent values) and this app's own `src/themes.json` (distinct from `@bcl32/themes`' `src/themes.json`, importable since 2.2.0 as `@bcl32/themes/themes.json`). Delete `themes.css`; switch this app to the shared `@bcl32/themes/themes.json` export instead of maintaining its own copy. |
+| 7 | ~~Declare `@bcl32/*` in `package.json`~~ | M | *(Partially done 2026-07-04 — `@bcl32/themes` is now declared directly, for the tailwind-preset `require()`.)* The other 8 packages are still installed only inside Docker via `Dockerfile.deps`, so `npm install` outside Docker still breaks for them. Declaring the rest (with an npm/GitHub auth note) improves DX and makes the dependency graph explicit for tooling. |
 | 8 | Make confidence/sentiment colors theme-aware | M | `getConfidenceColor`, `getConfidenceBgColor`, `sentimentColors`, and `barColors` use hardcoded non-semantic classes that clash in non-standard themes. Map them to semantic tokens or `tw-colors` `chart-*` slots. |
 
 ---
 
 ## 9. Theming wiring
 
-- **Engine:** `tw-colors` `createThemes` in `tailwind.config.js` defines **10 named themes**: `light`, `dark`, `green`, `yellow`, `purple`, `blue`, `dark-green`, `dark-blue`, `light-blue`, `light-gold`.
-- **Tokens:** Each theme defines ~25 semantic tokens (`background`, `foreground`, `muted`, `muted-foreground`, `primary`, `secondary`, `accent`, `destructive`, `ring`, `chart-1..5`, plus `sidebar-*` variants). `produceCssVariable` maps them to `--token-name` CSS variables (no `hsl()` wrapper — `tw-colors` emits the class-scoped variable).
-- **Activation:** `@bcl32/themes` `ThemeProvider` sets the active theme class on the `<html>` element (`storageKey=vite-ui-theme`, `defaultTheme=system`). Users switch at runtime via the `Theming` component in the sidebar footer.
+- **Engine — changed 2026-07-04:** `tailwind.config.js` now reads
+  `presets: [require("@bcl32/themes/tailwind-preset")]` instead of hand-wiring
+  `tw-colors`' `createThemes()` with an inline palette. The preset (added in
+  `@bcl32/themes` 2.2.0) wraps `createThemes()` around the shared `themes.json`
+  data, so the **10 named themes** — `light`, `dark`, `green`, `yellow`, `purple`,
+  `blue`, `dark-green`, `dark-blue`, `light-blue`, `light-gold` — now come from one
+  source of truth instead of being hand-copied into this app's config.
+- **Tokens:** Each theme defines ~25 semantic tokens (`background`, `foreground`, `muted`, `muted-foreground`, `primary`, `secondary`, `accent`, `destructive`, `warning`/`warning-foreground` (new in `themes` 2.2.0), `ring`, `chart-1..5`, plus `sidebar-*` variants). `produceCssVariable` maps them to `--token-name` CSS variables (no `hsl()` wrapper — `tw-colors` emits the class-scoped variable).
+- **Activation:** `@bcl32/themes` `ThemeProvider` sets the `data-theme` attribute on the `<html>` element (`storageKey=vite-ui-theme`, `defaultTheme=system`), and now resolves `"system"` to a concrete `light`/`dark` name via `matchMedia` before classifying `theme_type` (fixed in `themes` 2.2.0 — see the `themes` package doc's Known Smells). Users switch at runtime via the `Theming` component in the sidebar footer.
 - **Body defaults:** `index.css` applies `@apply border-border`, `font-sans`, `antialiased`, `bg-background`, `text-foreground` to `body`, and sets scrollbar colors to `--primary` / `--accent`.
-- **Duplication / dead code:**
-  - `themes.css` — a legacy file (commented "Not currently used") holding the same tokens as raw `:root` declarations, with several **divergent values** vs. `tailwind.config.js`. Dead code; should be deleted.
-  - `themes.json` — duplicates the palette data, likely consumed by the `@bcl32/themes` Theming picker; should be validated against `tailwind.config.js`.
-- **Theme-breaking spots:** Some page components use hardcoded non-semantic classes (`text-green-600`, `text-yellow-600`, `bg-red-100`, `dark:bg-green-900`) for confidence/sentiment states; these do not respond to theme switching outside `light`/`dark`. See [§5 #2](#5-inconsistencies--drift) and refactor [§8 #8](#8-prioritized-refactor-opportunities).
+- **Duplication / dead code — NOT resolved by the 2026-07-04 refactor** (the preset removed the *inline palette*, not these pre-existing leftover files):
+  - `themes.css` — a legacy file (commented "Not currently used") holding the same tokens as raw `:root` declarations, with several **divergent values** vs. the palette. Still present; still dead code; should be deleted.
+  - `src/themes.json` — a separate, app-local copy of palette-shaped data (distinct from `@bcl32/themes`' own `src/themes.json`, importable as `@bcl32/themes/themes.json` since 2.2.0). Still present; worth switching this app to import the shared one instead of maintaining its own copy.
+- **Theme-breaking spots:** Some page components use hardcoded non-semantic classes (`text-green-600`, `text-yellow-600`, `bg-red-100`, `dark:bg-green-900`) for confidence/sentiment states; these do not respond to theme switching outside `light`/`dark`. Not addressed by this refactor, though the new `warning`/`warning-foreground` tokens are a natural target for some of them. See [§5 #2](#5-inconsistencies--drift) and refactor [§8 #8](#8-prioritized-refactor-opportunities).
 
 ---
 
