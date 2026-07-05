@@ -1,6 +1,7 @@
 import * as React from "react";
 import { createContext, useContext, useState } from "react";
 
+/** A single breadcrumb entry in the navigation trail. */
 export interface NavigationEntry {
   type?: string;
   name: string;
