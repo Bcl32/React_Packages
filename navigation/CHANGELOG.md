@@ -1,5 +1,11 @@
 # @bcl32/navigation
 
+## 2.1.9
+
+### Patch Changes
+
+- 0573ae2: Add a JSDoc comment to the `NavigationEntry` interface. Also serves as the green-path validation release for the hardened publish pipeline.
+
 ## 2.1.8
 
 ### Patch Changes
