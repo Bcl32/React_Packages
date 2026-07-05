@@ -62,9 +62,27 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build all packages
+      - name: Build bumped packages (+ workspace dependency chain)
         if: steps.changesets.outputs.has_changesets == 'true'
-        run: pnpm -r build
+        # --filter "<pkg>..." selects the bumped package AND its workspace
+        # dependencies — the bumped package's dist for the collision precheck's
+        # `pnpm pack`, and the deps' dist/ that tsup dts generation resolves.
+        # Unbumped, non-dependency packages are skipped entirely (they are not
+        # published: `pnpm -r publish` skips versions already on the registry).
+        run: |
+          BUMPED_FILE="${RUNNER_TEMP}/publish-bumped.txt"
+          if [ ! -s "$BUMPED_FILE" ]; then
+            echo "::warning::no bumped packages recorded — falling back to full build"
+            pnpm -r build
+            exit 0
+          fi
+          filters=()
+          while read -r spec _dir; do
+            [ -n "$spec" ] || continue
+            filters+=(--filter "${spec%@*}...")
+          done < "$BUMPED_FILE"
+          echo "Building: ${filters[*]}"
+          pnpm "${filters[@]}" build
 
       - name: Pre-publish collision check
         # Fails BEFORE publishing if a bumped version already exists on the

@@ -52,7 +52,7 @@ Single job replacing the current 4-job pipeline:
 2. Check for pending changeset files
 3. If found: `pnpm changeset version` (bumps versions, updates changelogs)
 4. Detect bumped packages (`publish-verify.sh detect`) — records `name@version` for every package whose version changed
-5. `pnpm -r build` (topological order — replaces explicit tiers)
+5. Build bumped packages + their workspace dependency chain (`pnpm --filter "<pkg>..." build` per bumped package; topological within the filter). Unbumped, non-dependency packages are not built — they are not published either, since `pnpm -r publish` skips versions already on the registry. Falls back to `pnpm -r build` if the bumped list is empty.
 6. Pre-publish collision check (`publish-verify.sh precheck`)
 7. Publish (`pnpm -r publish --no-git-checks`) — strict: any non-zero exit fails the release
 8. Verify published versions (`publish-verify.sh postcheck`)
