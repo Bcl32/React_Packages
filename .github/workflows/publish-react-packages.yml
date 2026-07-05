@@ -55,21 +55,58 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Detect bumped packages
+        if: steps.changesets.outputs.has_changesets == 'true'
+        run: bash .github/scripts/publish-verify.sh detect
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build all packages
         if: steps.changesets.outputs.has_changesets == 'true'
         run: pnpm -r build
 
+      - name: Pre-publish collision check
+        # Fails BEFORE publishing if a bumped version already exists on the
+        # registry with DIFFERENT contents (the 2026-07-04 stale-artifact
+        # incident). An identical already-published artifact is treated as a
+        # benign retry. See .github/scripts/publish-verify.sh.
+        if: steps.changesets.outputs.has_changesets == 'true'
+        run: bash .github/scripts/publish-verify.sh precheck
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Publish packages
         if: steps.changesets.outputs.has_changesets == 'true'
         run: |
-          pnpm -r publish --no-git-checks 2>&1 | while IFS= read -r line; do
-            echo "$line"
-            # Skip 409 conflict errors (already published)
-            if echo "$line" | grep -q 'Cannot publish over existing version'; then
-              echo "Version already published — skipping"
-            fi
-          done
+          set +e
+          out="$(pnpm -r publish --no-git-checks 2>&1)"
+          rc=$?
+          set -e
+          printf '%s\n' "$out"
+          # `pnpm -r publish` queries the registry and skips any version that is
+          # already published (it prints "There are no new packages that should
+          # be published" and exits 0). The Pre-publish collision check above has
+          # already hard-failed on any DIFFERENT artifact sitting on a bumped
+          # version. So any non-zero exit here is a genuine failure — auth,
+          # network, build, or a real registry error — and must fail the release
+          # loudly instead of being swallowed.
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::Publish failed (exit $rc) — see the pnpm/npm error above"
+            exit "$rc"
+          fi
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify published versions
+        # Confirms every bumped version is actually present on the registry
+        # (retries for propagation lag) before the version commit is pushed.
+        if: steps.changesets.outputs.has_changesets == 'true'
+        run: bash .github/scripts/publish-verify.sh postcheck
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Commit version changes and push
