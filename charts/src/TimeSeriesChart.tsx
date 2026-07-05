@@ -15,6 +15,7 @@ import {
 } from "recharts";
 
 import { Button } from "@bcl32/utils/Button";
+import { cn } from "@bcl32/utils/cn";
 import {
   ChartContainer,
   ChartTooltip,
@@ -62,6 +63,11 @@ export interface TimeSeriesChartProps {
   xTickFormatter?: (v: string) => string;
   /** format the y-axis ticks */
   yTickFormatter?: (v: number) => string;
+  /**
+   * Applied to the chart container itself. Defaults to a 16:9 aspect box;
+   * pass an explicit height (e.g. "h-[280px] w-full") to override it —
+   * an explicit height disables the aspect-ratio sizing.
+   */
   className?: string;
 }
 
@@ -183,7 +189,7 @@ export function TimeSeriesChart({
     : {};
 
   return (
-    <div className={className}>
+    <div>
       {enableDragZoom && zoomRange && (
         <div className="mb-2 flex justify-end">
           <Button onClick={resetZoom} variant="outline" size="sm">
@@ -191,7 +197,10 @@ export function TimeSeriesChart({
           </Button>
         </div>
       )}
-      <ChartContainer config={config} className="w-full">
+      {/* className must land on the ChartContainer: its base aspect-video only
+          yields when the consumer sets an explicit height on the same element,
+          and ResponsiveContainer measures this element for the SVG size. */}
+      <ChartContainer config={config} className={cn("w-full", className)}>
         <ChartComponent
           accessibilityLayer
           data={visibleData}
