@@ -1,5 +1,13 @@
 # @bcl32/filters
 
+## 3.2.2
+
+### Patch Changes
+
+- 963cf6b: fix(data-utils,filters): kill phantom "Invalid Date" datetime filter chip on all-null columns
+- Updated dependencies [963cf6b]
+  - @bcl32/data-utils@2.2.2
+
 ## 3.2.1
 
 ### Patch Changes

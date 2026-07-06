@@ -120,7 +120,7 @@ importers:
         specifier: workspace:^3.0.1
         version: link:../charts
       '@bcl32/data-utils':
-        specifier: workspace:^2.1.10
+        specifier: workspace:^2.2.2
         version: link:../data-utils
       '@bcl32/hooks':
         specifier: workspace:^4.0.0
