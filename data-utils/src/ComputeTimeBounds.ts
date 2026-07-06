@@ -7,10 +7,13 @@ export function ComputeTimeBounds(data: DataEntry[], feature_name: string): [str
   const validData = data.filter(entry => entry && entry[feature_name] != null);
 
   if (validData.length === 0) {
-    return [
-      dayjs().format("MMM, D YYYY - h:mma"),
-      dayjs().format("MMM, D YYYY - h:mma"),
-    ];
+    // ISO strings, NOT a display format: these bounds flow into datetime
+    // filter values, where they're re-parsed by new Date()/dayjs(). A
+    // display-formatted string parses as Invalid Date there, and NaN !==
+    // NaN made the filter register as a phantom active "Invalid Date →
+    // Invalid Date" chip whenever a column had no non-null values.
+    const now = dayjs().toISOString();
+    return [now, now];
   }
 
   const earliest_datetime = validData.reduce(

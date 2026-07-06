@@ -30,16 +30,21 @@ export function GetActiveFilters(filters: Filters): Filters {
       case "datetime": {
         const dtValue = filter["value"] as DatetimeFilterValue;
         const dtEmpty = filter["filter_empty"] as DatetimeFilterValue;
+        // Compare via a NaN-safe key: two unparseable timestamps must count
+        // as EQUAL (NaN !== NaN is true, which turned any invalid pair into
+        // a phantom always-active filter).
+        const timeKey = (v: string) => {
+          const t = new Date(v).getTime();
+          return Number.isNaN(t) ? "invalid" : t;
+        };
         if (
-          new Date(dtValue["timespan_begin"]).getTime() !==
-          new Date(dtEmpty["timespan_begin"]).getTime()
+          timeKey(dtValue["timespan_begin"]) !== timeKey(dtEmpty["timespan_begin"])
         ) {
           active_filters[key] = { ...filter, timespan_begin: "filter" } as FilterValue;
           break;
         }
         if (
-          new Date(dtValue["timespan_end"]).getTime() !==
-          new Date(dtEmpty["timespan_end"]).getTime()
+          timeKey(dtValue["timespan_end"]) !== timeKey(dtEmpty["timespan_end"])
         ) {
           active_filters[key] = filter;
           break;
