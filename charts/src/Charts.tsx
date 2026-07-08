@@ -268,7 +268,9 @@ const ChartTooltipContent = React.forwardRef<HTMLDivElement, ChartTooltipContent
                           {itemConfig?.label || item.name}
                         </span>
                       </div>
-                      {item.value && (
+                      {/* != null (not truthy): zero-filled buckets are real
+                          values and must render as "0", not a blank cell */}
+                      {item.value != null && (
                         <span className="font-mono font-medium tabular-nums text-foreground">
                           {item.value.toLocaleString()}
                         </span>
