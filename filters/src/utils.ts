@@ -5,8 +5,9 @@ export function extractLabels(items: (string | { label: string })[]): string[] {
 }
 
 export function buildChartConfig(keys: string[]): ChartConfig {
+  // Cycle the 5 chart tokens: --chart-6+ is undefined and renders nothing.
   return Object.fromEntries(
-    keys.map((key, i) => [key, { label: key, color: `hsl(var(--chart-${i + 1}))` }])
+    keys.map((key, i) => [key, { label: key, color: `hsl(var(--chart-${(i % 5) + 1}))` }])
   );
 }
 

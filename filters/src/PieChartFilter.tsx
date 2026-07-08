@@ -8,7 +8,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@bcl32/charts/Charts";
-import type { FilterContextValue, ChartDataEntry, ChartClickEvent } from "./types";
+import type { FilterContextValue, ChartDataEntry } from "./types";
 import { buildChartConfig } from "./utils";
 
 interface PieChartFilterProps {
@@ -55,21 +55,22 @@ export function PieChartFilter({ name, chart_data }: PieChartFilterProps): JSX.E
         config={chartConfig}
         className="mx-auto aspect-square max-h-[350px] [&_.recharts-text]:fill-background"
       >
-        <PieChart
-          onClick={(data: ChartClickEvent) => {
-            if (data && data.activePayload && data.activePayload.length > 0) {
-              const value = data.activePayload[0]["payload"]["name"];
-              filter_on_click(value);
-            }
-          }}
-        >
+        <PieChart>
           <ChartTooltip
             content={<ChartTooltipContent nameKey="visitors" hideLabel />}
           />
+          {/* Click handling lives on the Pie: chart-level onClick only gets
+              activePayload on axis charts, never on pies. */}
           <Pie
             data={chart_data}
             animationDuration={700}
             dataKey="length"
+            className="cursor-pointer"
+            onClick={(slice: { name?: string }) => {
+              if (slice?.name) {
+                filter_on_click(slice.name);
+              }
+            }}
             label={({ payload, ...props }: { payload: ChartDataEntry } & LabelProps) => {
               return (
                 <text
