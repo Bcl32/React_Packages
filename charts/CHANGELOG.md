@@ -1,5 +1,11 @@
 # @bcl32/charts
 
+## 3.1.2
+
+### Patch Changes
+
+- 47a1f90: fix(charts): ChartTooltipContent renders exact-zero values
+
 ## 3.1.1
 
 ### Patch Changes

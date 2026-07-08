@@ -1,5 +1,14 @@
 # @bcl32/filters
 
+## 3.2.3
+
+### Patch Changes
+
+- e82db94: fix(filters): buildChartConfig cycles chart colour tokens beyond 5 keys (--chart-6+ is undefined and rendered invisible slices)
+- e82db94: fix(filters): PieChartFilter slice clicks now filter — chart-level onClick never receives activePayload for pies; the handler moved onto the Pie itself (legend clicks already worked)
+- Updated dependencies [47a1f90]
+  - @bcl32/charts@3.1.2
+
 ## 3.2.2
 
 ### Patch Changes

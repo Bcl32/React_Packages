@@ -117,7 +117,7 @@ importers:
   filters:
     dependencies:
       '@bcl32/charts':
-        specifier: workspace:^3.0.1
+        specifier: workspace:^3.1.2
         version: link:../charts
       '@bcl32/data-utils':
         specifier: workspace:^2.2.2
