@@ -10,6 +10,7 @@ import {
   YAxis,
   Brush,
   ReferenceArea,
+  ReferenceLine,
   ReferenceDot,
   Label,
 } from "recharts";
@@ -22,6 +23,7 @@ import {
   ChartTooltipContent,
   ChartLegend,
   ChartLegendContent,
+  colorVarKey,
 } from "./Charts";
 import type { ChartConfig } from "./Charts";
 
@@ -36,6 +38,24 @@ export interface MarkedPoint {
   label?: string;
   /** semantic-token colour bucket (default: "warning") */
   variant?: MarkedPointVariant;
+}
+
+/** A shaded span between two x (bucket) values — e.g. a print run or downtime
+ *  window. x1/x2 must be x values present on the categorical axis. */
+export interface ReferenceAreaSpec {
+  x1: string;
+  x2: string;
+  /** semantic-token colour bucket (default: "info") */
+  variant?: MarkedPointVariant;
+  label?: string;
+}
+
+/** A vertical line at one x (bucket) value — e.g. an event moment. */
+export interface ReferenceLineSpec {
+  x: string;
+  /** semantic-token colour bucket (default: "info") */
+  variant?: MarkedPointVariant;
+  label?: string;
 }
 
 export interface TimeSeriesChartProps {
@@ -57,6 +77,10 @@ export interface TimeSeriesChartProps {
   enableDragZoom?: boolean;
   /** anomaly / marker overlays rendered as ReferenceDots */
   markedPoints?: MarkedPoint[];
+  /** shaded span overlays (behind the series), e.g. print runs / downtime */
+  referenceAreas?: ReferenceAreaSpec[];
+  /** vertical line overlays (behind the series), e.g. event moments */
+  referenceLines?: ReferenceLineSpec[];
   /** crosshair-synced chart group id */
   syncId?: string;
   /** format the x-axis ticks (caller owns date formatting via dayjs) */
@@ -93,6 +117,8 @@ export function TimeSeriesChart({
   showBrush = false,
   enableDragZoom = false,
   markedPoints,
+  referenceAreas,
+  referenceLines,
   syncId,
   xTickFormatter,
   yTickFormatter,
@@ -234,14 +260,55 @@ export function TimeSeriesChart({
           />
           <ChartLegend content={<ChartLegendContent />} />
 
+          {/* Overlays rendered before the series so they sit behind the lines. */}
+          {referenceAreas?.map((area, index) => (
+            <ReferenceArea
+              key={`ref-area-${area.x1}-${area.x2}-${index}`}
+              x1={area.x1}
+              x2={area.x2}
+              fill={VARIANT_TOKEN[area.variant ?? "info"]}
+              fillOpacity={0.1}
+              stroke="none"
+              ifOverflow="hidden"
+              label={
+                area.label
+                  ? {
+                      value: area.label,
+                      position: "insideTopLeft",
+                      fontSize: 10,
+                      fill: VARIANT_TOKEN[area.variant ?? "info"],
+                    }
+                  : undefined
+              }
+            />
+          ))}
+          {referenceLines?.map((line, index) => (
+            <ReferenceLine
+              key={`ref-line-${line.x}-${index}`}
+              x={line.x}
+              stroke={VARIANT_TOKEN[line.variant ?? "info"]}
+              strokeDasharray="4 4"
+              label={
+                line.label
+                  ? {
+                      value: line.label,
+                      position: "top",
+                      fontSize: 10,
+                      fill: VARIANT_TOKEN[line.variant ?? "info"],
+                    }
+                  : undefined
+              }
+            />
+          ))}
+
           {series.map((key) =>
             isArea ? (
               <Area
                 key={key}
                 dataKey={key}
                 type="monotone"
-                stroke={`var(--color-${key})`}
-                fill={`var(--color-${key})`}
+                stroke={`var(--color-${colorVarKey(key)})`}
+                fill={`var(--color-${colorVarKey(key)})`}
                 fillOpacity={0.2}
                 stackId={stacked ? "stack" : undefined}
                 dot={false}
@@ -252,7 +319,7 @@ export function TimeSeriesChart({
                 key={key}
                 dataKey={key}
                 type="monotone"
-                stroke={`var(--color-${key})`}
+                stroke={`var(--color-${colorVarKey(key)})`}
                 strokeWidth={2}
                 dot={false}
                 isAnimationActive={false}

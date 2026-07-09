@@ -76,6 +76,13 @@ interface ChartStyleProps {
   config: ChartConfig;
 }
 
+// Series keys become CSS custom properties (`--color-<key>`), so any character
+// invalid in a CSS identifier (spaces, `+`, `.`) would silently break the colour
+// — e.g. a series named "Bambu H2D" or "Silk Multi-Color". Sanitise the key to a
+// safe token consistently wherever the var is written or read.
+export const colorVarKey = (key: string): string =>
+  String(key).replace(/[^a-zA-Z0-9_-]/g, "_");
+
 const ChartStyle = ({ id, config }: ChartStyleProps) => {
   const colorConfig = Object.entries(config).filter(
     ([, configItem]) => configItem.theme || configItem.color
@@ -95,7 +102,7 @@ ${prefix} [data-chart=${id}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
     const color = itemConfig.theme?.[theme as Theme] || itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
+    return color ? `  --color-${colorVarKey(key)}: ${color};` : null;
   })
   .filter(Boolean)
   .join("\n")}
