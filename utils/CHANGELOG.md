@@ -1,5 +1,11 @@
 # @bcl32/utils
 
+## 2.6.0
+
+### Minor Changes
+
+- 5e75c5f: feat(utils): renderSwatchIcon slot on ColourPickerPopover
+
 ## 2.5.0
 
 ### Minor Changes
