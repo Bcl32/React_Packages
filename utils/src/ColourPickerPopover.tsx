@@ -1,7 +1,11 @@
+import type { ReactNode } from "react";
+
 export interface ColourSwatch {
   id?: string;
   colour_hex: string;
   colour_name?: string;
+  material?: string;
+  sub_type?: string;
 }
 
 /**
@@ -20,6 +24,8 @@ export interface ColourPickerPopoverProps {
   selectedColours?: string[];
   defaultCustomColour?: string;
   onSelect: (hex: string, filamentId?: string) => void;
+  /** Custom dot renderer (e.g. finish-aware swatches); default is a flat circle. */
+  renderSwatchIcon?: (s: ColourSwatch) => ReactNode;
 }
 
 export function ColourPickerPopover({
@@ -29,6 +35,7 @@ export function ColourPickerPopover({
   selectedColours,
   defaultCustomColour = "#6b9bd2",
   onSelect,
+  renderSwatchIcon,
 }: ColourPickerPopoverProps) {
   // Normalise either shape to nested Map<group, Map<subgroup, swatches>>.
   // A flat group's swatch array becomes a single ""-keyed subgroup (no header).
@@ -61,13 +68,15 @@ export function ColourPickerPopover({
       }`}
     >
       <span
-        className={`w-6 h-6 rounded-full border-2 shrink-0 ${
+        className={`w-6 h-6 rounded-full border-2 shrink-0 overflow-hidden ${
           isSelected(s)
             ? "border-primary ring-1 ring-primary"
             : "border-border"
         }`}
-        style={{ backgroundColor: s.colour_hex }}
-      />
+        style={renderSwatchIcon ? undefined : { backgroundColor: s.colour_hex }}
+      >
+        {renderSwatchIcon?.(s)}
+      </span>
       <span className="text-xs text-foreground truncate">
         {s.colour_name || s.colour_hex}
       </span>
