@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "./cn";
 
 const contentVariants = cva(
-  "-translate-x-1/2 -translate-y-1/2 z-50 rounded-md p-8 text-gray-900 shadow data-[state=closed]:animate-[dialog-content-hide_200ms] data-[state=open]:animate-[dialog-content-show_200ms]",
+  "-translate-x-1/2 -translate-y-1/2 z-50 rounded-md p-8 text-gray-900 shadow max-h-[calc(100vh-4rem)] overflow-y-auto data-[state=closed]:animate-[dialog-content-hide_200ms] data-[state=open]:animate-[dialog-content-show_200ms]",
   {
     variants: {
       variant: {
