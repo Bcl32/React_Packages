@@ -1,5 +1,11 @@
 # @bcl32/utils
 
+## 2.6.1
+
+### Patch Changes
+
+- b07d026: fix(utils): cap dialog height to viewport and scroll overflowing content
+
 ## 2.6.0
 
 ### Minor Changes
