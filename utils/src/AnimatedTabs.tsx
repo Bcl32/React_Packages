@@ -11,6 +11,7 @@ interface AnimatedTabsProps {
   children: React.ReactNode;
   theme_type?: "dark" | "light";
   size?: "sm" | "lg";
+  defaultIndex?: number;
 }
 
 export function AnimatedTabs({
@@ -18,6 +19,7 @@ export function AnimatedTabs({
   children,
   theme_type = "dark",
   size = "sm",
+  defaultIndex = 0,
 }: AnimatedTabsProps) {
   const test = tab_titles[0] + tab_titles[1]; //unique value for layoutid
   const motion_style = clsx("colouring", {
@@ -25,11 +27,11 @@ export function AnimatedTabs({
     "bg-primary/80 mix-blend-screen": theme_type === "dark",
     "bg-primary/70 mix-blend-multiply": theme_type === "light",
   });
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState(defaultIndex);
 
   return (
     <div className="flex space-x-1">
-      <TabGroup>
+      <TabGroup defaultIndex={defaultIndex}>
         <TabList>
           {tab_titles.map((label, index) => (
             <Tab
