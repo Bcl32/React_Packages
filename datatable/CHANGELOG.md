@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.8.2
+
+### Patch Changes
+
+- cbb943b: fix(datatable): stop column widths oscillating while scrolling virtualized tables
+- Updated dependencies [5972690]
+  - @bcl32/utils@2.6.2
+
 ## 2.8.1
 
 ### Patch Changes

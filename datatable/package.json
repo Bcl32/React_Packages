@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/datatable",
-  "version": "2.8.1",
+  "version": "2.8.2",
   "description": "Custom data table built using react query table",
   "author": "",
   "license": "ISC",
@@ -65,7 +65,7 @@
     "@radix-ui/react-dialog": "^1.1.1"
   },
   "dependencies": {
-    "@bcl32/utils": "workspace:^2.5.0",
+    "@bcl32/utils": "workspace:^2.6.2",
     "@bcl32/data-utils": "workspace:^2.1.10",
     "@bcl32/hooks": "workspace:^4.0.0",
     "@bcl32/forms": "workspace:^3.0.1",

@@ -1,5 +1,11 @@
 # @bcl32/utils
 
+## 2.6.2
+
+### Patch Changes
+
+- 5972690: feat(utils): AnimatedTabs defaultIndex prop for opening on a specific tab
+
 ## 2.6.1
 
 ### Patch Changes
