@@ -85,6 +85,9 @@ export function ColumnGenerator({
 
   const action_column: ColumnDef<RowData, unknown> = {
     id: "actions",
+    // Holds a single 32px icon button; without a size it takes the 150 default,
+    // which a fixed-layout (virtualized) table would honour literally.
+    size: 64,
     cell: ({ row }) => (
       <RowActions
         row={row}

@@ -12,6 +12,8 @@ import {
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 
+import { cn } from "@bcl32/utils/cn";
+
 import {
   Table,
   TableBody,
@@ -333,7 +335,17 @@ export function DataTable<TData extends RowData>(
       {props.filter?.panel && <div className="shrink-0">{props.filter.panel}</div>}
 
       <div ref={scrollRef} className="flex-1 overflow-auto min-h-0">
-      <Table className="text-md border-4 rounded-lg">
+      {/* `table-layout: fixed` is required when virtualizing. Under the default
+          auto layout the browser sizes columns from the content of the rows it
+          can currently see — and virtualization swaps that row set on every
+          scroll, so column widths (and therefore text wrapping) oscillate as
+          you scroll. Fixed layout derives widths solely from the declared
+          sizes below, which are scroll-invariant. Non-virtualized tables render
+          every row, so their auto layout is already stable — left alone. */}
+      <Table
+        className="text-md border-4 rounded-lg"
+        style={props.virtualized ? { tableLayout: "fixed" } : undefined}
+      >
         <TableHeader className="sticky top-0 z-10 bg-card">
           {tableInstance.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
@@ -405,7 +417,10 @@ export function DataTable<TData extends RowData>(
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
                         key={cell.id}
-                        className={props.cellClassName}
+                        // Fixed layout won't widen a column to fit an unbroken
+                        // token, so without this a long one spills into its
+                        // neighbour instead.
+                        className={cn(props.virtualized && "break-words", props.cellClassName)}
                         style={{
                           width: `${(cell.column.getSize() / totalSize) * 100}%`,
                           minWidth: cell.column.columnDef.minSize,
