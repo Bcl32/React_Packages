@@ -217,10 +217,12 @@ These must be provided by the consuming app:
 | --- | --- | --- | --- |
 | `Tooltip` | component | re-export | Radix `Tooltip.Root` (uncontrolled; requires `TooltipProvider` ancestor). |
 | `TooltipTrigger` | component | re-export | Radix `Tooltip.Trigger`. |
-| `TooltipContent` | component | styled | Radix `Tooltip.Content` (`max-w-2xl`, popover colours, `animate-in`); default `sideOffset=4`. |
+| `TooltipContent` | component | styled | Radix `Tooltip.Content` (`max-w-2xl`, popover colours, `animate-in`); default `sideOffset=4`, `collisionPadding=8`. **Portalled to `<body>`** so `overflow: hidden` / transformed ancestors can't clip the panel (theme tokens survive because `ThemeProvider` sets `data-theme` on `<html>`). |
 | `TooltipProvider` | component | re-export | Radix `Tooltip.Provider`; required ancestor for tooltip components. |
 | `CustomTooltip` | component | `({ children, content, open?, defaultOpen?, onOpenChange?, delayDuration? }) => JSX` | Self-contained tooltip that **includes its own `TooltipProvider`**; accepts `children` + `content` `ReactNode`. |
 | `CustomTooltipProps` | type | — | Props interface for `CustomTooltip`. |
+| `ExplainerTooltip` | component | `({ children, title?, content, footer?, side?, align?, delayDuration?, className? }) => JSX` | Self-contained "explainer card" tooltip: bold `title`, muted prose `content`, and a bordered `font-mono` `footer` for live data (values, ids, notes). Panel defaults to `w-72 p-3`; override width via `className`. Same Radix behaviour as `CustomTooltip` (own provider, portalled, collision-aware). |
+| `ExplainerTooltipProps` | type | — | Props interface for `ExplainerTooltip`. |
 
 ### Navigation — Breadcrumb
 
