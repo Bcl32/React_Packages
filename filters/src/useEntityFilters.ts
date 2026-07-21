@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useOptionsEnrichment } from "@bcl32/hooks/useOptionsEnrichment";
+import { CalculateFeatureStats } from "@bcl32/data-utils/CalculateFeatureStats";
 import { ProcessDataset } from "./ProcessDataset";
 import { InitializeFilters } from "./InitializeFilters";
 import type { Filters, ModelData, ProcessedDataset, DatasetStats } from "./types";
@@ -27,26 +28,28 @@ export function useEntityFilters(
     [dataset]
   );
 
-  // Calculate initial stats once
-  const initialStats = useMemo(() => {
+  // Stats over the full, unfiltered dataset. These don't depend on `filters`,
+  // so memoize them on the data alone and reuse the value below — otherwise the
+  // unfiltered pass re-runs on every filter change inside ProcessDataset.
+  const datasetStats = useMemo<DatasetStats>(() => {
     if (safeDataset.length === 0) return {};
-    return ProcessDataset(safeDataset, {}, enrichedModelData).datasetStats;
+    return CalculateFeatureStats(enrichedModelData.model_attributes, safeDataset);
   }, [safeDataset, enrichedModelData]);
 
   // Initialize filters synchronously
   const [filters, setFilters] = useState<Filters>(() =>
-    InitializeFilters(enrichedModelData.model_attributes, initialStats)
+    InitializeFilters(enrichedModelData.model_attributes, datasetStats)
   );
 
   // Re-initialize when data arrives (useState initializer only runs once).
   useEffect(() => {
     if (
       Object.keys(filters).length === 0 &&
-      Object.keys(initialStats).length > 0
+      Object.keys(datasetStats).length > 0
     ) {
-      setFilters(InitializeFilters(enrichedModelData.model_attributes, initialStats));
+      setFilters(InitializeFilters(enrichedModelData.model_attributes, datasetStats));
     }
-  }, [initialStats, enrichedModelData.model_attributes]);
+  }, [datasetStats, enrichedModelData.model_attributes]);
 
   // Sync newly-fetched options into existing filter state without clobbering
   // the user's value/rule. Without this, options that arrive after filter
@@ -79,8 +82,8 @@ export function useEntityFilters(
         filteredStats: {},
       };
     }
-    return ProcessDataset(safeDataset, filters, enrichedModelData);
-  }, [safeDataset, filters, enrichedModelData]);
+    return ProcessDataset(safeDataset, filters, enrichedModelData, datasetStats);
+  }, [safeDataset, filters, enrichedModelData, datasetStats]);
 
   // Stable change callback
   const changeFilters = useCallback(
