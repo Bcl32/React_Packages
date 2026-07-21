@@ -1,5 +1,13 @@
 # @bcl32/filters
 
+## 3.2.4
+
+### Patch Changes
+
+- 8c076cf: perf(filters): skip redundant unfiltered-stats pass on filter change
+- Updated dependencies [c91423d]
+  - @bcl32/utils@2.7.0
+
 ## 3.2.3
 
 ### Patch Changes
