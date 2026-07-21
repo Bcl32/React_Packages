@@ -1,5 +1,11 @@
 # @bcl32/data-utils
 
+## 2.2.3
+
+### Patch Changes
+
+- 1ef7569: feat(filters): numeric-array range filter (any-axis min/max slider)
+
 ## 2.2.2
 
 ### Patch Changes

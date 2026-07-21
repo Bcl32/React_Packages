@@ -1,5 +1,13 @@
 # @bcl32/filters
 
+## 3.2.6
+
+### Patch Changes
+
+- 1ef7569: feat(filters): numeric-array range filter (any-axis min/max slider)
+- Updated dependencies [1ef7569]
+  - @bcl32/data-utils@2.2.3
+
 ## 3.2.5
 
 ### Patch Changes
