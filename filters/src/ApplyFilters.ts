@@ -56,9 +56,19 @@ export function ApplyFilters(data: unknown[], filters: Filters): DataEntry[] {
 
       case "number": {
         const numValue = filter["value"] as NumberRange;
+        const isArray = filter["source_kind"] === "scalar-array";
         filteredData = filteredData.filter((entry) => {
           const raw = entry?.[key];
           if (raw == null) return false;
+          if (isArray) {
+            // scalar-array (e.g. per-axis units): match when ANY element is in
+            // range — the "any axis" semantics as a slider.
+            if (!Array.isArray(raw)) return false;
+            return raw.some((v) => {
+              const n = typeof v === "number" ? v : Number(v);
+              return isFinite(n) && n >= numValue.min && n <= numValue.max;
+            });
+          }
           const entryValue = typeof raw === "number" ? raw : Number(raw);
           return isFinite(entryValue) && entryValue >= numValue.min && entryValue <= numValue.max;
         });

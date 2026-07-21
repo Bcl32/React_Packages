@@ -36,6 +36,22 @@ export function InitializeFilters(model_data: ModelAttribute[], datasetStats: Da
       const title = item["name"];
       filter_start[title] = filter;
 
+      // source_kind drives array-aware matching (options always; number when the
+      // field is a scalar-array, e.g. number_list per-axis units). Copy it here
+      // so ApplyFilters sees it for number filters too, not just options.
+      if (item["source_kind"] !== undefined) {
+        (filter_start[title] as unknown as Record<string, unknown>)["source_kind"] =
+          item["source_kind"];
+      }
+
+      // Carry the schema title so the filter components can render it (they fall
+      // back to a humanized field name when absent). Without this the title
+      // threaded through FilterElement is always undefined.
+      if (item["title"] !== undefined) {
+        (filter_start[title] as unknown as Record<string, unknown>)["title"] =
+          item["title"];
+      }
+
       if (resolvedType === "options") {
         for (const field of OPTIONS_FIELDS) {
           if (item[field] !== undefined) {
@@ -52,8 +68,10 @@ export function InitializeFilters(model_data: ModelAttribute[], datasetStats: Da
         (filter_start[title] as unknown as Record<string, unknown>)["filterOrder"] = item["filterOrder"];
       }
 
-      if (item["type"] === "number") {
-        //get the earliest and latest stat objects and assign to filter empty and value for filters
+      if (resolvedType === "number") {
+        // Covers both scalar numbers (item.type "number") and number_list
+        // arrays (item.type "number_list") — both resolve to a number range
+        // slider whose bounds come from the dataset min/max stats.
         const minStat = datasetStats[title].find((obj) => {
           return obj.name === "min";
         });

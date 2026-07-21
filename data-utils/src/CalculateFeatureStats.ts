@@ -28,28 +28,29 @@ export function CalculateFeatureStats(metadata: ModelAttribute[], dataset: DataE
     const name = item["name"];
     stats[name] = [];
 
-    if (item["type"] === "number") {
-      const validValues = dataset
-        .map((entry) => {
-          const raw = entry[name];
-          const num = typeof raw === "number" ? raw : Number(raw);
-          return num;
-        })
+    if (item["type"] === "number" || item["type"] === "number_list") {
+      // number_list (e.g. per-axis unit counts) flattens every row's array into
+      // one pool so a range slider's bounds span all axes; a plain number reads
+      // one value per row.
+      const rawValues =
+        item["type"] === "number_list"
+          ? dataset.flatMap((entry) =>
+              Array.isArray(entry[name]) ? (entry[name] as unknown[]) : []
+            )
+          : dataset.map((entry) => entry[name]);
+      const validValues = rawValues
+        .map((raw) => (typeof raw === "number" ? raw : Number(raw)))
         .filter((val): val is number => isFinite(val));
 
-      const min: StatEntry = {
-        name: "min",
-        type: "number",
-        value: validValues.length > 0 ? Math.min(...validValues) : 0,
-      };
-      const max: StatEntry = {
-        name: "max",
-        type: "number",
-        value: validValues.length > 0 ? Math.max(...validValues) : 0,
-      };
+      // reduce, not Math.min(...spread): spread throws "Maximum call stack size
+      // exceeded" once the flattened pool grows large (~100k+ elements).
+      const minVal =
+        validValues.length > 0 ? validValues.reduce((a, b) => (a < b ? a : b)) : 0;
+      const maxVal =
+        validValues.length > 0 ? validValues.reduce((a, b) => (a > b ? a : b)) : 0;
 
-      const minVal = validValues.length > 0 ? Math.min(...validValues) : 0;
-      const maxVal = validValues.length > 0 ? Math.max(...validValues) : 0;
+      const min: StatEntry = { name: "min", type: "number", value: minVal };
+      const max: StatEntry = { name: "max", type: "number", value: maxVal };
 
       // d3 bin() can crash with invalid domains (zero-width, Infinity, huge ranges)
       let binEntries: BinEntry[] = [];
