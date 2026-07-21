@@ -14,26 +14,30 @@ export function FilterElement({ filter_data }: FilterElementProps): JSX.Element 
 }
 
 function get_chart_type(filter_data: FilterData): JSX.Element {
+  // Prefer the schema-provided `title` (e.g. "Size (mm)"); components fall back
+  // to a humanized field name when it's absent.
+  const title = filter_data["title"] as string | undefined;
   switch (filter_data["type"]) {
     case "string":
       return (
-        <DebouncedTextFilter name={filter_data["name"]} />
+        <DebouncedTextFilter name={filter_data["name"]} title={title} />
       );
 
     case "datetime":
       return (
         <div>
-          <TimeFilter name={filter_data["name"]} />
+          <TimeFilter name={filter_data["name"]} title={title} />
         </div>
       );
     case "number":
       return (
-        <DebouncedNumberFilter name={filter_data["name"]} />
+        <DebouncedNumberFilter name={filter_data["name"]} title={title} />
       );
     case "options":
       return (
         <OptionsFilter
           name={filter_data["name"]}
+          title={title}
           options={(filter_data["options"] as FilterOption[]) || []}
           display={filter_data["display"] as FilterDisplay | undefined}
           selection={filter_data["selection"] as FilterSelection | undefined}

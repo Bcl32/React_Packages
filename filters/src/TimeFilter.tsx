@@ -16,13 +16,14 @@ import { DialogButton } from "@bcl32/utils/DialogButton";
 
 import { TimeEditDialog } from "./TimeEditDialog";
 import type { FilterContextValue, DatetimeFilterValue } from "./types";
-import { capitalize } from "./utils";
+import { humanizeFieldName } from "./utils";
 
 interface TimeFilterProps {
   name: string;
+  title?: string;
 }
 
-export function TimeFilter({ name }: TimeFilterProps): JSX.Element | null {
+export function TimeFilter({ name, title }: TimeFilterProps): JSX.Element | null {
   const context = React.useContext(FilterContext) as FilterContextValue | null;
 
   // Safe access to filter data - handles React batching timing issues
@@ -54,7 +55,7 @@ export function TimeFilter({ name }: TimeFilterProps): JSX.Element | null {
     <div>
       <h1 className="font-semibold text-xl pr-2">
         {" "}
-        {capitalize(name)}:
+        {title ?? humanizeFieldName(name)}:
       </h1>
 
       <div className="grid xl:grid-cols-3">

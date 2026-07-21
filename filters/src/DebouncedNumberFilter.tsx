@@ -4,13 +4,14 @@ import { FilterContext } from "./FilterContext";
 import { Input } from "@bcl32/utils/Input";
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import type { FilterContextValue, NumberRange } from "./types";
-import { capitalize } from "./utils";
+import { humanizeFieldName } from "./utils";
 
 interface DebouncedNumberFilterProps {
   name: string;
+  title?: string;
 }
 
-export function DebouncedNumberFilter({ name }: DebouncedNumberFilterProps): JSX.Element | null {
+export function DebouncedNumberFilter({ name, title }: DebouncedNumberFilterProps): JSX.Element | null {
   const context = React.useContext(FilterContext) as FilterContextValue | null;
 
   // Safe access to filter data - handles React batching timing issues
@@ -89,7 +90,7 @@ export function DebouncedNumberFilter({ name }: DebouncedNumberFilterProps): JSX
     <div className="p-2 space-y-1.5">
       <div className="flex items-center gap-2">
         <span className="text-sm font-semibold shrink-0">
-          {capitalize(name)}
+          {title ?? humanizeFieldName(name)}
         </span>
         <SliderPrimitive.Root
           className="relative flex flex-1 touch-none select-none items-center"

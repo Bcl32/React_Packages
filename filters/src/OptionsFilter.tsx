@@ -13,10 +13,11 @@ import type {
   FilterSourceKind,
   ColourPresetsConfig,
 } from "./types";
-import { capitalize } from "./utils";
+import { capitalize, humanizeFieldName } from "./utils";
 
 interface OptionsFilterProps {
   name: string;
+  title?: string;
   options: FilterOption[];
   display?: FilterDisplay;
   selection?: FilterSelection;
@@ -26,6 +27,7 @@ interface OptionsFilterProps {
 
 export function OptionsFilter({
   name,
+  title,
   options,
   display = "combobox",
   selection = "multi",
@@ -58,7 +60,7 @@ export function OptionsFilter({
   return (
     <div>
       <div className="flex items-center gap-2 mb-1">
-        <span className="font-semibold">{capitalize(name)}</span>
+        <span className="font-semibold">{title ?? humanizeFieldName(name)}</span>
         {ruleEligible && (
           <button
             type="button"

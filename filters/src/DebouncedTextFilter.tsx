@@ -4,12 +4,14 @@ import { FilterContext } from "./FilterContext";
 import { Input } from "@bcl32/utils/Input";
 import { Label } from "@bcl32/utils/Label";
 import type { FilterContextValue } from "./types";
+import { humanizeFieldName } from "./utils";
 
 interface DebouncedTextFilterProps {
   name: string;
+  title?: string;
 }
 
-export function DebouncedTextFilter({ name }: DebouncedTextFilterProps): JSX.Element | null {
+export function DebouncedTextFilter({ name, title }: DebouncedTextFilterProps): JSX.Element | null {
   const context = React.useContext(FilterContext) as FilterContextValue | null;
 
   // Safe access to filter data - handles React batching timing issues
@@ -54,7 +56,7 @@ export function DebouncedTextFilter({ name }: DebouncedTextFilterProps): JSX.Ele
   return (
     <div>
       <div className="flex items-center gap-2 mb-1">
-        <Label className="font-semibold capitalize">{name}</Label>
+        <Label className="font-semibold">{title ?? humanizeFieldName(name)}</Label>
         <button
           type="button"
           onClick={toggleRule}

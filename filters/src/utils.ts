@@ -14,3 +14,11 @@ export function buildChartConfig(keys: string[]): ChartConfig {
 export function capitalize(name: string): string {
   return name[0].toUpperCase() + name.slice(1);
 }
+
+// Turn a raw snake_case field name into a readable filter label:
+// "system_units" → "System units". Used as the fallback when a filter
+// attribute has no explicit `title`.
+export function humanizeFieldName(name: string): string {
+  const spaced = name.replace(/_/g, " ");
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
