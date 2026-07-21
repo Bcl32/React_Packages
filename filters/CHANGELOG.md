@@ -1,5 +1,11 @@
 # @bcl32/filters
 
+## 3.2.5
+
+### Patch Changes
+
+- 55871b7: fix(filters): humanize panel filter labels and honour attribute title
+
 ## 3.2.4
 
 ### Patch Changes
