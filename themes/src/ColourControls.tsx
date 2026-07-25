@@ -11,16 +11,9 @@ export interface ColourControlsProps {
 }
 
 export function ColourControls({ color, onChange, onHexChange }: ColourControlsProps) {
-  const currentColorHex = hslToHex(
-    color.hue,
-    color.saturation,
-    color.lightness,
-    (100 - color.alpha) / 100
-  );
+  const currentColorHex = hslToHex(color.hue, color.saturation, color.lightness, 1);
 
-  const currentColor = `hsla(${color.hue}, ${color.saturation}%, ${
-    color.lightness
-  }%, ${(100 - color.alpha) / 100})`;
+  const currentColor = `hsl(${color.hue}, ${color.saturation}%, ${color.lightness}%)`;
 
   const getHueGradient = () => {
     const stops: string[] = [];
@@ -48,7 +41,6 @@ export function ColourControls({ color, onChange, onHexChange }: ColourControlsP
                 onChange("hue", hsl.hue);
                 onChange("saturation", hsl.saturation);
                 onChange("lightness", hsl.lightness);
-                onChange("alpha", 100 - hsl.alpha * 100);
                 onHexChange(hex);
               }}
             />
@@ -71,12 +63,7 @@ export function ColourControls({ color, onChange, onHexChange }: ColourControlsP
               onValueChange={([value]) => {
                 onChange("hue", value);
                 onHexChange(
-                  hslToHex(
-                    value,
-                    color.saturation,
-                    color.lightness,
-                    (100 - color.alpha) / 100
-                  )
+                  hslToHex(value, color.saturation, color.lightness, 1)
                 );
               }}
               className="h-2 w-full rounded-full"
@@ -101,12 +88,7 @@ export function ColourControls({ color, onChange, onHexChange }: ColourControlsP
               onValueChange={([value]) => {
                 onChange("saturation", value);
                 onHexChange(
-                  hslToHex(
-                    color.hue,
-                    value,
-                    color.lightness,
-                    (100 - color.alpha) / 100
-                  )
+                  hslToHex(color.hue, value, color.lightness, 1)
                 );
               }}
               className="h-2 w-full rounded-full"
@@ -134,12 +116,7 @@ export function ColourControls({ color, onChange, onHexChange }: ColourControlsP
               onValueChange={([value]) => {
                 onChange("lightness", value);
                 onHexChange(
-                  hslToHex(
-                    color.hue,
-                    color.saturation,
-                    value,
-                    (100 - color.alpha) / 100
-                  )
+                  hslToHex(color.hue, color.saturation, value, 1)
                 );
               }}
               className="h-2 w-full rounded-full"
@@ -148,39 +125,6 @@ export function ColourControls({ color, onChange, onHexChange }: ColourControlsP
                   hsl(${color.hue}, ${color.saturation}%, 0%),
                   hsl(${color.hue}, ${color.saturation}%, 50%),
                   hsl(${color.hue}, ${color.saturation}%, 100%))`,
-              }}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">Opacity</Label>
-              <span className="text-xs text-muted-foreground">
-                {100 - color.alpha}%
-              </span>
-            </div>
-            <Slider
-              value={[100 - color.alpha]}
-              min={0}
-              max={100}
-              step={1}
-              onValueChange={([value]) => {
-                onChange("alpha", 100 - value);
-                onHexChange(
-                  hslToHex(
-                    color.hue,
-                    color.saturation,
-                    color.lightness,
-                    value / 100
-                  )
-                );
-              }}
-              className="h-2 w-full rounded-full"
-              style={{
-                background: `linear-gradient(to right,
-                  hsla(${color.hue}, ${color.saturation}%, ${color.lightness}%, 0),
-                  hsla(${color.hue}, ${color.saturation}%, ${color.lightness}%, 0.5),
-                  hsla(${color.hue}, ${color.saturation}%, ${color.lightness}%, 1))`,
               }}
             />
           </div>

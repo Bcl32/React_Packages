@@ -12,8 +12,11 @@ export default defineConfig({
     "src/ColourConverter.tsx",
     "src/ColourPicker.tsx",
     "src/CopyTheme.tsx",
+    "src/ImportTheme.tsx",
     "src/colorUtils.ts",
+    "src/contrastCheck.ts",
     "src/themeMeta.ts",
+    "src/themeOverrides.ts",
     "src/index.ts"
   ],
   format: ["esm"],

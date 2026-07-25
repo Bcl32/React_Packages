@@ -8,5 +8,8 @@ export * from "./ColourControls";
 export * from "./ColourConverter";
 export * from "./ColourPicker";
 export * from "./CopyTheme";
+export * from "./ImportTheme";
+export * from "./contrastCheck";
 export * from "./colorUtils";
 export * from "./themeMeta";
+export * from "./themeOverrides";

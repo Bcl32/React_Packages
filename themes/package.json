@@ -53,13 +53,25 @@
       "types": "./dist/CopyTheme.d.ts",
       "import": "./dist/CopyTheme.js"
     },
+    "./ImportTheme": {
+      "types": "./dist/ImportTheme.d.ts",
+      "import": "./dist/ImportTheme.js"
+    },
     "./colorUtils": {
       "types": "./dist/colorUtils.d.ts",
       "import": "./dist/colorUtils.js"
     },
+    "./contrastCheck": {
+      "types": "./dist/contrastCheck.d.ts",
+      "import": "./dist/contrastCheck.js"
+    },
     "./themeMeta": {
       "types": "./dist/themeMeta.d.ts",
       "import": "./dist/themeMeta.js"
+    },
+    "./themeOverrides": {
+      "types": "./dist/themeOverrides.d.ts",
+      "import": "./dist/themeOverrides.js"
     },
     "./tailwind-preset": "./tailwind-preset.cjs",
     "./themes.json": "./src/themes.json"

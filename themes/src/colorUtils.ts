@@ -129,6 +129,24 @@ const hslToRGB = ({ hue, saturation, lightness }: HSLColor): RGBColor => {
   };
 };
 
+/** WCAG relative luminance of a colour (alpha ignored). */
+export const relativeLuminance = (color: HSLColor): number => {
+  const { r, g, b } = hslToRGB(color);
+  const lin = (c: number): number => {
+    const s = c / 255;
+    return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+};
+
+/** WCAG contrast ratio between two colours, 1..21. */
+export const contrastRatio = (a: HSLColor, b: HSLColor): number => {
+  const la = relativeLuminance(a);
+  const lb = relativeLuminance(b);
+  const [hi, lo] = la >= lb ? [la, lb] : [lb, la];
+  return (hi + 0.05) / (lo + 0.05);
+};
+
 export const parseToHSL = (color: string): HSLColor | null => {
   const hslFunctionRegex =
     /^(?:hsl|hsla)\(\s*([\d.-]+)(?:deg)?\s*\s*([\d.]+)%\s*\s*([\d.]+)%\s*(?:\s*([\d.]+%?))?\s*\)$/i;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { DialogButton } from "@bcl32/utils/DialogButton";
 import { Button } from "@bcl32/utils/Button";
 import { ToggleGroup, ToggleGroupItem } from "@bcl32/utils/ToggleGroup";
@@ -14,38 +14,35 @@ export interface CopyThemeProps {
 
 export function CopyTheme({ currentTheme, colours }: CopyThemeProps) {
   const [format, setFormat] = useState<ExportFormat>("json");
+  const [copied, setCopied] = useState(false);
 
-  const generateThemeCSS = (): string => {
+  const generateThemeExport = (): string => {
     if (format === "css") {
-      const formatColor = ({ hue, saturation, lightness }: HSLColor): string => {
-        return `${hue} ${saturation}% ${lightness}%`;
-      };
-
-      const Variables = Object.entries(colours)
-        .map(([name, config]) => `  --${name}: ${formatColor(config)};`)
+      const variables = Object.entries(colours)
+        .map(
+          ([name, { hue, saturation, lightness }]) =>
+            `  --${name}: ${hue} ${saturation}% ${lightness}%;`
+        )
         .join("\n");
 
-      return `:root {\n${Variables}\n}`;
+      return `:root {\n${variables}\n}`;
     }
 
-    if (format === "json") {
-      const formatColor = ({ hue, saturation, lightness }: HSLColor): string => {
-        return `"hsl(${hue} ${saturation}% ${lightness}%)"`;
-      };
-
-      const Variables = Object.entries(colours)
-        .map(([name, config]) => `"${name}": ${formatColor(config)},`)
-        .join("\n");
-
-      return `"${currentTheme}": {\n${Variables}\n}`;
-    }
-
-    return "";
+    // Valid JSON matching the themes.json entry shape — paste the inner
+    // object straight in as the value for a theme key.
+    const entry = Object.fromEntries(
+      Object.entries(colours).map(([name, { hue, saturation, lightness }]) => [
+        name,
+        `hsl(${hue} ${saturation}% ${lightness}%)`,
+      ])
+    );
+    return JSON.stringify({ [currentTheme]: entry }, null, 2);
   };
 
-  function copyTheme() {
-    navigator.clipboard.writeText(generateThemeCSS());
-    alert("Theme CSS copied to clipboard!");
+  async function copyTheme() {
+    await navigator.clipboard.writeText(generateThemeExport());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
@@ -76,7 +73,15 @@ export function CopyTheme({ currentTheme, colours }: CopyThemeProps) {
         className="flex items-center text-primary"
         title="Copy Theme"
       >
-        <Copy className="w-4 h-4 mr-2" /> <span>Copy Theme</span>
+        {copied ? (
+          <>
+            <Check className="w-4 h-4 mr-2" /> <span>Copied!</span>
+          </>
+        ) : (
+          <>
+            <Copy className="w-4 h-4 mr-2" /> <span>Copy Theme</span>
+          </>
+        )}
       </Button>
     </DialogButton>
   );
