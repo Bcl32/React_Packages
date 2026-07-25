@@ -303,60 +303,53 @@ export function apiUrl(endpoint) {
 > Summarized from react-website-dev **Theme System (tw-colors)** and **Tailwind
 > Config Pattern**.
 
-`@bcl32/themes` ships **8 base themes**: `light`, `dark`, `green`, `yellow`,
-`purple`, `blue`, `dark-green`, `dark-blue`. Apps may add their own (Print-Tracker
-adds `light-blue` and `light-gold`).
+`@bcl32/themes` ships **9 base themes**: `light`, `dark`, `green`, `yellow`,
+`red`, `purple`, `dark-blue`, `light-blue`, `light-gold`. All nine ship in the
+package — no app defines its own. `light` and `dark` must exist under those exact
+names, because `ThemeProvider` resolves `'system'` to one of them.
 
 ### `tailwind.config.js`
 
-Two facts about the **real** monorepo setup (matching Print-Tracker):
+Three facts about the **real** monorepo setup (matching Print-Tracker):
 
-1. The content globs must include **both** `node_modules/@bcl32` (prod /
+1. **Do not hand-write a `createThemes({...})` block.** Since 2026-07-04 apps
+   pull the palette from `presets: [require("@bcl32/themes/tailwind-preset")]`.
+   The preset calls `createThemes()` over `themes.json` for you, with
+   `produceCssVariable: (n) => `--${n}`` already configured, so tokens emit as
+   `--primary`, `--background`, etc. and themes apply via a **`data-theme`
+   attribute** (not a class — see §7). Copying the palette inline is the old
+   pattern: it freezes your app at whatever the themes package shipped that day.
+2. The content globs must include **both** `node_modules/@bcl32` (prod /
    non-aliased) **and** `react-packages/*/src` (local-dev aliases) — otherwise
    classes used only inside package components are purged. The unused path is a
    silent no-op when its directory is absent.
-2. `createThemes` is configured with `produceCssVariable: (n) => `--${n}`` and
-   themes are applied via a **`data-theme` attribute** (not a class — see §7).
+3. The preset is loaded by **Node**, during the PostCSS pass — not by Vite. So
+   `resolve.alias`/`USE_LOCAL_PACKAGES` in `vite.config.js` does **not** redirect
+   it: it always reads `node_modules/@bcl32/themes/src/themes.json`. To preview
+   unpublished palette edits in dev, bind-mount that file (see the theme mount in
+   any app's `compose-dev.yml`); otherwise the Theme Editor lists new theme names
+   while the page still renders the old colours.
 
 ```js
 /** @type {import('tailwindcss').Config} */
-const { createThemes } = require("tw-colors");
-
-module.exports = {
+export default {
+  // Single source of truth for the palette — all 9 themes and every token.
+  presets: [require("@bcl32/themes/tailwind-preset")],
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
-    "./node_modules/@bcl32/**/*.{js,ts,jsx,tsx}",   // prod / published packages
-    "../../react-packages/*/src/**/*.{js,ts,jsx,tsx}", // local dev (USE_LOCAL_PACKAGES)
+    "./node_modules/@bcl32/**/*.{js,ts,jsx,tsx}", // prod / published packages
+    "./react-packages/*/src/**/*.{js,ts,jsx,tsx}", // local dev (USE_LOCAL_PACKAGES)
   ],
-  theme: { extend: {} },
   plugins: [
     require("@tailwindcss/forms"), // strips OS chrome from <select>/<input>
-    createThemes(
-      {
-        // Define the HSL token sets per theme. The token names below are the
-        // theme contract consumed by every @bcl32 component.
-        light: {
-          background: "hsl(229 57% 100%)",
-          foreground: "hsl(229 63% 4%)",
-          card: "hsl(0 0% 99%)",
-          "card-foreground": "hsl(229 63% 3%)",
-          primary: "hsl(229 100% 62%)",
-          "primary-foreground": "hsl(0 0% 100%)",
-          // ...muted, popover, secondary, accent, destructive, border, input,
-          // ring, chart-1..5, sidebar-* — copy the full set from
-          // Print-Tracker/print-tracker-react/tailwind.config.js
-        },
-        dark: { /* ... */ },
-        // green, yellow, purple, blue, dark-green, dark-blue ...
-      },
-      {
-        produceCssVariable: (colorName) => `--${colorName}`,
-      }
-    ),
   ],
 };
 ```
+
+To add or change a theme, edit `themes/src/themes.json` in the themes package —
+never an app's `tailwind.config.js`. Every consumer picks it up on its next
+Tailwind build.
 
 > **Token contract.** Every `@bcl32` component styles itself with theme tokens —
 > never hardcoded colors. The available tokens are: `background`, `foreground`,

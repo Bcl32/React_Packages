@@ -34,17 +34,21 @@ the existing docs/skills have drifted from the code.
 - **[`03-NEW-PROJECT-GUIDE.md`](./03-NEW-PROJECT-GUIDE.md)** — front-to-back guide for scaffolding a new Vite app: workspace membership, dependency declaration, provider setup, a full datatable+filters+forms CRUD page, and deploy. Defers to the `react-website-dev` and `entity-lifecycle` skills.
 
 ### Per-package reference — [`01-packages/`](./01-packages/)
+
+> Versions below are a point-in-time snapshot (refreshed 2026-07-25) and drift as
+> packages publish — each `package.json` is authoritative.
+
 | Package | Tier | Version | Role |
 | --- | --- | --- | --- |
-| [`utils`](./01-packages/utils.md) | foundational | 2.4.4 | Radix + Headless UI + Tailwind component primitives (~127 exports) |
-| [`data-utils`](./01-packages/data-utils.md) | foundational | 2.1.10 | Pure data utilities — stats, sorting, string/format helpers (no React) |
-| [`hooks`](./01-packages/hooks.md) | foundational | 2.3.0 | TanStack Query wrappers + `apiFetch` for typed FastAPI access |
-| [`charts`](./01-packages/charts.md) | mid | 2.1.6 | Bokeh line chart + shadcn-style recharts wrapper |
-| [`navigation`](./01-packages/navigation.md) | mid | 2.1.8 | Navigation-state context + breadcrumb UI |
-| [`themes`](./01-packages/themes.md) | mid | 2.1.5 | HSL theming: provider, persistence, live editor, colour utils (10 themes) |
-| [`forms`](./01-packages/forms.md) | composite | 2.6.1 | `ModelData`-driven CRUD forms (add/edit/bulk/delete) + field primitives |
-| [`datatable`](./01-packages/datatable.md) | composite | 2.7.2 | TanStack Table v8 datatable with CRUD dialogs, selection, virtualization |
-| [`filters`](./01-packages/filters.md) | composite | 3.1.2 | Filter context + filter/chart controls + pure filter data utilities |
+| [`utils`](./01-packages/utils.md) | foundational | 2.7.0 | Radix + Headless UI + Tailwind component primitives (~127 exports) |
+| [`data-utils`](./01-packages/data-utils.md) | foundational | 2.2.3 | Pure data utilities — stats, sorting, string/format helpers (no React) |
+| [`hooks`](./01-packages/hooks.md) | foundational | 4.0.0 | TanStack Query wrappers + `apiFetch` for typed FastAPI access |
+| [`charts`](./01-packages/charts.md) | mid | 3.2.0 | shadcn-style recharts wrappers — `TimeSeriesChart`, `DonutChart`, `StatCard` |
+| [`navigation`](./01-packages/navigation.md) | mid | 2.1.9 | Navigation-state context + breadcrumb UI |
+| [`themes`](./01-packages/themes.md) | mid | 3.0.0 | HSL theming: provider, persistence, live editor, colour utils (9 themes) |
+| [`forms`](./01-packages/forms.md) | composite | 3.0.1 | `ModelData`-driven CRUD forms (add/edit/bulk/delete) + field primitives |
+| [`datatable`](./01-packages/datatable.md) | composite | 2.8.2 | TanStack Table v8 datatable with CRUD dialogs, selection, virtualization |
+| [`filters`](./01-packages/filters.md) | composite | 3.2.6 | Filter context + filter/chart controls + pure filter data utilities |
 
 ### Per-app audit — [`04-apps/`](./04-apps/)
 | App | `@bcl32` packages used | Audit |

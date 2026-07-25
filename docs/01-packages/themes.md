@@ -225,11 +225,16 @@ every consumer app picks it up on its next Tailwind build.
 `themes.json` ships these named themes (the `theme_options` list):
 
 ```
-light, dark, green, yellow, purple, blue, dark-green, dark-blue, light-blue, light-gold
+light, dark, green, yellow, red, purple, dark-blue, light-blue, light-gold
 ```
 
+`light` and `dark` are load-bearing: `ThemeProvider` resolves `'system'` to one of
+those two names, so neither can be renamed or removed without editing that
+resolver. The rest are free to add, rename or drop — `theme_options` is derived
+from `Object.keys(themes.json)`, so the picker follows the file automatically.
+
 Every theme now also defines a `warning` / `warning-foreground` token pair (new in
-2.2.0 — added to all 10 themes and to `style_metadata.json`'s field descriptions:
+2.2.0 — added to every theme and to `style_metadata.json`'s field descriptions:
 *"Used for warning states such as caution badges and partial-success statuses"*).
 Consumer apps with hardcoded `bg-amber-*`/`bg-yellow-*` warning-badge colours can now
 migrate to the semantic `bg-warning`/`text-warning-foreground` tokens.

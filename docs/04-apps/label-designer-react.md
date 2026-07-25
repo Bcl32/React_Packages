@@ -92,10 +92,10 @@ This app uses **plain caret ranges** (e.g. `"@bcl32/hooks": "^2.2.7"`) resolved 
 - **Theme definitions** are consumed from the shared `@bcl32/themes` package via
   `presets: [require("@bcl32/themes/tailwind-preset")]` in `tailwind.config.js`
   (changed 2026-07-04 — previously this app hand-wired `tw-colors`' `createThemes(...)`
-  inline with its own copy of **8** named themes). The shared preset exposes all
-  **10** themes.json entries: `light`, `dark`, `green`, `yellow`, `purple`, `blue`,
-  `dark-green`, `dark-blue`, `light-blue`, `light-gold` — the two this app's old
-  inline config was missing are now available for free.
+  inline with its own copy of **8** named themes, and picked up nothing the shared
+  package added afterwards). The shared preset exposes every `themes.json` entry —
+  currently **9**: `light`, `dark`, `green`, `yellow`, `red`, `purple`, `dark-blue`,
+  `light-blue`, `light-gold` — and the app tracks that set automatically as it changes.
 - The preset is configured with `produceCssVariable: (colorName) => '--${colorName}'`, so each color becomes a `--token` CSS variable consumed by Tailwind utilities (`bg-background`, `text-primary`, `bg-card`, etc.).
 - The token set (`sidebar-*`, `chart-*`, `popover-*`, `card-*`, etc.) exactly matches the shadcn-style convention used by the other monorepo apps.
 - `ThemeProvider` (from `@bcl32/themes`) persists the user selection to `localStorage` under the key `"vite-ui-theme"` and applies the active theme class to the document root. It is mounted in `Layout` with `defaultTheme="system"`.

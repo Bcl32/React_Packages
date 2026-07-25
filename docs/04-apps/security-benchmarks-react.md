@@ -107,8 +107,8 @@ export default {
 
 `@bcl32/themes/tailwind-preset` wraps `tw-colors`' `createThemes()` around the
 shared `themes.json` palette (`produceCssVariable: (name) => \`--${name}\``), so
-all **ten** named themes (`light, dark, green, yellow, purple, blue, dark-green,
-dark-blue, light-blue, light-gold`) are available — not just the light/dark pair
+all **nine** named themes (`light, dark, green, yellow, red, purple, dark-blue,
+light-blue, light-gold`) are available — not just the light/dark pair
 the app used to hand-copy — including the `warning`/`warning-foreground` tokens
 added in `themes` 2.2.0.
 

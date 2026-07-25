@@ -175,8 +175,8 @@ Effort key: **S** = small, **M** = medium.
   `presets: [require("@bcl32/themes/tailwind-preset")]` instead of hand-wiring
   `tw-colors`' `createThemes()` with an inline palette. The preset (added in
   `@bcl32/themes` 2.2.0) wraps `createThemes()` around the shared `themes.json`
-  data, so the **10 named themes** — `light`, `dark`, `green`, `yellow`, `purple`,
-  `blue`, `dark-green`, `dark-blue`, `light-blue`, `light-gold` — now come from one
+  data, so the **9 named themes** — `light`, `dark`, `green`, `yellow`, `red`,
+  `purple`, `dark-blue`, `light-blue`, `light-gold` — now come from one
   source of truth instead of being hand-copied into this app's config.
 - **Tokens:** Each theme defines ~25 semantic tokens (`background`, `foreground`, `muted`, `muted-foreground`, `primary`, `secondary`, `accent`, `destructive`, `warning`/`warning-foreground` (new in `themes` 2.2.0), `ring`, `chart-1..5`, plus `sidebar-*` variants). `produceCssVariable` maps them to `--token-name` CSS variables (no `hsl()` wrapper — `tw-colors` emits the class-scoped variable).
 - **Activation:** `@bcl32/themes` `ThemeProvider` sets the `data-theme` attribute on the `<html>` element (`storageKey=vite-ui-theme`, `defaultTheme=system`), and now resolves `"system"` to a concrete `light`/`dark` name via `matchMedia` before classifying `theme_type` (fixed in `themes` 2.2.0 — see the `themes` package doc's Known Smells). Users switch at runtime via the `Theming` component in the sidebar footer.

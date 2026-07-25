@@ -92,9 +92,9 @@ now reads:
 presets: [require("@bcl32/themes/tailwind-preset")],
 ```
 
-instead of hand-copying a `createThemes({...})` block — the ten named themes
-(`light, dark, green, yellow, purple, blue, dark-green, dark-blue, light-blue,
-light-gold`) and their tokens now live in exactly one place, `themes/src/themes.json`.
+instead of hand-copying a `createThemes({...})` block — the nine named themes
+(`light, dark, green, yellow, red, purple, dark-blue, light-blue, light-gold`)
+and their tokens now live in exactly one place, `themes/src/themes.json`.
 
 - Each theme maps ~25+ semantic tokens (`background`, `foreground`, `primary`, `card`, `muted`, `sidebar-*`, `chart-*`, `warning`/`warning-foreground` (new in 2.2.0), etc.) to HSL values.
 - The preset's `produceCssVariable` override strips `tw-colors`' default `tw-` prefix, so tokens read as `--primary`, `--background`, etc.
