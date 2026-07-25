@@ -256,7 +256,7 @@ importers:
   themes:
     dependencies:
       '@bcl32/utils':
-        specifier: workspace:^2.5.0
+        specifier: workspace:^2.7.1
         version: link:../utils
       lucide-react:
         specifier: ^0.447.0

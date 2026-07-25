@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/themes",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "Theme components and functions",
   "author": "",
   "license": "ISC",
@@ -100,7 +100,7 @@
     "react-dom": "^18.2.0"
   },
   "dependencies": {
-    "@bcl32/utils": "workspace:^2.5.0",
+    "@bcl32/utils": "workspace:^2.7.1",
     "lucide-react": "^0.447.0",
     "tw-colors": "^3.3.2"
   },
