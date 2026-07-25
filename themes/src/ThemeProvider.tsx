@@ -39,9 +39,15 @@ export function ThemeProvider({
   storageKey = "vite-ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
-  );
+  // A persisted name can outlive the preset it points at (a theme removed from
+  // themes.json). An unknown name matches no tw-colors selector, so the palette
+  // would silently fall back to the :root default while theme_type still
+  // classified the dead name — drop it and use the default instead.
+  const [theme, setTheme] = useState<Theme>(() => {
+    const stored = localStorage.getItem(storageKey);
+    if (stored === "system" || (stored && stored in Themes)) return stored as Theme;
+    return defaultTheme;
+  });
 
   const [systemDark, setSystemDark] = useState<boolean>(
     () => window.matchMedia("(prefers-color-scheme: dark)").matches
