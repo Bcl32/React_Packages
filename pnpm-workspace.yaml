@@ -3,6 +3,7 @@ packages:
   - "data-utils"
   - "hooks"
   - "charts"
+  - "command-palette"
   - "datatable"
   - "filters"
   - "forms"

@@ -1,0 +1,75 @@
+{
+  "name": "@bcl32/command-palette",
+  "version": "1.0.0",
+  "description": "Ctrl+K command palette built on cmdk: navigation, actions, theme switching, and entity search pages",
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./CommandPalette": {
+      "types": "./dist/CommandPalette.d.ts",
+      "import": "./dist/CommandPalette.js"
+    },
+    "./EntitySearchPage": {
+      "types": "./dist/EntitySearchPage.d.ts",
+      "import": "./dist/EntitySearchPage.js"
+    },
+    "./useThemeCommands": {
+      "types": "./dist/useThemeCommands.d.ts",
+      "import": "./dist/useThemeCommands.js"
+    },
+    "./flattenNavItems": {
+      "types": "./dist/flattenNavItems.d.ts",
+      "import": "./dist/flattenNavItems.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bcl32/React_Packages.git",
+    "directory": "command-palette"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "peerDependencies": {
+    "@radix-ui/react-dialog": "^1.1.1",
+    "@tanstack/react-query": "^5.18.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.22.0"
+  },
+  "dependencies": {
+    "@bcl32/hooks": "workspace:^4.0.0",
+    "@bcl32/themes": "workspace:^4.0.0",
+    "@bcl32/utils": "workspace:^2.7.1",
+    "cmdk": "^1.1.1",
+    "lucide-react": "^0.447.0"
+  },
+  "devDependencies": {
+    "@radix-ui/react-dialog": "^1.1.1",
+    "@tanstack/react-query": "^5.18.1",
+    "@types/react": "^18.2.0",
+    "react-router-dom": "^6.22.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}

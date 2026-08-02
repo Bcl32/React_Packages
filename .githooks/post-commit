@@ -11,7 +11,7 @@ commit_msg=$(git log -1 --format=%s)
 [ "$(git rev-parse -q --verify MERGE_HEAD 2>/dev/null)" ] && exit 0
 
 # Known workspace packages
-PACKAGES=(utils data-utils hooks charts datatable filters forms navigation themes)
+PACKAGES=(utils data-utils hooks charts datatable filters forms navigation themes command-palette)
 
 # Detect which packages were modified in this commit
 changed=()
