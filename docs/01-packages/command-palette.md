@@ -114,9 +114,17 @@ import type { CommandEntry, SearchSource } from "@bcl32/command-palette/types";
 | `getLabel` | `(item) => string` | yes | Row label. |
 | `getDescription` | `(item) => string \| undefined` | no | Right-aligned muted secondary text. |
 | `getRoute` | `(item) => string` | yes | Router path navigated to when the row is picked. |
+| `getThumbnail` | `(item) => string \| undefined` | no | Image URL shown as a thumbnail before the row label; return `undefined` for no thumbnail. |
 
 > Rows are keyed and valued by `String(item.id)`, so every searched entity must
 > expose an `id`.
+
+Thumbnails render in a fixed `h-8 w-8` rounded box (`object-cover`, muted
+background) so rows keep a consistent height whether or not an image is present,
+they are `loading="lazy"`, and an image that fails to load hides itself via
+`onError` — a broken or missing URL leaves a clean row with no broken-image
+glyph and no layout shift. The `alt` is empty because the thumbnail is purely
+decorative next to the label.
 
 ## Dependencies
 

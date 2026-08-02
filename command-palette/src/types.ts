@@ -48,4 +48,6 @@ export interface SearchSource {
   getLabel: (item: any) => string;
   getDescription?: (item: any) => string | undefined;
   getRoute: (item: any) => string;
+  /** Return an image URL to show as the row's thumbnail, or undefined for no thumbnail. */
+  getThumbnail?: (item: any) => string | undefined;
 }

@@ -68,6 +68,7 @@ export function EntitySearchPage({ source, search, onPick }: EntitySearchPagePro
       {items.map((item) => {
         const label = source.getLabel(item);
         const description = source.getDescription?.(item);
+        const thumb = source.getThumbnail?.(item);
         return (
           <Command.Item
             key={String(item.id)}
@@ -76,6 +77,17 @@ export function EntitySearchPage({ source, search, onPick }: EntitySearchPagePro
             onSelect={() => onPick(source.getRoute(item))}
             className={cn(itemClass)}
           >
+            {thumb && (
+              <img
+                src={thumb}
+                alt=""
+                loading="lazy"
+                className="h-8 w-8 shrink-0 rounded object-cover bg-muted"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            )}
             <span className="truncate">{label}</span>
             {description && (
               <span className="ml-auto truncate text-xs text-muted-foreground">{description}</span>
