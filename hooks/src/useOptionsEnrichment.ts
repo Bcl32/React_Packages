@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { apiFetch } from "./apiFetch";
 
@@ -59,14 +59,37 @@ export function useOptionsEnrichment<T extends ModelDataLike>(
     })),
   });
 
-  const dataByUrl = useMemo(() => {
+  // `useQueries` hands back a fresh array on every render, so memoizing on it
+  // rebuilds `dataByUrl` — and therefore `enrichedModelData` and every consumer
+  // memo chained off it — even when nothing fetched. On a table page that means
+  // the column defs are rebuilt and the whole row model recomputes on any
+  // unrelated state change. Key the cache on the individual `data` references
+  // instead: react-query's structural sharing keeps those stable across
+  // refetches that return equal payloads.
+  const dataRefs = queries.map((q) => q.data);
+  const cacheRef = useRef<{
+    sources: string[];
+    dataRefs: unknown[];
+    value: Record<string, unknown[]>;
+  } | null>(null);
+
+  const cached = cacheRef.current;
+  const cacheHit =
+    cached !== null &&
+    cached.sources === sources &&
+    cached.dataRefs.length === dataRefs.length &&
+    cached.dataRefs.every((d, i) => d === dataRefs[i]);
+
+  if (!cacheHit) {
     const m: Record<string, unknown[]> = {};
     sources.forEach((url, i) => {
-      const data = queries[i]?.data;
+      const data = dataRefs[i];
       m[url] = Array.isArray(data) ? data : [];
     });
-    return m;
-  }, [sources, queries]);
+    cacheRef.current = { sources, dataRefs, value: m };
+  }
+
+  const dataByUrl = cacheRef.current!.value;
 
   const enrichedModelData = useMemo<T>(() => {
     let changed = false;
