@@ -231,6 +231,12 @@ Matching rule, applied after every accepted key:
 | no exact match but some alias starts with the buffer | keep accumulating (timer re-armed) |
 | no alias starts with the buffer | reset the buffer to just the key that was typed and re-test it once |
 
+The keydown that *fires* an alias is `preventDefault()`ed (since 1.0.3) — a
+source alias focuses the palette input during that same event, so without it the
+firing character leaked into the freshly focused input. Keys that merely
+accumulate into the buffer are left alone, and the timeout path fires
+asynchronously with no event to swallow.
+
 The prefix-conflict row is why a registry of same-length aliases (`gd`, `gs`,
 `sp`, …) feels instant while a `g` + `gd` pair would make `g` laggy. Keep all
 aliases the same length unless a delay is acceptable.

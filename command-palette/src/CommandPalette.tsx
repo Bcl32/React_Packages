@@ -182,7 +182,7 @@ export function CommandPalette({
       buffer = "";
     };
 
-    const evaluate = (candidate: string, key: string, allowRetest: boolean) => {
+    const evaluate = (candidate: string, key: string, allowRetest: boolean, e: KeyboardEvent) => {
       const map = aliasMapRef.current;
       const exact = map.has(candidate);
       let hasLonger = false;
@@ -192,8 +192,11 @@ export function CommandPalette({
           break;
         }
       }
-      // Unambiguous hit: fire now.
+      // Unambiguous hit: fire now. The firing key must be swallowed — a source
+      // alias focuses the palette input during this same keydown, so without
+      // preventDefault the character leaks into the freshly focused input.
       if (exact && !hasLonger) {
+        e.preventDefault();
         reset();
         fireAliasRef.current(candidate);
         return;
@@ -213,7 +216,7 @@ export function CommandPalette({
       // Dead end: restart the sequence from the key just typed, once.
       if (allowRetest && candidate.length > 1) {
         reset();
-        evaluate(key, key, false);
+        evaluate(key, key, false, e);
         return;
       }
       reset();
@@ -233,7 +236,7 @@ export function CommandPalette({
       }
       if (!/^[a-z0-9]$/i.test(e.key)) return;
       const key = e.key.toLowerCase();
-      evaluate(buffer + key, key, true);
+      evaluate(buffer + key, key, true, e);
     };
 
     window.addEventListener("keydown", onKeyDown);
