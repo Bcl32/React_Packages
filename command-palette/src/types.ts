@@ -8,6 +8,14 @@ export interface CommandEntry {
   group: string;
   icon?: LucideIcon;
   keywords?: string[];
+  /**
+   * Short lowercase hotkey token (`[a-z0-9]{1,4}`), e.g. "gd".
+   * Two consumers: typing it as the first input token + `Tab` at the palette
+   * root runs this entry, and typing it as a key sequence while the palette is
+   * closed fires it globally. Also appended to the cmdk keywords and rendered
+   * as a `<kbd>` badge. Must be unique across all commands AND search sources.
+   */
+  alias?: string;
   /** Router path to navigate to on select. */
   to?: string;
   /** Custom action; takes precedence over `to`. */
@@ -20,6 +28,15 @@ export interface SearchSource {
   /** Human label — the root item reads "Search {label}…". */
   label: string;
   icon?: LucideIcon;
+  /**
+   * Short lowercase hotkey token (`[a-z0-9]{1,4}`), e.g. "sp".
+   * At the palette root, `<alias> <rest>` + `Tab` opens this search page seeded
+   * with `<rest>`. While the palette is closed, typing the token as a key
+   * sequence opens the palette straight onto this page. Also appended to the
+   * cmdk keywords and rendered as a `<kbd>` badge. Must be unique across all
+   * search sources AND commands.
+   */
+  alias?: string;
   /** Absolute API list URL WITHOUT query string, e.g. apiUrl("parts"). */
   listUrl: string;
   /** "server" (default): appends ?search=term, debounced. "client": fetch once, cmdk filters. */

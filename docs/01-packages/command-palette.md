@@ -6,7 +6,7 @@
 | | |
 | --- | --- |
 | **Package** | `@bcl32/command-palette` |
-| **Version** | `1.0.0` (seed; first published version is the auto-patch bump) |
+| **Version** | `1.0.x` (changeset-managed; always `npm view` before pinning a consumer) |
 | **Tier** | top (depends on `utils`, `hooks`, `themes`) |
 
 ## Purpose
@@ -69,7 +69,7 @@ import type { CommandEntry, SearchSource } from "@bcl32/command-palette/types";
 
 | Name | Kind | Signature / Props | Description |
 | --- | --- | --- | --- |
-| `CommandPalette` | component | `({ commands, searchSources?, hotkey?, placeholder? }: CommandPaletteProps) => JSX.Element` | The palette itself. Renders nothing visible until the hotkey opens it. Owns open/search/page state. |
+| `CommandPalette` | component | `({ commands, searchSources?, hotkey?, placeholder?, enableGlobalAliases? }: CommandPaletteProps) => JSX.Element` | The palette itself. Renders nothing visible until the hotkey opens it. Owns open/search/page state. |
 | `flattenNavItems` | function | `(items: NavLike[], group?: string) => CommandEntry[]` | Flattens a sidebar nav tree (`{title, url?, icon?, items?}`) into command entries. Skips url-less section headers, dedupes by `url`, defaults `group` to `"Navigation"`. |
 | `useThemeCommands` | hook | `() => CommandEntry[]` | One command per entry in `theme_options`, plus `"system"`. Labels read `Theme: dark`. Must be called inside a `ThemeProvider`. |
 | `EntitySearchPage` | component | `({ source, search, onPick }: EntitySearchPageProps) => JSX.Element` | The nested search page body. Rendered by `CommandPalette`; exported for custom shells. |
@@ -84,6 +84,7 @@ import type { CommandEntry, SearchSource } from "@bcl32/command-palette/types";
 | `searchSources` | `SearchSource[]` | no | `[]` | Each one produces a `Search {label}…` item in a trailing `Search` group. Selecting it pushes a nested page. |
 | `hotkey` | `string` | no | `"k"` | Single key that, with ctrl/cmd (and no shift/alt), toggles the palette. Compared lowercase. |
 | `placeholder` | `string` | no | `"Type a command or search…"` | Root-page input placeholder. On a search page the placeholder becomes `Search {label}…`. |
+| `enableGlobalAliases` | `boolean` | no | `true` | Installs the window-level listener that fires `alias` key sequences while the palette is **closed**. Set `false` to keep aliases as a Tab-only, in-palette feature. |
 
 ### `CommandEntry` fields
 
@@ -94,6 +95,7 @@ import type { CommandEntry, SearchSource } from "@bcl32/command-palette/types";
 | `group` | `string` | yes | Group heading (`"Navigation"`, `"Theme"`, …). Groups render in first-seen order. |
 | `icon` | `LucideIcon` | no | Rendered at `h-4 w-4` before the label. |
 | `keywords` | `string[]` | no | Extra fuzzy-match terms (in addition to `label`). |
+| `alias` | `string` | no | Short lowercase hotkey token (`[a-z0-9]{1,4}`), e.g. `"gd"`. See [Alias hotkeys](#alias-hotkeys). Appended to the item's cmdk keywords and rendered as a `<kbd>` badge. |
 | `to` | `string` | no | Router path; navigated to on select (via `useNavigate`). |
 | `perform` | `() => void` | no | Custom action. **Takes precedence over `to`.** The palette always closes first, then runs it. |
 
@@ -104,6 +106,7 @@ import type { CommandEntry, SearchSource } from "@bcl32/command-palette/types";
 | `key` | `string` | yes | Unique page key (`"parts"`). |
 | `label` | `string` | yes | Human label; the root item reads `Search {label}…`. |
 | `icon` | `LucideIcon` | no | Defaults to lucide `Search`. |
+| `alias` | `string` | no | Short lowercase hotkey token (`[a-z0-9]{1,4}`), e.g. `"sp"`. See [Alias hotkeys](#alias-hotkeys). Appended to the item's cmdk keywords and rendered as a `<kbd>` badge. |
 | `listUrl` | `string` | yes | Absolute API list URL **without** a query string (e.g. `apiUrl("parts")`). A pre-existing `?` is handled (`&` is used instead). |
 | `mode` | `"server" \| "client"` | no | `"server"` (default) appends `?search=<term>` and re-queries per debounced term. `"client"` fetches the list once and lets cmdk filter it. |
 | `minChars` | `number` | no | Server mode default `2`, client mode default `0`. Below the threshold the page shows a hint and issues no request. |
@@ -176,6 +179,102 @@ the dialog while a page is open); `Backspace` on an empty input pops as well.
 Responses are accepted in either shape: a bare array, or the standard
 `{ items: [...], total: n }` envelope.
 
+## Alias hotkeys
+
+Both `CommandEntry` and `SearchSource` accept an optional **`alias`** — a short
+lowercase token (`[a-z0-9]{1,4}`) declared as plain data on the registry the app
+already passes in. One declaration drives three behaviours.
+
+### 1. Tab tokens (palette open, root page)
+
+At the **root** page `Tab` is *always* swallowed (`preventDefault`) so focus can
+never leave the input. The input's first whitespace-separated token is then
+matched against the alias registry:
+
+| Input + `Tab` | Result |
+| --- | --- |
+| `sp` (a `SearchSource` alias) | Pushes that search page, search seeded `""`. |
+| `sp benchy` | Pushes that search page **seeded with the remainder** (`"benchy"`) — one keystroke from root to filtered results. |
+| `gd` (a `CommandEntry` alias, no remainder) | Runs the entry (navigate / `perform`) and closes the palette. |
+| `gd something` | No-op — command aliases only fire with an empty remainder. |
+| anything unmatched | No-op (but still swallowed). |
+
+Search sources are matched before commands. On a search page `Tab` is left
+alone.
+
+### 2. Global key sequences (palette closed)
+
+When `enableGlobalAliases` is `true` (the default), the palette installs a
+window-level `keydown` listener that turns bare keystrokes into alias
+sequences — `g` `d` navigates to the dashboard, `s` `p` opens the Parts search
+page. Firing a `SearchSource` does `setPage(key)` + `setSearch("")` + opens the
+palette; firing a `CommandEntry` runs it **without** opening the palette.
+
+Guards — the listener bails out entirely when any of these hold:
+
+- the palette is already open;
+- `metaKey`, `ctrlKey` or `altKey` is held (never steals real shortcuts);
+- `event.repeat` (held-down keys);
+- the event target is inside
+  `input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="dialog"]`
+  — so typing in any form field or other dialog never fires an alias.
+
+`Escape` clears the buffer. Only `/^[a-z0-9]$/i` keys accumulate (lowercased),
+and the buffer expires **1000 ms** after the last accepted key.
+
+Matching rule, applied after every accepted key:
+
+| Buffer state | Behaviour |
+| --- | --- |
+| exact alias match **and** no longer alias starts with the buffer | fire immediately, clear the buffer |
+| exact match **but** a longer alias shares the prefix | arm the 1000 ms timer and fire the exact match **on timeout** (waits for disambiguation) |
+| no exact match but some alias starts with the buffer | keep accumulating (timer re-armed) |
+| no alias starts with the buffer | reset the buffer to just the key that was typed and re-test it once |
+
+The prefix-conflict row is why a registry of same-length aliases (`gd`, `gs`,
+`sp`, …) feels instant while a `g` + `gd` pair would make `g` laggy. Keep all
+aliases the same length unless a delay is acceptable.
+
+### 3. Badges + fuzzy keywords
+
+Root-list items with an `alias` render it right-aligned as
+
+```html
+<kbd class="ml-auto shrink-0 rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">sp</kbd>
+```
+
+for both command items and `Search X…` items, so the palette documents its own
+hotkeys. The alias is also appended to the item's cmdk `keywords`, so typing it
+ranks the item first even without pressing `Tab`.
+
+### Dev-mode validation
+
+Outside `process.env.NODE_ENV === "production"` the palette `console.warn`s on
+mount (and whenever the registry changes) about **duplicate aliases** (only the
+first is reachable; search sources win over commands) and **prefix conflicts**
+(naming the slower alias and the timeout it now waits for).
+
+### Where aliases come from
+
+`flattenNavItems` is deliberately alias-free — nav trees carry no hotkey data.
+Apps attach nav aliases by post-mapping the flattened entries against a
+route-keyed table:
+
+```jsx
+const NAV_ALIASES = { "/": "gd", "/Parts": "ga", "/Spools": "gs" };
+
+const commands = React.useMemo(
+  () =>
+    [...flattenNavItems(navItems), ...extraCommands].map((c) => ({
+      ...c,
+      alias: NAV_ALIASES[c.to],
+    })),
+  [],
+);
+```
+
+Theme commands intentionally have no aliases.
+
 ## Conventions & Patterns
 
 Things a consumer must follow:
@@ -197,6 +296,10 @@ Things a consumer must follow:
    duplicates make keyboard selection ambiguous.
 6. **Always cap search results.** `maxResults` defaults to 50 because the list
    endpoints are unbounded (no `limit` param).
+7. **Aliases must be unique and same-length across the whole registry** —
+   commands *and* search sources share one namespace. Duplicates make the later
+   one unreachable; a strict prefix makes the shorter one wait 1000 ms. Both are
+   `console.warn`ed in dev.
 
 ## Minimal Usage Example
 
@@ -262,6 +365,16 @@ Known rough edges and deliberate design constraints:
 - **`getLabel`/`getRoute`/`getDescription` take `any`.** The package has no
   knowledge of app entity shapes; there is no compile-time check that the fields
   you read actually exist on the response rows.
+- **Global aliases listen on `window`, not on a focus-scoped root.** The guard is
+  a `closest()` selector check on the event target, so a custom focusable widget
+  that swallows typing without being an `input`/`textarea`/`select`/
+  `contenteditable`/`[role="dialog"]` can still trigger an alias. Pass
+  `enableGlobalAliases={false}` on pages where that matters.
+- **A fired global alias does not `preventDefault`.** The keystrokes are assumed
+  to be going nowhere (body focus); the sequence buffer is not a key grab.
+- **Dev alias validation depends on `process.env.NODE_ENV` being replaced by the
+  consumer's bundler** (Vite does this by default). The built ESM keeps the
+  literal expression.
 - **Hotkey matching is single-key only.** `hotkey` is compared against
   `event.key.toLowerCase()`, so only ctrl/cmd + one key is expressible; there is
   no way to require or forbid shift/alt beyond the built-in "neither pressed"
