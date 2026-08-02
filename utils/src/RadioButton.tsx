@@ -5,27 +5,42 @@ export interface RadioButtonProps {
   value: unknown;
   timeChange: unknown;
   handleRadioChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  /**
+   * Radio group name. Radios sharing a name form one group, so callers
+   * rendering several groups on a page must pass a distinct value or the
+   * groups will clear each other's selection.
+   */
+  groupName?: string;
+  /** DOM id backing the label's htmlFor — must be unique within the page. */
+  id?: string;
 }
 
-export function RadioButton(props: RadioButtonProps) {
+export function RadioButton({
+  interval_name,
+  value,
+  timeChange,
+  handleRadioChange,
+  groupName = "option",
+  id,
+}: RadioButtonProps) {
+  const inputId = id ?? interval_name;
+
   return (
     <div>
       <input
         type="radio"
-        name="option"
-        id={props.interval_name}
+        name={groupName}
+        id={inputId}
         className="peer hidden"
-        value={String(props.value)}
-        checked={
-          JSON.stringify(props.timeChange) === JSON.stringify(props.value)
-        }
-        onChange={props.handleRadioChange}
+        value={String(value)}
+        checked={JSON.stringify(timeChange) === JSON.stringify(value)}
+        onChange={handleRadioChange}
       />
       <label
-        htmlFor={props.interval_name}
-        className="block cursor-pointer select-none rounded-xl p-2 text-center peer-checked:bg-primary/50 peer-checked:font-bold peer-checked:text-white"
+        htmlFor={inputId}
+        className="block cursor-pointer select-none rounded-md px-2 py-1 text-center text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground peer-checked:bg-primary peer-checked:font-semibold peer-checked:text-primary-foreground"
       >
-        {props.interval_name}
+        {interval_name}
       </label>
     </div>
   );
