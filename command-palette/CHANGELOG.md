@@ -1,5 +1,11 @@
 # @bcl32/command-palette
 
+## 1.0.4
+
+### Patch Changes
+
+- e20ba67: feat(command-palette): optional thumbnails in entity search results
+
 ## 1.0.3
 
 ### Patch Changes
