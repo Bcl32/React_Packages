@@ -1,5 +1,11 @@
 # @bcl32/command-palette
 
+## 1.0.3
+
+### Patch Changes
+
+- a5013c2: fix(command-palette): preventDefault the keydown that fires a global alias
+
 ## 1.0.2
 
 ### Patch Changes
