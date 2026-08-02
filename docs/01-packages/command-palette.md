@@ -384,8 +384,6 @@ Known rough edges and deliberate design constraints:
   that swallows typing without being an `input`/`textarea`/`select`/
   `contenteditable`/`[role="dialog"]` can still trigger an alias. Pass
   `enableGlobalAliases={false}` on pages where that matters.
-- **A fired global alias does not `preventDefault`.** The keystrokes are assumed
-  to be going nowhere (body focus); the sequence buffer is not a key grab.
 - **Dev alias validation depends on `process.env.NODE_ENV` being replaced by the
   consumer's bundler** (Vite does this by default). The built ESM keeps the
   literal expression.
