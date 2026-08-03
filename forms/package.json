@@ -33,6 +33,10 @@
       "types": "./dist/FormElement.d.ts",
       "import": "./dist/FormElement.js"
     },
+    "./fieldLabel": {
+      "types": "./dist/fieldLabel.d.ts",
+      "import": "./dist/fieldLabel.js"
+    },
     "./ColourField": {
       "types": "./dist/ColourField.d.ts",
       "import": "./dist/ColourField.js"

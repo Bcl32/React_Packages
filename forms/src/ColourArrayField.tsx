@@ -3,6 +3,7 @@ import { HelpCircle } from "lucide-react";
 import { Label } from "@bcl32/utils/Label";
 import { CustomTooltip } from "@bcl32/utils/Tooltip";
 import type { ModelAttribute } from "@bcl32/data-utils";
+import { fieldLabel } from "./fieldLabel";
 import type { FormData } from "./FormElement";
 import { ColourPickerPopover } from "@bcl32/utils/ColourPickerPopover";
 import { useGroupedSwatches } from "./useGroupedSwatches";
@@ -38,6 +39,7 @@ export function ColourArrayField({
   setFormData: React.Dispatch<React.SetStateAction<FormData>>;
 }) {
   const name = entry_data.name;
+  const label = fieldLabel(entry_data);
   const idsKey = name.replace(/_colours?$/, "_ids");
   const helpText = entry_data.help_text || entry_data.description || null;
   const [open, setOpen] = React.useState(false);
@@ -102,7 +104,7 @@ export function ColourArrayField({
     <div className="flex">
       <div>
         <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
-          {name[0].toUpperCase() + name.slice(1).replace(/_/g, " ")}:
+          {label}:
         </LabelWithHelp>
         <div className="flex items-center gap-1.5 flex-wrap">
           {colours.map((colour, index) => (

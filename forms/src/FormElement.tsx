@@ -19,6 +19,7 @@ import type { ModelAttribute, ReferenceInfo } from "@bcl32/data-utils";
 import { ColourField } from "./ColourField";
 import { ColourArrayField } from "./ColourArrayField";
 import { FieldInput } from "./FieldInput";
+import { fieldLabel } from "./fieldLabel";
 import { RelationCollectionField } from "./RelationCollectionField";
 
 interface LabelWithHelpProps {
@@ -96,6 +97,7 @@ function IdReferenceField({
 }) {
   const reference = entry_data.reference as ReferenceInfo;
   const name = entry_data.name;
+  const label = fieldLabel(entry_data);
   const helpText = entry_data.help_text || entry_data.description || null;
 
   const { data } = useGetRequest<{ items: Record<string, unknown>[] }>(
@@ -116,7 +118,7 @@ function IdReferenceField({
   return (
     <div className="py-2">
       <LabelWithHelp htmlFor={name} helpText={helpText}>
-        {name[0].toUpperCase() + name.slice(1).replace(/_/g, " ")}:
+        {label}:
       </LabelWithHelp>
       <Combobox
         options={options.map((o) => o.label)}
@@ -141,6 +143,7 @@ export function FormElement({
   change_datetime,
 }: FormElementProps) {
   const name = entry_data.name;
+  const label = fieldLabel(entry_data);
   const type = entry_data.type;
   const helpText = entry_data.help_text || entry_data.description || null;
 
@@ -154,7 +157,7 @@ export function FormElement({
         <div className="flex">
           <div>
             <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
-              {name[0].toUpperCase() + name.slice(1)}:
+              {label}:
             </LabelWithHelp>
             <FieldInput
               attr={entry_data}
@@ -171,7 +174,7 @@ export function FormElement({
         <div className="flex">
           <div className="w-full">
             <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
-              {name[0].toUpperCase() + name.slice(1)}:
+              {label}:
             </LabelWithHelp>
             <FieldInput
               attr={entry_data}
@@ -188,7 +191,7 @@ export function FormElement({
         <div className="flex">
           <div>
             <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
-              {name[0].toUpperCase() + name.slice(1)}:
+              {label}:
             </LabelWithHelp>
             <FieldInput
               attr={entry_data}
@@ -212,7 +215,7 @@ export function FormElement({
             onChange={setField}
           />
           <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
-            {name[0].toUpperCase() + name.slice(1)}
+            {label}
           </LabelWithHelp>
         </div>
       );
@@ -221,7 +224,7 @@ export function FormElement({
       return (
         <div className="py-2">
           <LabelWithHelp htmlFor={name} helpText={helpText}>
-            {name[0].toUpperCase() + name.slice(1)}:
+            {label}:
           </LabelWithHelp>
           <Combobox
             multiple
@@ -258,7 +261,7 @@ export function FormElement({
       return (
         <div className="py-2">
           <LabelWithHelp htmlFor={name} helpText={helpText}>
-            {name[0].toUpperCase() + name.slice(1).replace(/_/g, " ")}:
+            {label}:
           </LabelWithHelp>
           <Combobox
             multiple
@@ -287,7 +290,7 @@ export function FormElement({
         <div className="flex col-2">
           <div>
             <LabelWithHelp htmlFor={name} helpText={helpText}>
-              {name[0].toUpperCase() + name.slice(1)}:
+              {label}:
             </LabelWithHelp>
             <FieldInput
               attr={entry_data}
@@ -303,7 +306,7 @@ export function FormElement({
       return (
         <div className="py-2">
           <LabelWithHelp htmlFor={name} helpText={helpText}>
-            {name[0].toUpperCase() + name.slice(1)}:
+            {label}:
           </LabelWithHelp>
 
           <DateTimePicker
@@ -361,7 +364,7 @@ export function FormElement({
         <div className="flex">
           <div className="w-full">
             <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
-              {name[0].toUpperCase() + name.slice(1)}:
+              {label}:
             </LabelWithHelp>
             <Input
               variant="background"

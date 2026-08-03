@@ -7,6 +7,7 @@ export default defineConfig({
     "src/EditModelForm.tsx",
     "src/DeleteModelForm.tsx",
     "src/FormElement.tsx",
+    "src/fieldLabel.ts",
     "src/ColourField.tsx",
     "src/ColourArrayField.tsx",
     "src/AutoGrowTextarea.tsx",

@@ -7,3 +7,4 @@ export { ColourArrayField } from "./ColourArrayField";
 export { AutoGrowTextarea } from "./AutoGrowTextarea";
 export { RelationCollectionField } from "./RelationCollectionField";
 export { useDebouncedCallback } from "./useDebouncedCallback";
+export * from "./fieldLabel";
