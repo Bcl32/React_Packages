@@ -1,0 +1,282 @@
+import * as React from "react";
+import { createPortal } from "react-dom";
+import { Search } from "lucide-react";
+
+import { Input } from "@bcl32/utils/Input";
+import {
+  ApplyFilterSuggestion,
+  SearchFilterIndex,
+  type FilterSuggestion,
+  type SearchFieldEntry,
+} from "./FilterSearch";
+import type { FilterInitialValue, Filters } from "./types";
+
+/** Suggestion panel geometry. Width matches the old `w-80`. */
+const PANEL_WIDTH = 320;
+const PANEL_GAP = 4;
+/** Below this, dropping downwards isn't worth it — flip above the input. */
+const PANEL_MIN_HEIGHT = 140;
+const VIEWPORT_MARGIN = 8;
+
+/**
+ * Fixed-position box pinned under (or over) the search input.
+ *
+ * The panel is portalled to <body>, so it needs viewport coordinates rather
+ * than the `absolute` offsets it used to get from its parent. Height is capped
+ * to the space actually available, and the panel flips above the input when
+ * the toolbar sits near the bottom of the window.
+ */
+function panelStyle(rect: DOMRect): React.CSSProperties {
+  const viewportWidth = document.documentElement.clientWidth;
+  const viewportHeight = document.documentElement.clientHeight;
+  const below = viewportHeight - rect.bottom - PANEL_GAP - VIEWPORT_MARGIN;
+  const above = rect.top - PANEL_GAP - VIEWPORT_MARGIN;
+  const flip = below < PANEL_MIN_HEIGHT && above > below;
+  return {
+    position: "fixed",
+    width: PANEL_WIDTH,
+    left: Math.max(
+      VIEWPORT_MARGIN,
+      Math.min(rect.left, viewportWidth - PANEL_WIDTH - VIEWPORT_MARGIN),
+    ),
+    ...(flip
+      ? { bottom: viewportHeight - rect.top + PANEL_GAP, maxHeight: above }
+      : { top: rect.bottom + PANEL_GAP, maxHeight: below }),
+  };
+}
+
+interface FilterSearchBarProps {
+  index: SearchFieldEntry[];
+  filters: Filters;
+  changeFilters: (name: string, key: string, value: unknown) => void;
+  addFilter?: (field: string, initial?: FilterInitialValue) => string | null;
+  /** Called with the affected filter key after a suggestion applies. */
+  onApplied?: (key: string | null) => void;
+  placeholder?: string;
+}
+
+/**
+ * Free-text entry point into the filter system: type a value ("PLA"), a field
+ * ("weight"), or an expression ("weight > 200", "material: petg") and pick
+ * from ranked suggestions. Applying updates a mounted filter in place or
+ * instantiates a dynamic one seeded with the parsed value.
+ *
+ * Autosuggest layers: focusing the empty box lists every filterable field with
+ * its live data shape; a partial expression ("material:") enumerates that
+ * field's values; and when the highlighted suggestion completes the typed text
+ * its remainder renders as inline ghost text — Tab (or → at the end of the
+ * input) accepts it without applying, Enter applies.
+ */
+export function FilterSearchBar({
+  index,
+  filters,
+  changeFilters,
+  addFilter,
+  onApplied,
+  placeholder = "Search filters...",
+}: FilterSearchBarProps): JSX.Element {
+  const [query, setQuery] = React.useState("");
+  const [active, setActive] = React.useState(0);
+  const [focused, setFocused] = React.useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [anchor, setAnchor] = React.useState<DOMRect | null>(null);
+
+  const suggestions = React.useMemo<FilterSuggestion[]>(
+    () => SearchFilterIndex(index, query, { filters, canAdd: !!addFilter }),
+    [index, query, filters, addFilter],
+  );
+
+  // Keep the highlight on a real row as the result set shrinks.
+  React.useEffect(() => {
+    setActive((prev) => Math.min(prev, Math.max(0, suggestions.length - 1)));
+  }, [suggestions.length]);
+
+  React.useEffect(() => {
+    if (!focused) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node;
+      // The panel is portalled out of the container, so it has to be tested
+      // separately — otherwise clicking a suggestion counts as "outside".
+      if (containerRef.current?.contains(target)) return;
+      if (panelRef.current?.contains(target)) return;
+      setFocused(false);
+    };
+    // Capture, not bubble: applying a suggestion re-renders and unmounts the
+    // clicked row *during* dispatch (mousedown is discrete, so React flushes
+    // synchronously). By the bubble phase `target` is detached and `contains`
+    // reports false, which would read as a click outside and kill the box while
+    // the input still holds focus — leaving it unable to reopen.
+    document.addEventListener("mousedown", handler, true);
+    return () => document.removeEventListener("mousedown", handler, true);
+  }, [focused]);
+
+  const open = focused && suggestions.length > 0;
+  const empty = focused && query.trim().length > 0 && suggestions.length === 0;
+  const showPanel = open || empty;
+
+  // The panel is height-capped to the viewport, so arrowing down a long list
+  // can walk the highlight out of sight — drag it back into view.
+  const activeRef = React.useRef<HTMLButtonElement>(null);
+  React.useEffect(() => {
+    if (open) activeRef.current?.scrollIntoView({ block: "nearest" });
+  }, [active, open]);
+
+  // Track the input's viewport box while the panel is up. Scroll is captured so
+  // that scrolling *any* ancestor — the toolbar strip, the page — re-anchors it,
+  // not just the window.
+  React.useLayoutEffect(() => {
+    if (!showPanel) return;
+    const measure = () => {
+      const el = containerRef.current;
+      if (el) setAnchor(el.getBoundingClientRect());
+    };
+    measure();
+    window.addEventListener("scroll", measure, true);
+    window.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("scroll", measure, true);
+      window.removeEventListener("resize", measure);
+    };
+  }, [showPanel]);
+  const highlighted = suggestions[active] ?? suggestions[0];
+
+  // Inline completion from the highlighted suggestion, e.g. "pl" + ghost "A".
+  const ghost = React.useMemo(() => {
+    const completion = highlighted?.completion;
+    if (!query || !completion) return "";
+    if (!completion.toLowerCase().startsWith(query.toLowerCase())) return "";
+    return completion.slice(query.length);
+  }, [query, highlighted]);
+
+  function acceptGhost(): boolean {
+    if (!ghost || !highlighted?.completion) return false;
+    setQuery(highlighted.completion);
+    return true;
+  }
+
+  function apply(suggestion: FilterSuggestion) {
+    const key = ApplyFilterSuggestion(suggestion, {
+      filters,
+      change_filters: changeFilters,
+      add_filter: addFilter,
+    });
+    setQuery("");
+    setActive(0);
+    onApplied?.(key);
+  }
+
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Escape") {
+      if (query) setQuery("");
+      else setFocused(false);
+      return;
+    }
+    if (e.key === "Tab" && ghost) {
+      e.preventDefault();
+      acceptGhost();
+      return;
+    }
+    if (e.key === "ArrowRight" && ghost) {
+      // Only intercept when the caret sits at the end — mid-string → still
+      // moves the cursor like a normal input.
+      const input = inputRef.current;
+      if (input && input.selectionStart === query.length && input.selectionEnd === query.length) {
+        e.preventDefault();
+        acceptGhost();
+        return;
+      }
+    }
+    if (suggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((prev) => (prev + 1) % suggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((prev) => (prev - 1 + suggestions.length) % suggestions.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      apply(suggestions[active] ?? suggestions[0]);
+    }
+  }
+
+  return (
+    <div className="relative inline-block" ref={containerRef}>
+      <div className="flex items-center gap-1.5">
+        <Search size={13} className="shrink-0 text-muted-foreground" />
+        <div className="relative">
+          <Input
+            ref={inputRef}
+            variant="background"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onKeyDown={onKeyDown}
+            placeholder={placeholder}
+            className="h-7 w-44 text-xs"
+          />
+          {ghost && (
+            // Mirrors the input's box metrics (px-3 + 1px border) so the ghost
+            // remainder lines up exactly after the typed text.
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-pre border border-transparent px-3 text-xs"
+            >
+              <span className="invisible">{query}</span>
+              <span className="text-muted-foreground">{ghost}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Portalled to <body>: the toolbar that hosts this bar is an
+          `overflow-x-auto` strip, and an overflow box clips its absolutely
+          positioned descendants no matter how high their z-index. Escaping the
+          subtree entirely is the only way the panel floats over the page. */}
+      {showPanel &&
+        anchor &&
+        createPortal(
+          <div
+            ref={panelRef}
+            style={panelStyle(anchor)}
+            className="z-50 overflow-y-auto rounded-md border bg-popover p-1 shadow-md"
+          >
+            {open ? (
+              suggestions.map((suggestion, i) => (
+                <button
+                  key={`${suggestion.label}-${i}`}
+                  ref={i === active ? activeRef : undefined}
+                  type="button"
+                  // mousedown, not click: apply before the input's blur handling
+                  // can close the dropdown out from under the press.
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    apply(suggestion);
+                  }}
+                  onMouseEnter={() => setActive(i)}
+                  className={`flex w-full items-baseline justify-between gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors ${
+                    i === active
+                      ? "bg-accent text-accent-foreground"
+                      : "hover:bg-accent hover:text-accent-foreground"
+                  }`}
+                >
+                  <span className="truncate font-medium">{suggestion.label}</span>
+                  {suggestion.detail && (
+                    <span className="shrink-0 tabular-nums text-muted-foreground">
+                      {suggestion.detail}
+                    </span>
+                  )}
+                </button>
+              ))
+            ) : (
+              <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+                No matching filters
+              </p>
+            )}
+          </div>,
+          document.body,
+        )}
+    </div>
+  );
+}

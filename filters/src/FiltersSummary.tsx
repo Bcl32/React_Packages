@@ -97,23 +97,31 @@ function FiltersEntry({ name, filter_value }: FiltersEntryProps): JSX.Element | 
     return null;
   }
 
+  const filter = context.filters[name];
+  // User-added instances are removed outright; declared ones reset to their
+  // full range (same rule as the ✕ on a toolbar chip).
+  const isDynamic = !!filter.dynamic && !!context.remove_filter;
+  const label = filter.title ?? capitalize(filter.field ?? name);
+
   return (
     <div className="flex flex-row grid xl:grid-cols-12" key={name}>
       <span className="font-semibold col-span-4">
-        {capitalize(name)}:
+        {label}:
       </span>
 
       <span className="whitespace-pre-line col-span-6">{filter_value}</span>
 
       <Button
         onClick={() =>
-          context.change_filters(name, "value", structuredClone(context.filters[name]["filter_empty"]))
+          isDynamic
+            ? context.remove_filter!(name)
+            : context.change_filters(name, "value", structuredClone(filter["filter_empty"]))
         }
         variant="default"
         size="lg"
         className="col-span-2"
       >
-        Reset
+        {isDynamic ? "Remove" : "Reset"}
       </Button>
     </div>
   );

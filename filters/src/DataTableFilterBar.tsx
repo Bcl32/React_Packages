@@ -2,9 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import * as React from "react";
 import dayjs from "dayjs";
 import { FilterProvider } from "./FilterProvider";
-import { GroupFilters } from "./GroupFilters";
+import { OrderFilters } from "./OrderFilters";
 import { FilterElement } from "./FilterElement";
-import type { Filters, FilterValue, FilterOption } from "./types";
+import { AddFilterPicker } from "./AddFilterPicker";
+import { FilterSearchBar } from "./FilterSearchBar";
+import type { SearchFieldEntry } from "./FilterSearch";
+import { humanizeFieldName } from "./utils";
+import type { Filters, FilterValue, FilterOption, FilterCatalogEntry, FilterInitialValue } from "./types";
 import { ListFilter, X } from "lucide-react";
 
 function formatOptionsLabel(value: string[], options: FilterOption[] | undefined): string {
@@ -14,7 +18,9 @@ function formatOptionsLabel(value: string[], options: FilterOption[] | undefined
 }
 
 function formatFilterLabel(name: string, filter: FilterValue): string {
-  const label = name.replace(/_/g, " ");
+  // Prefer the schema title ("Size (mm)") over the raw key — a dynamic instance's
+  // key is synthetic ("weight_g#2"), so the key alone reads badly in a chip.
+  const label = filter.title ?? humanizeFieldName(filter.field ?? name);
   switch (filter.type) {
     case "string":
       return `${label} ${filter.rule} "${filter.value}"`;
@@ -41,6 +47,39 @@ function formatFilterLabel(name: string, filter: FilterValue): string {
   }
 }
 
+/** How many table columns may be auto-pinned before it stops being a hint. */
+const MAX_DEFAULT_FILTERS = 6;
+
+/**
+ * Field names behind a TanStack column list, in table order.
+ *
+ * Accessor columns expose `accessorKey`; display columns (select, expander,
+ * actions) only have an `id` that matches no attribute, and are dropped later
+ * by intersecting with the filter catalog. Columns explicitly hidden via the
+ * table's columnVisibility map are skipped — if it isn't worth showing, it
+ * isn't worth pinning a filter for.
+ */
+function columnFields(
+  columns: unknown[] | undefined,
+  columnVisibility: Record<string, boolean> | undefined,
+): string[] {
+  if (!Array.isArray(columns)) return [];
+  const fields: string[] = [];
+  for (const column of columns) {
+    const def = column as { accessorKey?: unknown; id?: unknown };
+    const field =
+      typeof def?.accessorKey === "string"
+        ? def.accessorKey
+        : typeof def?.id === "string"
+          ? def.id
+          : undefined;
+    if (!field) continue;
+    if (columnVisibility && columnVisibility[field] === false) continue;
+    if (!fields.includes(field)) fields.push(field);
+  }
+  return fields;
+}
+
 export interface DataTableFilter {
   toolbar: React.ReactNode;
   panel: React.ReactNode;
@@ -54,6 +93,33 @@ interface UseDataTableFilterBarProps {
   activeFilters: Filters;
   filteredCount: number;
   totalCount: number;
+  // Optional — supplied together they enable the "+ Add filter" picker.
+  // Omit them and the panel just renders whatever filters already exist.
+  addFilter?: (
+    field: string,
+    initial?: FilterInitialValue,
+    options?: { pinned?: boolean },
+  ) => string | null;
+  removeFilter?: (name: string) => void;
+  filterCatalog?: FilterCatalogEntry[];
+  // Optional — enables the free-text filter search box in the toolbar.
+  searchIndex?: SearchFieldEntry[];
+  /**
+   * The data table's column definitions. Used only as a fallback: when the
+   * entity declares no primaryFilter at all, the columns you chose to put on
+   * screen are the best available guess at what you'd want to filter by, so
+   * they get pinned instead of leaving the panel empty.
+   */
+  columns?: unknown[];
+  /** The table's column-visibility map; hidden columns aren't pinned. */
+  columnVisibility?: Record<string, boolean>;
+  /**
+   * Whether the entity declares any primaryFilter (from useEntityFilters).
+   * Checked instead of inspecting `filters`, which is briefly empty after the
+   * catalog is ready but before the schema-declared filters are built — long
+   * enough for the fallback to fire on an entity that never needed it.
+   */
+  hasPrimaryFilters?: boolean;
 }
 
 export function useDataTableFilterBar({
@@ -62,20 +128,66 @@ export function useDataTableFilterBar({
   activeFilters,
   filteredCount,
   totalCount,
+  addFilter,
+  removeFilter,
+  filterCatalog,
+  searchIndex,
+  columns,
+  columnVisibility,
+  hasPrimaryFilters,
 }: UseDataTableFilterBarProps): DataTableFilter {
-  const grouped = allFilters ? GroupFilters(allFilters) : null;
-  const [activeTab, setActiveTab] = useState<string | null>(null);
-  const hasSetInitialTab = useRef(false);
+  // One flat, ordered list instead of per-kind tabs: pinned filters first,
+  // then the always-present options filters, then user-added instances in the
+  // order they were added. See OrderFilters for why bucketing by type is wrong
+  // here.
+  const orderedFilters = allFilters ? OrderFilters(allFilters) : [];
+  const [open, setOpen] = useState(false);
+  const hasSetInitialOpen = useRef(false);
   const activeCount = Object.keys(activeFilters).length;
+  const catalog = filterCatalog ?? [];
+  const canAddFilters = !!addFilter && catalog.length > 0;
 
+  // Entities with no primaryFilter (Vendors, Printers, …) would otherwise open
+  // to an empty panel. Fall back to the table's own columns: they're already a
+  // curated, human-ordered view of the entity. Runs once, and only while the
+  // panel is genuinely unpinned — never overrides a schema-declared set.
+  const seededDefaultsRef = useRef(false);
   useEffect(() => {
-    if (!hasSetInitialTab.current && grouped && grouped.primary_filters.length > 0) {
-      setActiveTab("main");
-      hasSetInitialTab.current = true;
+    if (seededDefaultsRef.current) return;
+    if (!addFilter || !allFilters || catalog.length === 0) return;
+
+    if (hasPrimaryFilters || Object.values(allFilters).some((f) => f.primaryFilter)) {
+      seededDefaultsRef.current = true;
+      return;
     }
-  }, [grouped]);
+
+    const addable = new Set(
+      catalog.filter((entry) => !entry.disabled).map((entry) => entry.field),
+    );
+    const fields = columnFields(columns, columnVisibility)
+      .filter((field) => addable.has(field) && !allFilters[field])
+      .slice(0, MAX_DEFAULT_FILTERS);
+
+    seededDefaultsRef.current = true;
+    fields.forEach((field) => addFilter(field, undefined, { pinned: true }));
+  }, [addFilter, allFilters, catalog, columns, columnVisibility, hasPrimaryFilters]);
+
+  // Open on first load when the entity has pinned filters — same behaviour the
+  // auto-selected "Main" tab used to give.
+  useEffect(() => {
+    if (!hasSetInitialOpen.current && orderedFilters.some((entry) => entry["primaryFilter"])) {
+      setOpen(true);
+      hasSetInitialOpen.current = true;
+    }
+  }, [orderedFilters]);
 
   function resetFilter(name: string) {
+    // A user-added instance has no "empty" resting state worth keeping around —
+    // ✕ drops the slot. Schema-declared filters reset to their full range.
+    if (allFilters?.[name]?.dynamic && removeFilter) {
+      removeFilter(name);
+      return;
+    }
     if (allFilters?.[name]) {
       changeFilters(
         name,
@@ -85,39 +197,35 @@ export function useDataTableFilterBar({
     }
   }
 
-  function toggleTab(tab: string) {
-    setActiveTab((prev) => (prev === tab ? null : tab));
-  }
-
-  const tabs = [
-    ...(grouped && grouped.primary_filters.length > 0
-      ? [{ key: "main", label: "Main" }] : []),
-    ...(grouped && (grouped.string_filters.length + grouped.options_filters.length) > 0
-      ? [{ key: "filters", label: "Filters" }] : []),
-    ...(grouped && grouped.numeric_filters.length > 0
-      ? [{ key: "numerical", label: "Numerical" }] : []),
-    ...(grouped && grouped.time_filters.length > 0
-      ? [{ key: "time", label: "Time" }] : []),
-  ];
-
   const toolbar = (
     <>
-      <ListFilter size={16} className="text-muted-foreground shrink-0" />
-      <div className="flex items-center gap-0.5">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => toggleTab(tab.key)}
-            className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
-              activeTab === tab.key
-                ? "bg-primary/20 text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {searchIndex && searchIndex.length > 0 && allFilters && (
+        <FilterSearchBar
+          index={searchIndex}
+          filters={allFilters}
+          changeFilters={changeFilters}
+          addFilter={addFilter}
+          // Reveal the panel so the applied filter is visible immediately.
+          onApplied={() => setOpen(true)}
+        />
+      )}
+      <button
+        onClick={() => setOpen((prev) => !prev)}
+        className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
+          open
+            ? "bg-primary/20 text-primary"
+            : "text-muted-foreground hover:text-foreground"
+        }`}
+        title={open ? "Hide filters" : "Show filters"}
+      >
+        <ListFilter size={14} />
+        Filters
+        {activeCount > 0 && (
+          <span className="rounded-full bg-primary/20 px-1.5 text-[10px] font-semibold text-primary">
+            {activeCount}
+          </span>
+        )}
+      </button>
       {activeCount > 0 &&
         Object.entries(activeFilters).map(([key, entry]) => (
           <span
@@ -138,48 +246,45 @@ export function useDataTableFilterBar({
 
   const panel = (
     <div
-      className={`grid transition-[grid-template-rows] duration-200 ${activeTab ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+      className={`grid transition-[grid-template-rows] duration-200 ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
     >
-      <div className={activeTab ? "overflow-visible" : "overflow-hidden"}>
-        {grouped && (
-          <FilterProvider filters={allFilters} changeFilters={changeFilters}>
+      <div className={open ? "overflow-visible" : "overflow-hidden"}>
+        {allFilters && (
+          <FilterProvider
+            filters={allFilters}
+            changeFilters={changeFilters}
+            addFilter={addFilter}
+            removeFilter={removeFilter}
+            filterCatalog={filterCatalog}
+          >
             <div className="pt-2 pb-1 border-b">
-              {activeTab === "main" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2 py-2">
-                  {grouped.primary_filters.map((entry) => (
-                    <FilterElement key={entry.name} filter_data={entry} />
-                  ))}
-                </div>
-              )}
-              {activeTab === "filters" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2 py-2">
-                  {grouped.string_filters.map((entry) => (
-                    <FilterElement key={entry.name} filter_data={entry} />
-                  ))}
-                  {grouped.options_filters.map((entry) => (
-                    <FilterElement key={entry.name} filter_data={entry} />
-                  ))}
-                </div>
-              )}
-                {activeTab === "numerical" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2 py-2">
-                    {grouped.numeric_filters.map((entry) => (
-                      <FilterElement key={entry.name} filter_data={entry} />
-                    ))}
+              <div className="py-2">
+                {canAddFilters && (
+                  <div className="flex items-center gap-2 pb-1">
+                    <AddFilterPicker
+                      catalog={catalog}
+                      onAdd={(field) => addFilter!(field)}
+                    />
+                    {orderedFilters.length === 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        Pick an attribute to start filtering.
+                      </span>
+                    )}
                   </div>
                 )}
-                {activeTab === "time" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 py-2">
-                    {grouped.time_filters.map((entry) => (
+                {orderedFilters.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2">
+                    {orderedFilters.map((entry) => (
                       <FilterElement key={entry.name} filter_data={entry} />
                     ))}
                   </div>
                 )}
               </div>
-            </FilterProvider>
-          )}
-        </div>
+            </div>
+          </FilterProvider>
+        )}
       </div>
+    </div>
   );
 
   return { toolbar, panel, filteredCount, totalCount };

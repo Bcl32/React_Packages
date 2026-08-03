@@ -1,4 +1,5 @@
 import * as React from "react";
+import { X } from "lucide-react";
 import { FilterContext } from "./FilterContext";
 
 import { Combobox } from "@bcl32/utils/Combobox";
@@ -23,6 +24,8 @@ interface OptionsFilterProps {
   selection?: FilterSelection;
   source_kind?: FilterSourceKind;
   colour_presets?: ColourPresetsConfig;
+  /** Supplied for user-added instances — renders the ✕ that drops the slot. */
+  onRemove?: () => void;
 }
 
 export function OptionsFilter({
@@ -33,6 +36,7 @@ export function OptionsFilter({
   selection = "multi",
   source_kind = "scalar-array",
   colour_presets,
+  onRemove,
 }: OptionsFilterProps): JSX.Element | null {
   const context = React.useContext(FilterContext) as FilterContextValue | null;
   const filterData = context?.filters?.[name];
@@ -68,6 +72,17 @@ export function OptionsFilter({
             className="text-xs px-1.5 py-0.5 rounded border border-primary/40 text-primary hover:border-primary transition-colors"
           >
             {filterData["rule"] === "all" ? "All" : "Any"}
+          </button>
+        )}
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="ml-auto shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
+            title={`Remove ${title ?? humanizeFieldName(name)} filter`}
+            aria-label={`Remove ${title ?? humanizeFieldName(name)} filter`}
+          >
+            <X size={13} />
           </button>
         )}
       </div>

@@ -1,37 +1,61 @@
+import * as React from "react";
+import { FilterContext } from "./FilterContext";
 import { DebouncedTextFilter } from "./DebouncedTextFilter";
 import { DebouncedNumberFilter } from "./DebouncedNumberFilter";
 import { OptionsFilter } from "./OptionsFilter";
 import { TimeFilter } from "./TimeFilter";
-import type { FilterData, FilterDisplay, FilterOption, FilterSelection, FilterSourceKind, ColourPresetsConfig } from "./types";
+import type { FilterContextValue, FilterData, FilterDisplay, FilterOption, FilterSelection, FilterSourceKind, ColourPresetsConfig } from "./types";
 
 interface FilterElementProps {
   filter_data: FilterData;
 }
 
 export function FilterElement({ filter_data }: FilterElementProps): JSX.Element {
-  const chart = get_chart_type(filter_data);
+  const context = React.useContext(FilterContext) as FilterContextValue | null;
+
+  // User-added instances get a ✕ that drops the slot entirely; schema-declared
+  // filters keep reset-to-full-range semantics and render without one.
+  const removeFilter = context?.remove_filter;
+  const onRemove =
+    filter_data["dynamic"] && removeFilter
+      ? () => removeFilter(filter_data["name"])
+      : undefined;
+
+  const chart = get_chart_type(filter_data, onRemove);
   return <div>{chart}</div>;
 }
 
-function get_chart_type(filter_data: FilterData): JSX.Element {
+function get_chart_type(filter_data: FilterData, onRemove?: () => void): JSX.Element {
   // Prefer the schema-provided `title` (e.g. "Size (mm)"); components fall back
   // to a humanized field name when it's absent.
   const title = filter_data["title"] as string | undefined;
   switch (filter_data["type"]) {
     case "string":
       return (
-        <DebouncedTextFilter name={filter_data["name"]} title={title} />
+        <DebouncedTextFilter
+          name={filter_data["name"]}
+          title={title}
+          onRemove={onRemove}
+        />
       );
 
     case "datetime":
       return (
         <div>
-          <TimeFilter name={filter_data["name"]} title={title} />
+          <TimeFilter
+            name={filter_data["name"]}
+            title={title}
+            onRemove={onRemove}
+          />
         </div>
       );
     case "number":
       return (
-        <DebouncedNumberFilter name={filter_data["name"]} title={title} />
+        <DebouncedNumberFilter
+          name={filter_data["name"]}
+          title={title}
+          onRemove={onRemove}
+        />
       );
     case "options":
       return (
@@ -43,6 +67,7 @@ function get_chart_type(filter_data: FilterData): JSX.Element {
           selection={filter_data["selection"] as FilterSelection | undefined}
           source_kind={filter_data["source_kind"] as FilterSourceKind | undefined}
           colour_presets={filter_data["colour_presets"] as ColourPresetsConfig | undefined}
+          onRemove={onRemove}
         />
       );
     default:

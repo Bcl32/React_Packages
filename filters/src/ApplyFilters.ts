@@ -33,20 +33,25 @@ export function ApplyFilters(data: unknown[], filters: Filters): DataEntry[] {
 
   for (const key in filters) {
     const filter = filters[key];
+    // The map key is the filter's identity, NOT necessarily the data column:
+    // user-added instances use a synthetic key ("weight_g#2") and point at the
+    // real column through `field`. Schema-declared filters leave field unset,
+    // where key and column are the same thing.
+    const column = filter["field"] ?? key;
     switch (filter["type"]) {
       case "string": {
         const strVal = ((filter["value"] as string) ?? "").toLowerCase();
         if (!strVal) break;
         if (filter["rule"] === "equals") {
           filteredData = filteredData.filter((entry) => {
-            const entryValue = entry?.[key];
+            const entryValue = entry?.[column];
             return typeof entryValue === "string" && entryValue.toLowerCase() === strVal;
           });
           break;
         }
         if (filter["rule"] === "contains") {
           filteredData = filteredData.filter((entry) => {
-            const entryValue = entry?.[key];
+            const entryValue = entry?.[column];
             return typeof entryValue === "string" && entryValue.toLowerCase().includes(strVal);
           });
           break;
@@ -58,7 +63,7 @@ export function ApplyFilters(data: unknown[], filters: Filters): DataEntry[] {
         const numValue = filter["value"] as NumberRange;
         const isArray = filter["source_kind"] === "scalar-array";
         filteredData = filteredData.filter((entry) => {
-          const raw = entry?.[key];
+          const raw = entry?.[column];
           if (raw == null) return false;
           if (isArray) {
             // scalar-array (e.g. per-axis units): match when ANY element is in
@@ -81,7 +86,7 @@ export function ApplyFilters(data: unknown[], filters: Filters): DataEntry[] {
         const value_key = filter["value_key"] ?? "value";
         const rule = filter["rule"] ?? "any";
         filteredData = filteredData.filter((entry) => {
-          const rowValues = extractRowValues(entry?.[key], filter["source_kind"], value_key);
+          const rowValues = extractRowValues(entry?.[column], filter["source_kind"], value_key);
           if (rule === "equals") {
             return selected.length === 1 && rowValues.includes(selected[0]);
           }
@@ -96,7 +101,7 @@ export function ApplyFilters(data: unknown[], filters: Filters): DataEntry[] {
       case "datetime": {
         const dtValue = filter["value"] as DatetimeFilterValue;
         filteredData = filteredData.filter((entry) => {
-          const entryValue = entry?.[key];
+          const entryValue = entry?.[column];
           if (!entry || !entryValue) return false;
           const time = new Date(entryValue as string).getTime();
           return time >= new Date(dtValue.timespan_begin).getTime() &&

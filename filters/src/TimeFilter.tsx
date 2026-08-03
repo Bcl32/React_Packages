@@ -8,7 +8,7 @@ import timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-import { Pencil, RotateCcw } from "lucide-react";
+import { Pencil, RotateCcw, X } from "lucide-react";
 import { DateTimePicker } from "@bcl32/utils/DateTimePicker";
 
 import { Button } from "@bcl32/utils/Button";
@@ -21,13 +21,15 @@ import { humanizeFieldName } from "./utils";
 interface TimeFilterProps {
   name: string;
   title?: string;
+  /** Supplied for user-added instances — renders the ✕ that drops the slot. */
+  onRemove?: () => void;
 }
 
 // The filter bar hands each filter a single narrow column, so the trigger
 // labels are abbreviated ("Aug 2 '26, 3:45pm"). The dialog shows full values.
 const TRIGGER_FORMAT = "MMM D 'YY, h:mma";
 
-export function TimeFilter({ name, title }: TimeFilterProps): JSX.Element | null {
+export function TimeFilter({ name, title, onRemove }: TimeFilterProps): JSX.Element | null {
   const context = React.useContext(FilterContext) as FilterContextValue | null;
 
   // Safe access to filter data - handles React batching timing issues
@@ -101,6 +103,20 @@ export function TimeFilter({ name, title }: TimeFilterProps): JSX.Element | null
           >
             <RotateCcw size={13} /> Reset
           </Button>
+
+          {/* Reset stays useful on an instance (widen back without losing the
+              slot); ✕ is the one that drops it. */}
+          {onRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
+              title={`Remove ${label} filter`}
+              aria-label={`Remove ${label} filter`}
+            >
+              <X size={13} />
+            </button>
+          )}
         </div>
       </div>
 

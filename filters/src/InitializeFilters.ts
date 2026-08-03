@@ -1,118 +1,56 @@
-import type { Filters, ModelAttribute, DatasetStats, FilterValue, NumberRange, DatetimeFilterValue } from "./types";
+import { CreateFilter } from "./CreateFilter";
+import { isDynamicFilterAttribute, type DynamicFilterKind } from "./BuildFilterCatalog";
+import type { Filters, ModelAttribute, DatasetStats } from "./types";
 
-const OPTIONS_FIELDS = [
-  "options",
-  "source_kind",
-  "selection",
-  "display",
-  "value_key",
-  "label_key",
-  "colour_presets",
-] as const;
+export interface InitializeFiltersOptions {
+  /**
+   * Which filter kinds are created on demand instead of at mount.
+   *
+   * When enabled, filters of that kind that aren't flagged primaryFilter are
+   * NOT instantiated up front — the user adds them from the "+ Add filter"
+   * picker. That's the clutter fix: Part declares 16 numeric + 16 text + 3 date
+   * filters and rendered all of them at once.
+   *
+   * `true` covers every supported kind; an array narrows it
+   * (e.g. `["number", "datetime"]` keeps text filters eager).
+   *
+   * Defaults to **off**: a consumer that hasn't wired addFilter/removeFilter/
+   * filterCatalog into its filter UI would otherwise end up with filters it can
+   * neither see nor create.
+   */
+  dynamicFilters?: boolean | DynamicFilterKind[];
+}
 
-export function InitializeFilters(model_data: ModelAttribute[], datasetStats: DatasetStats): Filters {
+const ALL_DYNAMIC_KINDS: DynamicFilterKind[] = ["number", "datetime", "string", "boolean"];
+
+export function resolveDynamicKinds(
+  option: boolean | DynamicFilterKind[] | undefined,
+): DynamicFilterKind[] {
+  if (option === true) return ALL_DYNAMIC_KINDS;
+  if (Array.isArray(option)) return option;
+  return [];
+}
+
+export function InitializeFilters(
+  model_data: ModelAttribute[],
+  datasetStats: DatasetStats,
+  options: InitializeFiltersOptions = {},
+): Filters {
   // Early return if datasetStats is not ready (race condition during initial load)
   if (!datasetStats || Object.keys(datasetStats).length === 0) {
     return {};
   }
 
+  const dynamicKinds = resolveDynamicKinds(options.dynamicFilters);
   const filter_start: Filters = {};
 
   model_data.forEach(function (item) {
-    if (item["filter"]) {
-      const declaredFilterType = item["filter_type"] as FilterValue["type"] | undefined;
-      const dataType = item["type"] as string;
-      const resolvedType: FilterValue["type"] =
-        declaredFilterType ??
-        (dataType === "string" || dataType === "number" || dataType === "datetime"
-          ? dataType
-          : "options");
-      const filter: FilterValue = {
-        type: resolvedType,
-        value: item["filter_empty"],
-        rule: item["filter_rule"],
-        filter_empty: structuredClone(item["filter_empty"]),
-      };
-      const title = item["name"];
-      filter_start[title] = filter;
+    if (!item["filter"]) return;
+    if (dynamicKinds.length > 0 && isDynamicFilterAttribute(item, dynamicKinds)) return;
 
-      // source_kind drives array-aware matching (options always; number when the
-      // field is a scalar-array, e.g. number_list per-axis units). Copy it here
-      // so ApplyFilters sees it for number filters too, not just options.
-      if (item["source_kind"] !== undefined) {
-        (filter_start[title] as unknown as Record<string, unknown>)["source_kind"] =
-          item["source_kind"];
-      }
-
-      // Carry the schema title so the filter components can render it (they fall
-      // back to a humanized field name when absent). Without this the title
-      // threaded through FilterElement is always undefined.
-      if (item["title"] !== undefined) {
-        (filter_start[title] as unknown as Record<string, unknown>)["title"] =
-          item["title"];
-      }
-
-      if (resolvedType === "options") {
-        for (const field of OPTIONS_FIELDS) {
-          if (item[field] !== undefined) {
-            (filter_start[title] as unknown as Record<string, unknown>)[field] = item[field];
-          }
-        }
-      }
-
-      if (item["primaryFilter"]) {
-        (filter_start[title] as unknown as Record<string, unknown>)["primaryFilter"] = true;
-      }
-
-      if (item["filterOrder"] !== undefined) {
-        (filter_start[title] as unknown as Record<string, unknown>)["filterOrder"] = item["filterOrder"];
-      }
-
-      if (resolvedType === "number") {
-        // Covers both scalar numbers (item.type "number") and number_list
-        // arrays (item.type "number_list") — both resolve to a number range
-        // slider whose bounds come from the dataset min/max stats.
-        const minStat = datasetStats[title].find((obj) => {
-          return obj.name === "min";
-        });
-        const maxStat = datasetStats[title].find((obj) => {
-          return obj.name === "max";
-        });
-
-        const min = minStat?.["value"] as number;
-        const max = maxStat?.["value"] as number;
-
-        const filterEmpty = filter_start[title]["filter_empty"] as NumberRange;
-        const filterValue = filter_start[title]["value"] as NumberRange;
-
-        filterEmpty["min"] = min;
-        filterValue["min"] = min;
-
-        filterEmpty["max"] = max;
-        filterValue["max"] = max;
-      }
-
-      if (item["type"] === "datetime") {
-        //get the earliest and latest stat objects and assign to filter empty and value for filters
-        const earliestStat = datasetStats[title].find((obj) => {
-          return obj.name === "earliest";
-        });
-        const latestStat = datasetStats[title].find((obj) => {
-          return obj.name === "latest";
-        });
-
-        const earliest = earliestStat?.["value"] as string;
-        const latest = latestStat?.["value"] as string;
-
-        const filterEmpty = filter_start[title]["filter_empty"] as DatetimeFilterValue;
-        const filterValue = filter_start[title]["value"] as DatetimeFilterValue;
-
-        filterEmpty["timespan_begin"] = earliest;
-        filterValue["timespan_begin"] = earliest;
-
-        filterEmpty["timespan_end"] = latest;
-        filterValue["timespan_end"] = latest;
-      }
+    const filter = CreateFilter(item, datasetStats);
+    if (filter) {
+      filter_start[item["name"]] = filter;
     }
   });
 

@@ -1,8 +1,8 @@
 import * as React from "react";
 
-import { GroupFilters } from "./GroupFilters";
-import { AnimatedTabs, TabContent } from "@bcl32/utils/AnimatedTabs";
+import { OrderFilters } from "./OrderFilters";
 import { FilterElement } from "./FilterElement";
+import { AddFilterPicker } from "./AddFilterPicker";
 import { FilterContext } from "./FilterContext";
 import type { FilterContextValue, FilterData } from "./types";
 
@@ -10,53 +10,40 @@ export function AllFilters(): JSX.Element {
   // Get filters from Context (single source of truth)
   const context = React.useContext(FilterContext) as FilterContextValue | null;
 
-  // Safety check: Don't render until filters are initialized
-  if (!context?.filters || Object.keys(context.filters).length === 0) {
+  const catalog = context?.filter_catalog ?? [];
+  const canAddFilters = !!context?.add_filter && catalog.length > 0;
+
+  // Safety check: Don't render until filters are initialized. An empty filter
+  // map is legitimate once filters are add-on-demand, so a usable catalog is
+  // enough to render.
+  if (!context?.filters || (Object.keys(context.filters).length === 0 && !canAddFilters)) {
     return <div className="p-2 text-sm text-muted-foreground">Initializing filters...</div>;
   }
 
-  const {
-    string_filters,
-    numeric_filters,
-    options_filters,
-    time_filters,
-  } = GroupFilters(context.filters);
+  // One section rather than per-kind tabs: with numeric/date/text filters all
+  // created on demand, the tabs were mostly empty containers for a picker.
+  const ordered = OrderFilters(context.filters);
 
   return (
-    <div>
-      <div>
-        <AnimatedTabs tab_titles={["Text Filters","Time Filters"]}>
-          <div className="overflow-auto">
+    <div className="space-y-2">
+      {canAddFilters && (
+        <div className="flex items-center gap-2 p-2">
+          <AddFilterPicker
+            catalog={catalog}
+            onAdd={(field) => context.add_filter!(field)}
+          />
+          {ordered.length === 0 && (
+            <span className="text-xs text-muted-foreground">
+              Pick an attribute to start filtering.
+            </span>
+          )}
+        </div>
+      )}
 
-            <TabContent unmount={false}>
-              {string_filters.map((entry: FilterData) => {
-                return (
-                  <FilterElement key={entry["name"]} filter_data={entry} />
-                );
-              })}
-
-              {numeric_filters.map((entry: FilterData) => {
-                return (
-                  <FilterElement key={entry["name"]} filter_data={entry} />
-                );
-              })}
-
-              {options_filters.map((entry: FilterData) => {
-                return (
-                  <FilterElement key={entry["name"]} filter_data={entry} />
-                );
-              })}
-            </TabContent>
-
-            <TabContent>
-              {time_filters.map((entry: FilterData) => {
-                return (
-                  <FilterElement key={entry["name"]} filter_data={entry} />
-                );
-              })}
-            </TabContent>
-          </div>
-        </AnimatedTabs>
+      <div className="overflow-auto">
+        {ordered.map((entry: FilterData) => (
+          <FilterElement key={entry["name"]} filter_data={entry} />
+        ))}
       </div>
     </div>
   );

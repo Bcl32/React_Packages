@@ -93,9 +93,25 @@
       "types": "./dist/InitializeFilters.d.ts",
       "import": "./dist/InitializeFilters.js"
     },
+    "./CreateFilter": {
+      "types": "./dist/CreateFilter.d.ts",
+      "import": "./dist/CreateFilter.js"
+    },
+    "./BuildFilterCatalog": {
+      "types": "./dist/BuildFilterCatalog.d.ts",
+      "import": "./dist/BuildFilterCatalog.js"
+    },
+    "./AddFilterPicker": {
+      "types": "./dist/AddFilterPicker.d.ts",
+      "import": "./dist/AddFilterPicker.js"
+    },
     "./GroupFilters": {
       "types": "./dist/GroupFilters.d.ts",
       "import": "./dist/GroupFilters.js"
+    },
+    "./OrderFilters": {
+      "types": "./dist/OrderFilters.d.ts",
+      "import": "./dist/OrderFilters.js"
     },
     "./ProcessDataset": {
       "types": "./dist/ProcessDataset.d.ts",
@@ -155,6 +171,7 @@
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2"
   }

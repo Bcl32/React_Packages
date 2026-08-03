@@ -18,7 +18,13 @@ export * from "./GetSubkeyValues";
 export * from "./ApplyFilters";
 export * from "./GetActiveFilters";
 export * from "./InitializeFilters";
+export * from "./CreateFilter";
+export * from "./BuildFilterCatalog";
+export * from "./AddFilterPicker";
+export * from "./FilterSearch";
+export * from "./FilterSearchBar";
 export * from "./GroupFilters";
+export * from "./OrderFilters";
 export * from "./ProcessDataset";
 export * from "./useEntityFilters";
 export * from "./useEntityGroups";
@@ -35,6 +41,7 @@ export type {
   FilterOption,
   FilterSelection,
   FilterSourceKind,
+  FilterCatalogEntry,
   GroupedFilters,
   ChartMetadata,
   ChartDataEntry,

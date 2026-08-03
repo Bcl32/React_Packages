@@ -1,4 +1,5 @@
 import * as React from "react";
+import { X } from "lucide-react";
 import { FilterContext } from "./FilterContext";
 
 import { Input } from "@bcl32/utils/Input";
@@ -9,9 +10,11 @@ import { humanizeFieldName } from "./utils";
 interface DebouncedTextFilterProps {
   name: string;
   title?: string;
+  /** Supplied for user-added instances — renders the ✕ that drops the slot. */
+  onRemove?: () => void;
 }
 
-export function DebouncedTextFilter({ name, title }: DebouncedTextFilterProps): JSX.Element | null {
+export function DebouncedTextFilter({ name, title, onRemove }: DebouncedTextFilterProps): JSX.Element | null {
   const context = React.useContext(FilterContext) as FilterContextValue | null;
 
   // Safe access to filter data - handles React batching timing issues
@@ -26,6 +29,24 @@ export function DebouncedTextFilter({ name, title }: DebouncedTextFilterProps): 
     setInputValue(initialValue);
   }, [initialValue]);
 
+  // Debounce input and push to context.
+  //
+  // Both effects must run before the "no filter data" guard below: a removed
+  // instance makes filterData undefined for one render, and bailing out between
+  // two hooks would trip React's "rendered fewer hooks than expected".
+  React.useEffect(() => {
+    // Skip initial mount — context already has the correct value
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    if (!context?.filters?.[name]) return;
+    const timeoutId = setTimeout(() => {
+      context?.change_filters(name, "value", inputValue);
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [inputValue, name]);
+
   // Guard: don't render until filter data is available
   if (!filterData || !context) {
     return null;
@@ -34,19 +55,6 @@ export function DebouncedTextFilter({ name, title }: DebouncedTextFilterProps): 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value);
   };
-
-  // Debounce input and push to context
-  React.useEffect(() => {
-    // Skip initial mount — context already has the correct value
-    if (!mountedRef.current) {
-      mountedRef.current = true;
-      return;
-    }
-    const timeoutId = setTimeout(() => {
-      context?.change_filters(name, "value", inputValue);
-    }, 500);
-    return () => clearTimeout(timeoutId);
-  }, [inputValue, name]);
 
   function toggleRule() {
     const next = filterData?.["rule"] === "equals" ? "contains" : "equals";
@@ -64,6 +72,17 @@ export function DebouncedTextFilter({ name, title }: DebouncedTextFilterProps): 
         >
           {filterData["rule"] === "equals" ? "Equals" : "Contains"}
         </button>
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="ml-auto shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
+            title={`Remove ${title ?? humanizeFieldName(name)} filter`}
+            aria-label={`Remove ${title ?? humanizeFieldName(name)} filter`}
+          >
+            <X size={13} />
+          </button>
+        )}
       </div>
       <Input
         variant="background"
