@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/forms",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Forms to add new entities to the databases",
   "author": "",
   "license": "ISC",
@@ -83,8 +83,8 @@
   },
   "dependencies": {
     "@bcl32/data-utils": "workspace:^2.1.10",
-    "@bcl32/hooks": "workspace:^4.0.0",
-    "@bcl32/utils": "workspace:^2.5.0",
+    "@bcl32/hooks": "workspace:^4.0.1",
+    "@bcl32/utils": "workspace:^2.8.0",
     "lucide-react": "^0.447.0"
   },
   "devDependencies": {
