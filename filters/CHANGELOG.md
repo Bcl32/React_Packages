@@ -1,5 +1,13 @@
 # @bcl32/filters
 
+## 3.3.1
+
+### Patch Changes
+
+- 3d778c0: feat(utils,filters): scale up the colour picker for colour filters
+- Updated dependencies [3d778c0]
+  - @bcl32/utils@2.8.1
+
 ## 3.3.0
 
 ### Minor Changes
