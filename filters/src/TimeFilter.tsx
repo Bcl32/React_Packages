@@ -8,12 +8,13 @@ import timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-import { Pencil, RotateCcw, X } from "lucide-react";
+import { Pencil, RotateCcw } from "lucide-react";
 import { DateTimePicker } from "@bcl32/utils/DateTimePicker";
 
 import { Button } from "@bcl32/utils/Button";
 import { DialogButton } from "@bcl32/utils/DialogButton";
 
+import { FilterHeader } from "./FilterHeader";
 import { TimeEditDialog } from "./TimeEditDialog";
 import type { FilterContextValue, DatetimeFilterValue } from "./types";
 import { humanizeFieldName } from "./utils";
@@ -62,92 +63,83 @@ export function TimeFilter({ name, title, onRemove }: TimeFilterProps): JSX.Elem
   return (
     // Matches the sibling filters' card rhythm (see DebouncedNumberFilter) and
     // stays a single column: the enclosing filter bar owns the page grid.
-    <div className="p-2 space-y-1.5">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold shrink-0">{label}</span>
-
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-          <DialogButton
-            key={"dialog-time-edit" + name}
-            // `display: contents` dissolves DialogButton's own wrapper <div>
-            // so the trigger participates in this flex row directly instead of
-            // becoming a block that pushes Reset onto its own line.
-            className="contents"
-            button={
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 gap-1 px-2 text-xs"
-              >
-                <Pencil size={13} /> Shortcuts
-              </Button>
-            }
-            size="medium"
-            title={label + " — edit time range"}
-            variant="default"
-          >
-            <TimeEditDialog
-              filters={context.filters}
-              change_time_filter={change_time_filter}
-              change_filters={context.change_filters}
-              name={name}
-            />
-          </DialogButton>
-
-          <Button
-            onClick={reset_value}
-            variant="ghost"
-            size="sm"
-            className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
-            title="Reset to the full range"
-          >
-            <RotateCcw size={13} /> Reset
-          </Button>
-
-          {/* Reset stays useful on an instance (widen back without losing the
-              slot); ✕ is the one that drops it. */}
-          {onRemove && (
-            <button
-              type="button"
-              onClick={onRemove}
-              className="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
-              title={`Remove ${label} filter`}
-              aria-label={`Remove ${label} filter`}
+    <div className="space-y-1">
+      <FilterHeader
+        label={label}
+        onRemove={onRemove}
+        actions={
+          <>
+            <DialogButton
+              key={"dialog-time-edit" + name}
+              // `display: contents` dissolves DialogButton's own wrapper <div>
+              // so the trigger participates in this flex row directly instead
+              // of becoming a block that pushes Reset onto its own line.
+              className="contents"
+              button={
+                // Icon-only: the label row is a caption now, and "Shortcuts"
+                // plus "Reset" spelled out no longer fit beside a long field
+                // title in a narrower grid column.
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground"
+                  title="Time-range shortcuts"
+                  aria-label={`${label} — time-range shortcuts`}
+                >
+                  <Pencil size={12} />
+                </Button>
+              }
+              size="medium"
+              title={label + " — edit time range"}
+              variant="default"
             >
-              <X size={13} />
-            </button>
-          )}
-        </div>
-      </div>
+              <TimeEditDialog
+                filters={context.filters}
+                change_time_filter={change_time_filter}
+                change_filters={context.change_filters}
+                name={name}
+              />
+            </DialogButton>
 
-      <div className="grid grid-cols-2 gap-1.5">
-        <div className="min-w-0 space-y-0.5">
-          <span className="block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-            From
-          </span>
-          <DateTimePicker
-            value={dayjs(filterValue["timespan_begin"])}
-            format={TRIGGER_FORMAT}
-            onChange={(newValue) =>
-              newValue && change_time_filter(name, "timespan_begin", newValue)
-            }
-            className="h-7 w-full justify-start truncate px-2 text-xs font-normal"
-          />
-        </div>
+            {/* Reset stays useful on an instance (widen back without losing
+                the slot); ✕ is the one that drops it. */}
+            <Button
+              onClick={reset_value}
+              variant="ghost"
+              size="sm"
+              className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground"
+              title="Reset to the full range"
+              aria-label={`Reset ${label} to the full range`}
+            >
+              <RotateCcw size={12} />
+            </Button>
+          </>
+        }
+      />
 
-        <div className="min-w-0 space-y-0.5">
-          <span className="block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-            To
-          </span>
-          <DateTimePicker
-            value={dayjs(filterValue["timespan_end"])}
-            format={TRIGGER_FORMAT}
-            onChange={(newValue) =>
-              newValue && change_time_filter(name, "timespan_end", newValue)
-            }
-            className="h-7 w-full justify-start truncate px-2 text-xs font-normal"
-          />
-        </div>
+      {/* The From/To captions cost two more text rows than they were worth —
+          an arrow between the two triggers says the same thing on the line the
+          pickers already occupy. */}
+      <div className="flex items-center gap-1">
+        <DateTimePicker
+          value={dayjs(filterValue["timespan_begin"])}
+          format={TRIGGER_FORMAT}
+          onChange={(newValue) =>
+            newValue && change_time_filter(name, "timespan_begin", newValue)
+          }
+          className="h-6 min-w-0 flex-1 justify-start truncate px-1.5 text-[11px] font-normal"
+        />
+        <span aria-hidden className="shrink-0 text-[10px] text-muted-foreground">
+          →
+        </span>
+        <DateTimePicker
+          value={dayjs(filterValue["timespan_end"])}
+          format={TRIGGER_FORMAT}
+          onChange={(newValue) =>
+            newValue && change_time_filter(name, "timespan_end", newValue)
+          }
+          className="h-6 min-w-0 flex-1 justify-start truncate px-1.5 text-[11px] font-normal"
+        />
       </div>
     </div>
   );

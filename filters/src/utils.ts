@@ -15,6 +15,22 @@ export function capitalize(name: string): string {
   return name[0].toUpperCase() + name.slice(1);
 }
 
+/**
+ * Readable text for one option in a combobox/dropdown filter.
+ *
+ * Enum-backed options arrive with the raw member as their label
+ * ("in_progress"), which reads badly in a dropdown the moment the toggle
+ * buttons — which capitalised on the way out — are gone. Only labels that are
+ * pure lowercase snake tokens are rewritten; anything carrying an uppercase
+ * letter or a space is already a human label ("eSUN", "Black PLA") and is left
+ * exactly as it is.
+ */
+export function prettyOptionLabel(label: string): string {
+  if (!/^[a-z0-9]+(_[a-z0-9]+)*$/.test(label)) return label;
+  const spaced = label.replace(/_/g, " ");
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
 // Turn a raw snake_case field name into a readable filter label:
 // "system_units" → "System units". Used as the fallback when a filter
 // attribute has no explicit `title`.

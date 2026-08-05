@@ -1,6 +1,6 @@
 import * as React from "react";
-import { X } from "lucide-react";
 import { FilterContext } from "./FilterContext";
+import { FilterHeader } from "./FilterHeader";
 
 import { Combobox } from "@bcl32/utils/Combobox";
 import { ToggleGroup, ToggleGroupItem } from "@bcl32/utils/ToggleGroup";
@@ -14,7 +14,7 @@ import type {
   FilterSourceKind,
   ColourPresetsConfig,
 } from "./types";
-import { capitalize, humanizeFieldName } from "./utils";
+import { capitalize, humanizeFieldName, prettyOptionLabel } from "./utils";
 
 interface OptionsFilterProps {
   name: string;
@@ -61,31 +61,26 @@ export function OptionsFilter({
     context!.change_filters(name, "rule", next);
   }
 
+  const label = title ?? humanizeFieldName(name);
+
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-1">
-        <span className="font-semibold">{title ?? humanizeFieldName(name)}</span>
-        {ruleEligible && (
-          <button
-            type="button"
-            onClick={toggleRule}
-            className="text-xs px-1.5 py-0.5 rounded border border-primary/40 text-primary hover:border-primary transition-colors"
-          >
-            {filterData["rule"] === "all" ? "All" : "Any"}
-          </button>
-        )}
-        {onRemove && (
-          <button
-            type="button"
-            onClick={onRemove}
-            className="ml-auto shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
-            title={`Remove ${title ?? humanizeFieldName(name)} filter`}
-            aria-label={`Remove ${title ?? humanizeFieldName(name)} filter`}
-          >
-            <X size={13} />
-          </button>
-        )}
-      </div>
+    <div className="space-y-1">
+      <FilterHeader
+        label={label}
+        rule={
+          ruleEligible
+            ? {
+                text: filterData["rule"] === "all" ? "All" : "Any",
+                onToggle: toggleRule,
+                title:
+                  filterData["rule"] === "all"
+                    ? "Matching rows must have every selected value"
+                    : "Matching rows need any one of the selected values",
+              }
+            : undefined
+        }
+        onRemove={onRemove}
+      />
 
       {display === "combobox" && (
         <ComboboxView
@@ -135,15 +130,18 @@ interface ComboboxViewProps {
 }
 
 function ComboboxView({ options, value, multiple, placeholder, onChange }: ComboboxViewProps): JSX.Element {
-  const labels = options.map((o) => o.label);
+  // The combobox is a list of strings, so the displayed text is the key we get
+  // back on select — both maps are built from the *pretty* label, never the raw
+  // one, or an enum-backed option round-trips to a value nothing matches.
+  const labels = React.useMemo(() => options.map((o) => prettyOptionLabel(o.label)), [options]);
   const labelToValue = React.useMemo(() => {
     const m = new Map<string, string>();
-    options.forEach((o) => m.set(o.label, o.value));
+    options.forEach((o) => m.set(prettyOptionLabel(o.label), o.value));
     return m;
   }, [options]);
   const valueToLabel = React.useMemo(() => {
     const m = new Map<string, string>();
-    options.forEach((o) => m.set(o.value, o.label));
+    options.forEach((o) => m.set(o.value, prettyOptionLabel(o.label)));
     return m;
   }, [options]);
 
@@ -153,6 +151,7 @@ function ComboboxView({ options, value, multiple, placeholder, onChange }: Combo
     <Combobox
       multiple={multiple}
       freeSolo
+      size="sm"
       options={labels}
       value={currentLabels}
       onChange={(next: string | string[]) => {
@@ -172,7 +171,7 @@ interface ChipToggleViewProps {
 
 function ChipToggleView({ options, selected, onToggle }: ChipToggleViewProps): JSX.Element {
   return (
-    <div className="flex flex-wrap gap-1 mt-1">
+    <div className="flex flex-wrap gap-0.5">
       {options.map((o) => {
         const on = selected.includes(o.value);
         return (
@@ -180,7 +179,7 @@ function ChipToggleView({ options, selected, onToggle }: ChipToggleViewProps): J
             key={o.value}
             type="button"
             onClick={() => onToggle(o.value)}
-            className={`px-2 py-0.5 rounded-full text-xs transition-colors ${
+            className={`px-1.5 rounded-full text-[11px] leading-5 transition-colors ${
               on
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -208,10 +207,17 @@ function ToggleButtonsView({ options, selected, onChange }: ToggleButtonsViewPro
       size="sm"
       value={selected}
       onValueChange={(value: string[]) => onChange(value)}
-      className="flex flex-wrap gap-1 mt-1"
+      className="flex flex-wrap justify-start gap-0.5"
     >
       {options.map((o) => (
-        <ToggleGroupItem key={o.value} value={o.value}>
+        // Overrides the `sm` variant's h-9: inside the filter grid these are
+        // captions, and a full-height button row is what made an options filter
+        // twice as tall as a text one.
+        <ToggleGroupItem
+          key={o.value}
+          value={o.value}
+          className="h-6 rounded px-1.5 text-[11px]"
+        >
           {capitalize(o.label)}
         </ToggleGroupItem>
       ))}
@@ -282,13 +288,13 @@ function SwatchGridView({ colour_presets, selected, onToggle }: SwatchGridViewPr
 
   return (
     <div className="relative inline-block" ref={ref}>
-      <div className="flex items-center gap-2 flex-wrap mt-1">
+      <div className="flex items-center gap-1 flex-wrap">
         {selected.map((hex) => (
           <button
             key={hex}
             type="button"
             onClick={() => onToggle(hex)}
-            className="w-9 h-9 rounded-full border-2 border-primary ring-1 ring-primary cursor-pointer hover:scale-110 transition-transform"
+            className="w-6 h-6 rounded-full border-2 border-primary ring-1 ring-primary cursor-pointer hover:scale-110 transition-transform"
             style={{ backgroundColor: hex }}
             title={`Remove ${hex}`}
           />
@@ -296,7 +302,7 @@ function SwatchGridView({ colour_presets, selected, onToggle }: SwatchGridViewPr
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
-          className="w-9 h-9 rounded-full border-2 border-dashed border-border cursor-pointer hover:border-primary hover:scale-110 transition-all flex items-center justify-center text-muted-foreground text-lg leading-none"
+          className="w-6 h-6 rounded-full border-2 border-dashed border-border cursor-pointer hover:border-primary hover:scale-110 transition-all flex items-center justify-center text-muted-foreground text-sm leading-none"
           title="Add colour filter"
         >
           +

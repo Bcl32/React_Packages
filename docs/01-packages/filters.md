@@ -70,7 +70,7 @@ import type { ModelData, Filters } from "@bcl32/filters/types";
 
 | Name | Kind | Signature / Props | Description |
 |---|---|---|---|
-| `AllFilters` | component | `() => JSX.Element` | Renders all non-primary filters grouped into Text/Time tabs via `AnimatedTabs`. Reads from `FilterContext`. |
+| `AllFilters` | component | `() => JSX.Element` | Renders every filter in one responsive grid (1/2/3 columns), preceded by the `AddFilterPicker` when the context supplies a catalog. Reads from `FilterContext`. |
 | `FilterElement` | component | `({ filter_data: FilterData }) => JSX.Element` | Dispatcher rendering the correct leaf filter (`DebouncedTextFilter`, `DebouncedNumberFilter`, `OptionsFilter`, or `TimeFilter`) based on `filter_data.type`. |
 | `FiltersSummary` | component | `({ active_filters: Filters }) => JSX.Element \| null` | Human-readable summary of active filters with per-filter Reset buttons. Reads from `FilterContext`. |
 | `DebouncedTextFilter` | component | `({ name: string }) => JSX.Element \| null` | Text input with 500ms debounce and equals/contains rule toggle. Reads/writes its filter from `FilterContext` by name. |
@@ -199,7 +199,7 @@ A consumer must follow these to wire the package correctly:
 
 5. **Swatch-grid display** of `OptionsFilter` requires `colour_presets.get_api_url` to return `{ items: Array<{ colour_hex, id?, colour_name?, ...group_by fields }> }`.
 
-6. **Primary filter routing:** `primaryFilter: true` on a `ModelAttribute` routes it to the **Main** tab in `useDataTableFilterBar` (shown first in a responsive grid); `filterOrder` controls sort within that tab.
+6. **Primary filter routing:** `primaryFilter: true` on a `ModelAttribute` pins the filter to the front of the panel's responsive grid; `filterOrder` sorts within the pinned block. One exception, applied in `OrderFilters`: a filter on the `name` field always leads the pinned block, ahead of any declared `filterOrder` — including on pages whose pinned set is seeded from the table's columns rather than declared.
 
 7. **Do NOT double-wrap `useDataTableFilterBar`.** It returns JSX nodes (`toolbar`, `panel`) for a table header area and **creates its own `FilterProvider` internally** — the caller must not also wrap it.
 
@@ -270,7 +270,7 @@ These are documented quirks in the current source — be aware of them when rely
 | `Histogram` (`src/Histogram.tsx` ~L17) | **Unused `name` prop** — same pattern. |
 | `AllFilters` / `FiltersSummary` | **Inconsistent context access:** both call `React.useContext(FilterContext)` directly with an unsafe cast instead of using the guarded `useFilterContext` hook (`AllFilters.tsx` L11, `FiltersSummary.tsx` L24, L93). |
 | Exports map | `EntityGroupCards`, `useEntityGroups`, `getGroupableAttrs`, and `useDataTableFilterBar` have **no dedicated subpath entries** in `package.json` exports or `tsup.config.ts`; only the `.` barrel reaches them, blocking tree-shaking for subpath importers. |
-| `src/utils.ts` | Not listed in `tsup.config.ts` entries or `package.json` exports. It is an internal helper (`capitalize`, `buildChartConfig`, `extractLabels`). |
+| `src/utils.ts` | Not listed in `tsup.config.ts` entries or `package.json` exports. It is an internal helper (`capitalize`, `buildChartConfig`, `extractLabels`, `prettyOptionLabel`). |
 | Mixed UI primitives (**resolved in 3.2.0**) | `DebouncedNumberFilter` used `@radix-ui/react-slider` while `TimeFilter` / `TimeEditDialog` used `@mui/x-date-pickers` + MUI `IconButton` — no single UI-primitive strategy within the same component family. As of 3.2.0, `TimeFilter`/`TimeEditDialog` use `@bcl32/utils/DateTimePicker` and lucide icons, closing the MUI half of this gap (Radix vs. the package's own `@bcl32/utils` primitives is a separate, still-open question). |
 
 ### Dead code

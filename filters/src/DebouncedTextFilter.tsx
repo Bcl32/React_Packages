@@ -1,9 +1,8 @@
 import * as React from "react";
-import { X } from "lucide-react";
 import { FilterContext } from "./FilterContext";
+import { FilterHeader } from "./FilterHeader";
 
 import { Input } from "@bcl32/utils/Input";
-import { Label } from "@bcl32/utils/Label";
 import type { FilterContextValue } from "./types";
 import { humanizeFieldName } from "./utils";
 
@@ -61,37 +60,32 @@ export function DebouncedTextFilter({ name, title, onRemove }: DebouncedTextFilt
     context?.change_filters(name, "rule", next);
   }
 
+  const label = title ?? humanizeFieldName(name);
+
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-1">
-        <Label className="font-semibold">{title ?? humanizeFieldName(name)}</Label>
-        <button
-          type="button"
-          onClick={toggleRule}
-          className="text-xs px-1.5 py-0.5 rounded border border-primary/40 text-primary hover:border-primary transition-colors"
-        >
-          {filterData["rule"] === "equals" ? "Equals" : "Contains"}
-        </button>
-        {onRemove && (
-          <button
-            type="button"
-            onClick={onRemove}
-            className="ml-auto shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
-            title={`Remove ${title ?? humanizeFieldName(name)} filter`}
-            aria-label={`Remove ${title ?? humanizeFieldName(name)} filter`}
-          >
-            <X size={13} />
-          </button>
-        )}
-      </div>
+    <div className="space-y-1">
+      <FilterHeader
+        label={label}
+        rule={{
+          text: filterData["rule"] === "equals" ? "Equals" : "Contains",
+          onToggle: toggleRule,
+          title:
+            filterData["rule"] === "equals"
+              ? "Matching the whole value — click for substring matching"
+              : "Matching anywhere in the value — click for exact matching",
+        }}
+        onRemove={onRemove}
+      />
       <Input
         variant="background"
+        size="sm"
         id={"filter_" + name}
         name={name}
         value={inputValue}
         onChange={handleInputChange}
         type="text"
         placeholder=""
+        className="text-xs md:text-xs"
       />
     </div>
   );

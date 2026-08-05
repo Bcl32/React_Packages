@@ -21,8 +21,9 @@ export function FilterElement({ filter_data }: FilterElementProps): JSX.Element 
       ? () => removeFilter(filter_data["name"])
       : undefined;
 
-  const chart = get_chart_type(filter_data, onRemove);
-  return <div>{chart}</div>;
+  // `min-w-0` is what lets a long title or a wide value truncate instead of
+  // forcing its grid column wider than the share it was given.
+  return <div className="min-w-0">{get_chart_type(filter_data, onRemove)}</div>;
 }
 
 function get_chart_type(filter_data: FilterData, onRemove?: () => void): JSX.Element {
@@ -41,13 +42,11 @@ function get_chart_type(filter_data: FilterData, onRemove?: () => void): JSX.Ele
 
     case "datetime":
       return (
-        <div>
-          <TimeFilter
-            name={filter_data["name"]}
-            title={title}
-            onRemove={onRemove}
-          />
-        </div>
+        <TimeFilter
+          name={filter_data["name"]}
+          title={title}
+          onRemove={onRemove}
+        />
       );
     case "number":
       return (

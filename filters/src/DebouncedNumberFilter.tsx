@@ -1,6 +1,6 @@
 import * as React from "react";
-import { X } from "lucide-react";
 import { FilterContext } from "./FilterContext";
+import { FilterHeader } from "./FilterHeader";
 
 import { Input } from "@bcl32/utils/Input";
 import * as SliderPrimitive from "@radix-ui/react-slider";
@@ -129,7 +129,7 @@ function HistogramStrip({
 
   return (
     <div
-      className="relative h-9 w-full touch-none select-none"
+      className="relative h-7 w-full touch-none select-none"
       role="presentation"
     >
       {displayBins.map((bin, index) => {
@@ -277,58 +277,45 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
   const isAtMax = inputValue.max === slider_max;
 
   const minBtnClass = isAtMin
-    ? "text-[10px] font-semibold text-primary bg-primary/15 px-1.5 py-0.5 rounded transition-colors"
-    : "text-[10px] font-medium text-muted-foreground hover:text-primary hover:bg-accent px-1.5 py-0.5 rounded transition-colors";
+    ? "text-[10px] font-semibold text-primary bg-primary/15 px-1 rounded transition-colors"
+    : "text-[10px] font-medium text-muted-foreground hover:text-primary hover:bg-accent px-1 rounded transition-colors";
 
   const maxBtnClass = isAtMax
-    ? "text-[10px] font-semibold text-primary bg-primary/15 px-1.5 py-0.5 rounded transition-colors"
-    : "text-[10px] font-medium text-muted-foreground hover:text-primary hover:bg-accent px-1.5 py-0.5 rounded transition-colors";
+    ? "text-[10px] font-semibold text-primary bg-primary/15 px-1 rounded transition-colors"
+    : "text-[10px] font-medium text-muted-foreground hover:text-primary hover:bg-accent px-1 rounded transition-colors";
+
+  const label = title ?? humanizeFieldName(name);
+
+  const slider = (
+    <SliderPrimitive.Root
+      className="relative flex w-full touch-none select-none items-center"
+      value={[inputValue.min, inputValue.max]}
+      onValueChange={handleSliderChange}
+      min={slider_min}
+      max={slider_max}
+      step={slider_step}
+      aria-label="Range"
+    >
+      <SliderPrimitive.Track className="relative h-1 w-full grow overflow-hidden rounded-full bg-secondary">
+        <SliderPrimitive.Range className="absolute h-full bg-primary" />
+      </SliderPrimitive.Track>
+      {[inputValue.min, inputValue.max].map((_, index) => (
+        <SliderPrimitive.Thumb
+          key={index}
+          className="block h-3 w-3 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+        />
+      ))}
+    </SliderPrimitive.Root>
+  );
 
   return (
-    <div className="p-2 space-y-1.5">
-      {/* With a histogram the slider needs the full width to line up with the
-          bars, so the label moves to its own row. Without one, label and slider
-          stay on one line as before. */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold shrink-0">
-          {title ?? humanizeFieldName(name)}
-        </span>
-        {histogram && <span className="flex-1" />}
-        {!histogram && (
-          <SliderPrimitive.Root
-            className="relative flex flex-1 touch-none select-none items-center"
-            value={[inputValue.min, inputValue.max]}
-            onValueChange={handleSliderChange}
-            min={slider_min}
-            max={slider_max}
-            step={slider_step}
-            aria-label="Range"
-          >
-            <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-secondary">
-              <SliderPrimitive.Range className="absolute h-full bg-primary" />
-            </SliderPrimitive.Track>
-            {[inputValue.min, inputValue.max].map((_, index) => (
-              <SliderPrimitive.Thumb
-                key={index}
-                className="block h-4 w-4 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-              />
-            ))}
-          </SliderPrimitive.Root>
-        )}
-        {onRemove && (
-          <button
-            type="button"
-            onClick={onRemove}
-            className="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
-            title={`Remove ${title ?? humanizeFieldName(name)} filter`}
-            aria-label={`Remove ${title ?? humanizeFieldName(name)} filter`}
-          >
-            <X size={13} />
-          </button>
-        )}
-      </div>
+    // The slider now always sits on its own row rather than sharing the label's
+    // line: it lets every filter card open with the same 16px caption, which is
+    // what keeps the grid's rows even.
+    <div className="space-y-1">
+      <FilterHeader label={label} onRemove={onRemove} />
 
-      {histogram && (
+      {histogram ? (
         <div className="space-y-0.5">
           <HistogramStrip
             bins={histogram}
@@ -338,26 +325,10 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
             selectedMax={inputValue.max}
             onSelectRange={(min, max) => setInputValue({ min, max })}
           />
-          <SliderPrimitive.Root
-            className="relative flex w-full touch-none select-none items-center"
-            value={[inputValue.min, inputValue.max]}
-            onValueChange={handleSliderChange}
-            min={slider_min}
-            max={slider_max}
-            step={slider_step}
-            aria-label="Range"
-          >
-            <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-secondary">
-              <SliderPrimitive.Range className="absolute h-full bg-primary" />
-            </SliderPrimitive.Track>
-            {[inputValue.min, inputValue.max].map((_, index) => (
-              <SliderPrimitive.Thumb
-                key={index}
-                className="block h-4 w-4 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-              />
-            ))}
-          </SliderPrimitive.Root>
+          {slider}
         </div>
+      ) : (
+        slider
       )}
 
       <div className="flex items-center gap-1">
@@ -371,8 +342,8 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
             Min
           </button>
           <div className="flex flex-col shrink-0">
-            <button type="button" onClick={() => nudge(0, 1)} className="text-muted-foreground hover:text-foreground text-sm leading-none px-0.5 hover:bg-accent rounded">+</button>
-            <button type="button" onClick={() => nudge(0, -1)} className="text-muted-foreground hover:text-foreground text-sm leading-none px-0.5 hover:bg-accent rounded">−</button>
+            <button type="button" onClick={() => nudge(0, 1)} className="text-muted-foreground hover:text-foreground text-[11px] leading-none px-0.5 hover:bg-accent rounded">+</button>
+            <button type="button" onClick={() => nudge(0, -1)} className="text-muted-foreground hover:text-foreground text-[11px] leading-none px-0.5 hover:bg-accent rounded">−</button>
           </div>
           <Input
             variant="background"
@@ -382,7 +353,7 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
             onChange={(e) => handleInputChange(0, e.target.value)}
             type="text"
             inputMode="decimal"
-            className="flex-1 min-w-0 h-7 text-xs tabular-nums text-center [appearance:textfield] px-1"
+            className="flex-1 min-w-0 h-6 text-[11px] md:text-[11px] tabular-nums text-center [appearance:textfield] px-1 py-0"
           />
         </div>
 
@@ -397,11 +368,11 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
             onChange={(e) => handleInputChange(1, e.target.value)}
             type="text"
             inputMode="decimal"
-            className="flex-1 min-w-0 h-7 text-xs tabular-nums text-center [appearance:textfield] px-1"
+            className="flex-1 min-w-0 h-6 text-[11px] md:text-[11px] tabular-nums text-center [appearance:textfield] px-1 py-0"
           />
           <div className="flex flex-col shrink-0">
-            <button type="button" onClick={() => nudge(1, 1)} className="text-muted-foreground hover:text-foreground text-sm leading-none px-0.5 hover:bg-accent rounded">+</button>
-            <button type="button" onClick={() => nudge(1, -1)} className="text-muted-foreground hover:text-foreground text-sm leading-none px-0.5 hover:bg-accent rounded">−</button>
+            <button type="button" onClick={() => nudge(1, 1)} className="text-muted-foreground hover:text-foreground text-[11px] leading-none px-0.5 hover:bg-accent rounded">+</button>
+            <button type="button" onClick={() => nudge(1, -1)} className="text-muted-foreground hover:text-foreground text-[11px] leading-none px-0.5 hover:bg-accent rounded">−</button>
           </div>
           <button
             type="button"

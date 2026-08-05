@@ -25,9 +25,9 @@ export function AllFilters(): JSX.Element {
   const ordered = OrderFilters(context.filters);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {canAddFilters && (
-        <div className="flex items-center gap-2 p-2">
+        <div className="flex items-center gap-2">
           <AddFilterPicker
             catalog={catalog}
             onAdd={(field) => context.add_filter!(field)}
@@ -40,7 +40,10 @@ export function AllFilters(): JSX.Element {
         </div>
       )}
 
-      <div className="overflow-auto">
+      {/* Same two-up-and-wider grid as the inline filter bar — this panel used
+          to stack every filter in one column, which made a dialog of six
+          filters scroll for no reason. */}
+      <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 overflow-auto sm:grid-cols-2 xl:grid-cols-3">
         {ordered.map((entry: FilterData) => (
           <FilterElement key={entry["name"]} filter_data={entry} />
         ))}

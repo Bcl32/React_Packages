@@ -7,14 +7,16 @@ import { FilterElement } from "./FilterElement";
 import { AddFilterPicker } from "./AddFilterPicker";
 import { FilterSearchBar } from "./FilterSearchBar";
 import type { SearchFieldEntry } from "./FilterSearch";
-import { humanizeFieldName } from "./utils";
+import { humanizeFieldName, prettyOptionLabel } from "./utils";
 import type { Filters, FilterValue, FilterOption, FilterCatalogEntry, FilterInitialValue } from "./types";
 import { ListFilter, X } from "lucide-react";
 
 function formatOptionsLabel(value: string[], options: FilterOption[] | undefined): string {
-  if (!options || options.length === 0) return value.join(", ");
-  const map = new Map(options.map((o) => [o.value, o.label]));
-  return value.map((v) => map.get(v) ?? v).join(", ");
+  // Same prettifying the control itself applies, so the summary chip and the
+  // dropdown never disagree about how a status is spelled.
+  if (!options || options.length === 0) return value.map(prettyOptionLabel).join(", ");
+  const map = new Map(options.map((o) => [o.value, prettyOptionLabel(o.label)]));
+  return value.map((v) => map.get(v) ?? prettyOptionLabel(v)).join(", ");
 }
 
 function formatFilterLabel(name: string, filter: FilterValue): string {
@@ -257,29 +259,33 @@ export function useDataTableFilterBar({
             removeFilter={removeFilter}
             filterCatalog={filterCatalog}
           >
-            <div className="pt-2 pb-1 border-b">
-              <div className="py-2">
-                {canAddFilters && (
-                  <div className="flex items-center gap-2 pb-1">
-                    <AddFilterPicker
-                      catalog={catalog}
-                      onAdd={(field) => addFilter!(field)}
-                    />
-                    {orderedFilters.length === 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        Pick an attribute to start filtering.
-                      </span>
-                    )}
-                  </div>
-                )}
-                {orderedFilters.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2">
-                    {orderedFilters.map((entry) => (
-                      <FilterElement key={entry.name} filter_data={entry} />
-                    ))}
-                  </div>
-                )}
-              </div>
+            {/* One padded block, not three nested ones: the old pt-2 / py-2 /
+                pb-1 stack spent ~24px of the panel on its own margins. */}
+            <div className="space-y-1.5 border-b py-1.5">
+              {canAddFilters && (
+                <div className="flex items-center gap-2">
+                  <AddFilterPicker
+                    catalog={catalog}
+                    onAdd={(field) => addFilter!(field)}
+                  />
+                  {orderedFilters.length === 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      Pick an attribute to start filtering.
+                    </span>
+                  )}
+                </div>
+              )}
+              {orderedFilters.length > 0 && (
+                // Denser than the old 1/2/3/4 ladder — the cards carry a
+                // caption and one control now, so they read fine at ~240px and
+                // a typical six-filter set fits on a single row on a wide
+                // screen instead of two.
+                <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                  {orderedFilters.map((entry) => (
+                    <FilterElement key={entry.name} filter_data={entry} />
+                  ))}
+                </div>
+              )}
             </div>
           </FilterProvider>
         )}

@@ -149,7 +149,7 @@ These must be provided by the consuming app:
 | `ToggleGroup` | component | `forwardRef<…, ToggleGroupProps>` | Radix `ToggleGroup.Root` wrapper with CVA variants (`default`/`outline`, `default`/`sm`/`lg`); propagates `variant`/`size` to children via context. |
 | `ToggleGroupItem` | component | `forwardRef<…, ToggleGroupItemProps>` | Radix `ToggleGroup.Item`; inherits `variant`/`size` from `ToggleGroup` context. |
 | `toggleVariants` | other | CVA config | Exported for consumers to extend. |
-| `Combobox` | component | `({ options?, value: string[], onChange, placeholder?, freeSolo?, multiple?, showBadges?, className? }) => JSX` | Keyboard-navigable combobox with optional multi-select, `freeSolo`, and badge-chip display. Built on the local `Input` primitive; dropdown closes on outside `pointerdown`. |
+| `Combobox` | component | `({ options?, value: string[], onChange, placeholder?, freeSolo?, multiple?, showBadges?, className?, size? }) => JSX` | Keyboard-navigable combobox with optional multi-select, `freeSolo`, and badge-chip display. Built on the local `Input` primitive; dropdown closes on outside `pointerdown`. `size: "sm"` shrinks input, selected chips and option rows together (used by the filter bar). |
 | `ComboboxProps` | type | — | Props interface for `Combobox`. |
 
 ### Date & time

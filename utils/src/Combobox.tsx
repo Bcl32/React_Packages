@@ -12,6 +12,12 @@ export interface ComboboxProps {
   multiple?: boolean;
   showBadges?: boolean;
   className?: string;
+  /**
+   * `sm` shrinks the input, the selected-value chips and the option rows
+   * together. Sizing only the input leaves the chips towering over it, so the
+   * whole control moves as one step.
+   */
+  size?: "default" | "sm";
 }
 
 export function Combobox({
@@ -23,7 +29,9 @@ export function Combobox({
   multiple = false,
   showBadges = false,
   className,
+  size = "default",
 }: ComboboxProps) {
+  const compact = size === "sm";
   const [input, setInput] = React.useState("");
   const [open, setOpen] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -92,11 +100,14 @@ export function Combobox({
   return (
     <div ref={containerRef} className={cn("relative", className)}>
       {multiple && value.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-1.5">
+        <div className={cn("flex flex-wrap", compact ? "gap-0.5 mb-1" : "gap-1 mb-1.5")}>
           {value.map((item) => (
             <span
               key={item}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary text-primary-foreground"
+              className={cn(
+                "inline-flex items-center rounded-full bg-primary text-primary-foreground",
+                compact ? "gap-0.5 px-1.5 text-[10px] leading-4" : "gap-1 px-2 py-0.5 text-xs",
+              )}
             >
               {item}
               <button
@@ -104,7 +115,7 @@ export function Combobox({
                 onClick={() => remove(item)}
                 className="hover:text-primary-foreground/70"
               >
-                <X className="w-3 h-3" />
+                <X className={compact ? "w-2.5 h-2.5" : "w-3 h-3"} />
               </button>
             </span>
           ))}
@@ -127,7 +138,8 @@ export function Combobox({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         variant="background"
-        size="default"
+        size={compact ? "sm" : "default"}
+        className={compact ? "text-xs md:text-xs" : undefined}
         autoComplete="off"
       />
       {open && filteredOptions.length > 0 && (
@@ -141,7 +153,10 @@ export function Combobox({
                 e.preventDefault();
               }}
               onClick={() => select(opt)}
-              className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+              className={cn(
+                "w-full text-left hover:bg-accent transition-colors",
+                compact ? "px-2 py-1 text-xs" : "px-3 py-1.5 text-sm",
+              )}
             >
               {opt}
             </button>
