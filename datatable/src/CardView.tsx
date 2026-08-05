@@ -1,128 +1,29 @@
 import React from "react";
-import type { Cell, Column, Row, Table as TanstackTable } from "@tanstack/react-table";
+import type { Cell, Row, Table as TanstackTable } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { cn } from "@bcl32/utils/cn";
 import { Card } from "@bcl32/utils/Card";
 import { Button } from "@bcl32/utils/Button";
 import { Select } from "@bcl32/utils/Select";
 import { Checkbox } from "@bcl32/utils/Checkbox";
-import { fieldLabel } from "@bcl32/forms/fieldLabel";
 import type { ModelData, RowData } from "@bcl32/data-utils";
+
+import { columnCardLabel, getCardMeta } from "./ColumnLabels";
+import {
+  ROW_INDEX_ATTR,
+  ROW_SCOPE_ATTR,
+  ensureVisibleWithin,
+  firstVisibleRowIndex,
+  scrollRenderedRowToTop,
+} from "./ViewScroll";
+import type { ScrollRestoreRef, ViewScrollHandle } from "./ViewScroll";
+import type { ToolbarAction } from "./ToolbarAction";
 
 export type DataTableView = "table" | "cards";
 
-/** Column ids injected by ColumnGenerator that get fixed card positions
- *  instead of rendering as labeled body fields. */
-export const CONTROL_COLUMN_IDS: ReadonlySet<string> = new Set([
-  "select",
-  "expander",
-  "EditEntry",
-  "actions",
-]);
-
-export interface CardMeta {
-  /** Card region for this column's cell. Default: "body". */
-  slot?: "media" | "title" | "badge" | "body" | "footer";
-  /** Field label override (body slot). Also used by the sort dropdown. */
-  label?: string;
-  /** Body slot only: suppress the label when the value is self-describing. */
-  hideLabel?: boolean;
-}
-
-function getCardMeta(column: { columnDef: { meta?: unknown } }): CardMeta | undefined {
-  return (column.columnDef.meta as { card?: CardMeta } | undefined)?.card;
-}
-
-function humanizeId(id: string): string {
-  const spaced = id.replace(/_/g, " ");
-  return spaced ? spaced[0].toUpperCase() + spaced.slice(1) : id;
-}
-
-/**
- * Plain-string label for a column: meta.card.label → the matching ModelData
- * attribute's title (via fieldLabel) → humanized column id. Used by the sort
- * dropdown, where only text works.
- */
-export function columnLabelText<TData extends RowData>(
-  column: Column<TData, unknown>,
-  ModelData: ModelData
-): string {
-  const meta = getCardMeta(column);
-  if (meta?.label) return meta.label;
-  const attr = ModelData.model_attributes?.find((a) => a.name === column.id);
-  if (attr) return fieldLabel(attr);
-  return humanizeId(column.id);
-}
-
-/**
- * ReactNode label for a card body field. Same precedence as columnLabelText,
- * but when neither meta.card.label nor a ModelData attribute exists, prefers
- * rendering the column's header (every header in the apps is a () => <span>
- * that ignores its context) before falling back to the humanized id.
- */
-export function columnCardLabel<TData extends RowData>(
-  column: Column<TData, unknown>,
-  ModelData: ModelData
-): React.ReactNode {
-  const meta = getCardMeta(column);
-  if (meta?.label) return meta.label;
-  const attr = ModelData.model_attributes?.find((a) => a.name === column.id);
-  if (attr) return fieldLabel(attr);
-  const header = column.columnDef.header;
-  if (typeof header === "string") return header;
-  if (typeof header === "function") {
-    return flexRender(header, { column } as never);
-  }
-  return humanizeId(column.id);
-}
-
-/** Toolbar sort control shown while the card view is active — cards have no
- *  column headers to click, so sorting needs an explicit field + direction. */
-export function CardSortControl<TData extends RowData>(props: {
-  table: TanstackTable<TData>;
-  ModelData: ModelData;
-}): JSX.Element {
-  const sortableColumns = props.table
-    .getAllColumns()
-    .filter((c) => c.getCanSort() && !CONTROL_COLUMN_IDS.has(c.id));
-  const current = props.table.getState().sorting[0];
-  const desc = current?.desc ?? true;
-
-  return (
-    <div className="flex items-center gap-1">
-      <Select
-        aria-label="Sort by"
-        className="h-8 w-[140px] px-2 py-0 text-xs"
-        value={current?.id ?? ""}
-        onChange={(e) => {
-          if (e.target.value) props.table.setSorting([{ id: e.target.value, desc }]);
-        }}
-      >
-        {current?.id && !sortableColumns.some((c) => c.id === current.id) && (
-          <option value={current.id}>{humanizeId(current.id)}</option>
-        )}
-        {sortableColumns.map((c) => (
-          <option key={c.id} value={c.id}>
-            {columnLabelText(c, props.ModelData)}
-          </option>
-        ))}
-      </Select>
-      <Button
-        variant="outline"
-        size="icon"
-        title={desc ? "Descending" : "Ascending"}
-        onClick={() => {
-          if (current?.id) props.table.setSorting([{ id: current.id, desc: !desc }]);
-        }}
-      >
-        {desc ? <ArrowDown size={16} /> : <ArrowUp size={16} />}
-      </Button>
-    </div>
-  );
-}
 
 /** Toolbar select-all shown while the card view is active. Cards have no
  *  header row, so without this the header checkbox — the only select-all in the
@@ -199,6 +100,22 @@ export function CardSizeControl(props: {
   );
 }
 
+/**
+ * What a bespoke card gets besides the row. Everything here is a control the
+ * default card would otherwise have placed for it: without them a `renderCard`
+ * consumer has to re-implement selection and the row-actions menu from scratch,
+ * which is how an escape hatch turns into a fork.
+ */
+export interface RenderCardContext {
+  /** The row's quick actions, already rendered. Empty when no toolbar action
+   *  opted in with `card`. */
+  quickActions: React.ReactNode;
+  /** The select checkbox cell, or null when the table has no select column. */
+  select: React.ReactNode;
+  /** The row-actions (⋯) menu cell, or null when the table has none. */
+  actions: React.ReactNode;
+}
+
 export interface CardViewProps<TData extends RowData> {
   table: TanstackTable<TData>;
   ModelData: ModelData;
@@ -210,9 +127,22 @@ export interface CardViewProps<TData extends RowData> {
   rowClickFunction?: (data: TData) => void;
   expandOnRowClick?: boolean;
   renderSubComponent: (props: { row: Row<TData> }) => React.ReactNode;
-  /** Escape hatch: replaces the default card entirely. CardView still supplies
-   *  the grid slot, click handling, and the expansion panel. */
-  renderCard?: (row: Row<TData>) => React.ReactNode;
+  /**
+   * Escape hatch: replaces the default card entirely. CardView still supplies
+   * the grid slot, click handling, keyboard navigation, and the expansion panel.
+   *
+   * A bespoke card has replaced the footer the quick actions would have gone
+   * in, so they are handed over ready-rendered in `ctx.quickActions` — place
+   * them wherever the card's design wants them, or drop them.
+   */
+  renderCard?: (row: Row<TData>, ctx: RenderCardContext) => React.ReactNode;
+  /** Toolbar actions that opted in with `card`, rendered per card in the
+   *  default card's footer. */
+  cardActions?: ToolbarAction<TData>[];
+  scrollHandleRef?: React.MutableRefObject<ViewScrollHandle | null>;
+  restoreRowIndex?: ScrollRestoreRef;
+  /** Enter/exit + reflow animation on the cards. Forced off while virtualized. */
+  animate?: boolean;
 }
 
 interface PartitionedCells<TData extends RowData> {
@@ -258,32 +188,60 @@ function renderCell<TData extends RowData>(cell: Cell<TData, unknown>): React.Re
   return flexRender(cell.column.columnDef.cell, cell.getContext());
 }
 
-function RowCard<TData extends RowData>(props: {
+/** The toolbar actions that opted into a per-card affordance, filtered to the
+ *  ones that apply to this row. */
+function applicableCardActions<TData extends RowData>(
+  row: Row<TData>,
+  actions: ToolbarAction<TData>[] | undefined
+): ToolbarAction<TData>[] {
+  if (!actions?.length) return [];
+  return actions.filter((action) => action.cardVisible?.(row.original) !== false);
+}
+
+function CardQuickActions<TData extends RowData>(props: {
+  row: Row<TData>;
+  actions: ToolbarAction<TData>[];
+}): JSX.Element {
+  return (
+    <>
+      {props.actions.map((action) => {
+        const iconOnly = action.card === "icon" && Boolean(action.icon);
+        const label = action.cardLabel ?? action.label;
+        return (
+          <Button
+            key={action.key}
+            size={iconOnly ? "icon" : "sm"}
+            variant={action.variant ?? "outline"}
+            disabled={action.cardDisabled?.(props.row.original) ?? false}
+            title={label}
+            aria-label={iconOnly ? label : undefined}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (action.onCardClick) action.onCardClick(props.row.original);
+              // Same handler the toolbar uses, scoped to the one row the card
+              // stands for — so a card action needs no separate declaration.
+              else action.onClick([props.row.id]);
+            }}
+          >
+            {action.icon}
+            {!iconOnly && label}
+          </Button>
+        );
+      })}
+    </>
+  );
+}
+
+/** The stock card: control columns in fixed positions, everything else placed
+ *  by its `meta.card` slot hint. */
+function DefaultCard<TData extends RowData>(props: {
   row: Row<TData>;
   view: CardViewProps<TData>;
+  clickable: boolean;
 }): JSX.Element {
   const { row, view } = props;
-  const clickable = Boolean(view.rowClickFunction || view.expandOnRowClick);
-  const onClick = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.closest("a, input, button, label")) return;
-    if (view.expandOnRowClick) row.toggleExpanded();
-    view.rowClickFunction?.(row.original);
-  };
-
-  if (view.renderCard) {
-    return (
-      <div
-        data-state={row.getIsSelected() ? "selected" : undefined}
-        className={clickable ? "cursor-pointer" : undefined}
-        onClick={onClick}
-      >
-        {view.renderCard(row)}
-      </div>
-    );
-  }
-
   const cells = partitionCells(row);
+  const quickActions = applicableCardActions(row, view.cardActions);
 
   return (
     <Card
@@ -295,15 +253,16 @@ function RowCard<TData extends RowData>(props: {
         // first row (and either side column) and the selection reads as a
         // card with its top cut off.
         "data-[state=selected]:bg-muted data-[state=selected]:ring-2 data-[state=selected]:ring-inset data-[state=selected]:ring-primary",
-        clickable && "cursor-pointer hover:bg-accent/30 transition-colors"
+        props.clickable && "cursor-pointer hover:bg-accent/30 transition-colors"
       )}
-      onClick={onClick}
     >
       {cells.media.length > 0 && (
         // Media renderers are sized for table cells (fixed column width, and
         // ThumbnailCell-style negative-margin bleed) — neutralize the bleed and
         // pin images to a uniform square so media can't swallow the card.
-        <div className="flex justify-center gap-2 px-3 pt-3 [&>*]:!m-0 [&_img]:h-32 [&_img]:w-32 [&_img]:rounded [&_img]:object-cover">
+        // empty:hidden so a row with no thumbnail doesn't reserve the padding
+        // for one.
+        <div className="flex justify-center gap-2 px-3 pt-3 empty:hidden [&>*]:!m-0 [&_img]:h-32 [&_img]:w-32 [&_img]:rounded [&_img]:object-cover">
           {cells.media.map((cell) => (
             <React.Fragment key={cell.id}>{renderCell(cell)}</React.Fragment>
           ))}
@@ -365,11 +324,15 @@ function RowCard<TData extends RowData>(props: {
         </div>
       )}
 
-      {(cells.footer.length > 0 || cells.edit || cells.expander) && (
+      {(cells.footer.length > 0 ||
+        quickActions.length > 0 ||
+        cells.edit ||
+        cells.expander) && (
         <div className="flex flex-wrap items-center gap-2 p-3 pt-0">
           {cells.footer.map((cell) => (
             <React.Fragment key={cell.id}>{renderCell(cell)}</React.Fragment>
           ))}
+          <CardQuickActions row={row} actions={quickActions} />
           {(cells.edit || cells.expander) && (
             <div className="ml-auto flex items-center gap-1">
               {cells.edit && renderCell(cells.edit)}
@@ -382,21 +345,135 @@ function RowCard<TData extends RowData>(props: {
   );
 }
 
+function buildRenderCardContext<TData extends RowData>(
+  row: Row<TData>,
+  view: CardViewProps<TData>
+): RenderCardContext {
+  const cells = partitionCells(row);
+  return {
+    quickActions: (
+      <CardQuickActions row={row} actions={applicableCardActions(row, view.cardActions)} />
+    ),
+    // Flattened the same way the default card flattens them: both renderers
+    // carry a hit-area bleed sized for a table cell.
+    select: cells.select ? (
+      <span className="[&_label]:!m-0 [&_label]:!p-0">{renderCell(cells.select)}</span>
+    ) : null,
+    actions: cells.actions ? renderCell(cells.actions) : null,
+  };
+}
+
+/** Enter/exit + reflow motion. Deliberately short: this fires on every filter
+ *  keystroke, so anything slower reads as lag rather than polish. */
+const CARD_MOTION = {
+  layout: true,
+  initial: { opacity: 0, scale: 0.96 },
+  animate: { opacity: 1, scale: 1 },
+  exit: { opacity: 0, scale: 0.94 },
+  transition: { duration: 0.18, ease: "easeOut" },
+} as const;
+
+function RowCard<TData extends RowData>(props: {
+  row: Row<TData>;
+  /** Index into the sorted row model — the coordinate arrow keys navigate over
+   *  and the scroll hand-off restores to. */
+  index: number;
+  tabIndex: number;
+  animated: boolean;
+  onFocus: () => void;
+  view: CardViewProps<TData>;
+}): JSX.Element {
+  const { row, view } = props;
+  const clickable = Boolean(view.rowClickFunction || view.expandOnRowClick);
+  const onClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("a, input, button, label")) return;
+    if (view.expandOnRowClick) row.toggleExpanded();
+    view.rowClickFunction?.(row.original);
+  };
+
+  const inner = view.renderCard ? (
+    view.renderCard(row, buildRenderCardContext(row, view))
+  ) : (
+    <DefaultCard row={row} view={view} clickable={clickable} />
+  );
+
+  const common = {
+    role: "gridcell",
+    tabIndex: props.tabIndex,
+    onFocus: props.onFocus,
+    onClick,
+    "data-state": row.getIsSelected() ? "selected" : undefined,
+    [ROW_INDEX_ATTR]: props.index,
+    className: cn(
+      "h-full rounded-lg",
+      // The keyboard cursor is an `outline` drawn *inside* the card, and it has
+      // to be all three of those things:
+      //   - outline, not ring: a ring is a box-shadow, which paints under the
+      //     element's children — the opaque <Card> would cover it. Outlines
+      //     paint above descendants. It is also a separate property from the
+      //     selection ring, so a focused *and* selected card shows both.
+      //   - inside (negative offset), not outside: the grid sits flush against
+      //     the scroll region, so anything drawn outside the card is clipped
+      //     away on the first row and either edge column — the same trap the
+      //     selection ring documents just below.
+      //   - dashed: --ring and --primary are the same colour in these themes,
+      //     so shape, not hue, is what separates "cursor is here" from
+      //     "this row is selected".
+      "outline-none focus-visible:outline-dashed focus-visible:outline-2",
+      "focus-visible:outline-primary focus-visible:[outline-offset:-3px]",
+      clickable && "cursor-pointer"
+    ),
+  };
+
+  if (props.animated) {
+    return (
+      <motion.div {...common} {...CARD_MOTION}>
+        {inner}
+      </motion.div>
+    );
+  }
+  return <div {...common}>{inner}</div>;
+}
+
 const GRID_GAP_PX = 12; // Tailwind gap-3, shared by the column-count math below.
 
 function Chunk<TData extends RowData>(props: {
   rows: Row<TData>[];
+  /** Row-model index of `rows[0]`, so each card knows its absolute coordinate. */
+  startIndex: number;
   cols: number;
+  focusedIndex: number | null;
+  /** Which card holds the single tab stop while nothing is focused yet. */
+  fallbackTabIndex: number;
+  animated: boolean;
+  onCardFocus: (index: number) => void;
   view: CardViewProps<TData>;
 }): JSX.Element {
+  const cards = props.rows.map((row, i) => {
+    const index = props.startIndex + i;
+    return (
+      <RowCard
+        key={row.id}
+        row={row}
+        index={index}
+        // Roving tabindex: exactly one card sits in the tab order, so Tab moves
+        // past the grid instead of through every card in it.
+        tabIndex={index === (props.focusedIndex ?? props.fallbackTabIndex) ? 0 : -1}
+        animated={props.animated}
+        onFocus={() => props.onCardFocus(index)}
+        view={props.view}
+      />
+    );
+  });
+
   return (
     <div
+      role="row"
       className="grid gap-3 pb-3"
       style={{ gridTemplateColumns: `repeat(${props.cols}, minmax(0, 1fr))` }}
     >
-      {props.rows.map((row) => (
-        <RowCard key={row.id} row={row} view={props.view} />
-      ))}
+      {props.animated ? <AnimatePresence initial={false}>{cards}</AnimatePresence> : cards}
       {/* Expansion panels come after the cards so CSS grid auto-placement
           can't split the card row; col-span-full puts each below it. */}
       {props.rows
@@ -425,20 +502,23 @@ export function CardView<TData extends RowData>(props: CardViewProps<TData>): JS
   const rows = props.table.getRowModel().rows;
   const cardMinWidth = props.cardMinWidth ?? CARD_SIZE_WIDTHS[DEFAULT_CARD_SIZE];
 
-  // Column count derives from measured width, not Tailwind breakpoints —
-  // the grid must agree exactly with the chunking math, and runtime
-  // `grid-cols-${n}` classes would never be generated anyway.
+  // Column count derives from measured width, not Tailwind breakpoints — the
+  // grid must agree exactly with the chunking math, and runtime
+  // `grid-cols-${n}` classes would never be generated anyway. 0 means "not
+  // measured yet", a state the scroll restore has to be able to wait for:
+  // acting on the placeholder single column would land on the wrong chunk.
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const [cols, setCols] = React.useState(1);
+  const [measuredCols, setMeasuredCols] = React.useState(0);
+  const cols = measuredCols || 1;
   React.useLayoutEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const compute = (width: number) =>
       Math.max(1, Math.floor((width + GRID_GAP_PX) / (cardMinWidth + GRID_GAP_PX)));
-    setCols(compute(el.clientWidth));
+    setMeasuredCols(compute(el.clientWidth));
     const ro = new ResizeObserver((entries) => {
       const entry = entries[0];
-      if (entry) setCols(compute(entry.contentRect.width));
+      if (entry) setMeasuredCols(compute(entry.contentRect.width));
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -465,15 +545,161 @@ export function CardView<TData extends RowData>(props: CardViewProps<TData>): JS
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cols]);
 
+  // Animation stays off while virtualized: cards mount and unmount as the
+  // scroll position moves, so enter/exit would fire on scrolling rather than
+  // on the row set actually changing.
+  const reduceMotion = useReducedMotion();
+  const animated = (props.animate ?? true) && !props.virtualized && !reduceMotion;
+
+  // ---- Scroll hand-off to and from the table layout ------------------------
+  const scrollToRowIndex = (index: number) => {
+    if (props.virtualized) {
+      virtualizer.scrollToIndex(Math.floor(index / cols), { align: "start" });
+    } else {
+      scrollRenderedRowToTop(containerRef.current, props.scrollRef.current, index);
+    }
+  };
+  const handleRef = props.scrollHandleRef;
+  // Reassigned every render so the handle closes over the current virtualizer,
+  // column count and row model rather than the mount-time ones.
+  React.useEffect(() => {
+    if (!handleRef) return;
+    handleRef.current = {
+      getFirstVisibleRowIndex: () =>
+        firstVisibleRowIndex(containerRef.current, props.scrollRef.current),
+      scrollToRowIndex,
+    };
+    return () => {
+      handleRef.current = null;
+    };
+  });
+  React.useEffect(() => {
+    if (measuredCols === 0) return; // the chunk index isn't knowable yet
+    const pending = props.restoreRowIndex?.current;
+    if (pending == null) return;
+    props.restoreRowIndex!.current = null;
+    // One frame of slack: the virtualizer can't place an index until it has
+    // measured the scroll element, which only happens after this commit paints.
+    const raf = requestAnimationFrame(() => scrollToRowIndex(pending));
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [measuredCols]);
+
+  // ---- Keyboard navigation -------------------------------------------------
+  const [focusedIndex, setFocusedIndex] = React.useState<number | null>(null);
+  // Set when a key moved the focus, cleared once the target node exists — under
+  // virtualization the card being moved to is often a commit or two away.
+  const wantFocusRef = React.useRef(false);
+
+  const rowCount = rows.length;
+  React.useEffect(() => {
+    // A filter can shrink the row set out from under the focus ring.
+    setFocusedIndex((i) =>
+      i == null ? i : rowCount === 0 ? null : Math.min(i, rowCount - 1)
+    );
+  }, [rowCount]);
+
+  React.useEffect(() => {
+    if (!wantFocusRef.current || focusedIndex == null) return;
+    const el = containerRef.current?.querySelector<HTMLElement>(
+      `[${ROW_INDEX_ATTR}="${focusedIndex}"]`
+    );
+    if (!el) return; // retry after the commit that renders it
+    wantFocusRef.current = false;
+    // The scroll is ours to do: the browser's own would walk up and drag every
+    // ancestor scroller, including the page.
+    el.focus({ preventScroll: true });
+    if (!props.virtualized) ensureVisibleWithin(el, props.scrollRef.current);
+  });
+
+  const moveFocus = (next: number) => {
+    if (rows.length === 0) return;
+    const clamped = Math.max(0, Math.min(next, rows.length - 1));
+    setFocusedIndex(clamped);
+    wantFocusRef.current = true;
+    if (props.virtualized) {
+      virtualizer.scrollToIndex(Math.floor(clamped / cols), { align: "auto" });
+    }
+  };
+
+  // Where the tab stop sits before the grid has been focused. Index 0 would be
+  // wrong under virtualization: scrolled down the list it isn't rendered, so
+  // the grid would have no tab stop at all and Tab would skip straight past it.
+  const virtualItems = props.virtualized ? virtualizer.getVirtualItems() : [];
+  const fallbackTabIndex = props.virtualized ? (virtualItems[0]?.index ?? 0) * cols : 0;
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // Only a card root drives navigation. A keystroke inside a card — typing in
+    // an inline editor, space on its checkbox — belongs to that control.
+    const target = e.target as HTMLElement;
+    if (!target.hasAttribute(ROW_INDEX_ATTR)) return;
+    const index = Number(target.getAttribute(ROW_INDEX_ATTR));
+    if (!Number.isFinite(index)) return;
+    const row = rows[index];
+
+    switch (e.key) {
+      case "ArrowRight":
+        e.preventDefault();
+        moveFocus(index + 1);
+        break;
+      case "ArrowLeft":
+        e.preventDefault();
+        moveFocus(index - 1);
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        moveFocus(index + cols);
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        moveFocus(index - cols);
+        break;
+      case "Home":
+        e.preventDefault();
+        moveFocus(0);
+        break;
+      case "End":
+        e.preventDefault();
+        moveFocus(rows.length - 1);
+        break;
+      case " ":
+        // Space scrolls the page by default, which is exactly the wrong answer
+        // to "tick this card".
+        if (row?.getCanSelect()) {
+          e.preventDefault();
+          row.toggleSelected();
+        }
+        break;
+      case "Enter":
+        if (!row) break;
+        e.preventDefault();
+        if (props.expandOnRowClick) row.toggleExpanded();
+        props.rowClickFunction?.(row.original);
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
-    <div ref={containerRef}>
+    <div
+      ref={containerRef}
+      role="grid"
+      aria-colcount={cols}
+      aria-rowcount={Math.ceil(rows.length / cols)}
+      onKeyDown={onKeyDown}
+      {...{ [ROW_SCOPE_ATTR]: "" }}
+    >
       {rows.length === 0 ? (
         <div className="flex h-24 items-center justify-center text-center">No results.</div>
       ) : props.virtualized ? (
         <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
-          {virtualizer.getVirtualItems().map((vi) => (
+          {virtualItems.map((vi) => (
             <div
               key={vi.key}
+              // This wrapper exists only to position the chunk; an unlabelled
+              // element between grid and row would break the role chain.
+              role="presentation"
               data-index={vi.index}
               ref={virtualizer.measureElement}
               style={{
@@ -484,13 +710,32 @@ export function CardView<TData extends RowData>(props: CardViewProps<TData>): JS
                 transform: `translateY(${vi.start}px)`,
               }}
             >
-              <Chunk rows={chunks[vi.index]} cols={cols} view={props} />
+              <Chunk
+                rows={chunks[vi.index]}
+                startIndex={vi.index * cols}
+                cols={cols}
+                focusedIndex={focusedIndex}
+                fallbackTabIndex={fallbackTabIndex}
+                animated={animated}
+                onCardFocus={setFocusedIndex}
+                view={props}
+              />
             </div>
           ))}
         </div>
       ) : (
         chunks.map((chunk, i) => (
-          <Chunk key={chunk[0]?.id ?? i} rows={chunk} cols={cols} view={props} />
+          <Chunk
+            key={chunk[0]?.id ?? i}
+            rows={chunk}
+            startIndex={i * cols}
+            cols={cols}
+            focusedIndex={focusedIndex}
+            fallbackTabIndex={fallbackTabIndex}
+            animated={animated}
+            onCardFocus={setFocusedIndex}
+            view={props}
+          />
         ))
       )}
     </div>

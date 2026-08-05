@@ -89,11 +89,16 @@ All primitives have the signature `React.ForwardRefExoticComponent<React.HTMLAtt
 | `DataTableFilter` | type (interface) | Shape of the `filter` prop on `DataTable`. |
 | `DataTableView` | type (union) | `"table" \| "cards"` — the two DataTable layouts. |
 | `CardMeta` | type (interface) | Shape of a column's `meta.card` slot hint (see [Card view](#card-view)). |
+| `DataTableToolbar` | component | The two-zone toolbar (see [Toolbar anatomy](#toolbar-anatomy)). Rendered by `DataTable`; rarely used directly. |
+| `SortControl` | component | Field + direction sort for **both** layouts. `CardSortControl` remains as a deprecated alias. |
+| `RenderCardContext` | type (interface) | What a bespoke `renderCard` receives besides the row — the quick actions, select cell, and row-actions menu (see [Bespoke cards](#bespoke-cards-rendercard)). |
+| `ViewScrollHandle` | type (interface) | The scroll hand-off contract both layouts implement so a view toggle can keep its position. |
+| `ROW_INDEX_ATTR` / `ROW_SCOPE_ATTR` | const | DOM attribute names both layouts stamp for that hand-off. |
 | `CardViewProps` / `TableViewProps` | type (interface) | Props of the two view components. |
 | `CardSize` | type (union) | `"compact" \| "comfortable" \| "large"` — the card density presets. |
 | `CONTROL_COLUMN_IDS` | const | The `ColumnGenerator`-injected column ids (`select`, `expander`, `EditEntry`, `actions`) that get fixed card positions. |
 | `CARD_SIZE_WIDTHS` / `DEFAULT_CARD_SIZE` | const | Preset → minimum card width in px (`compact` 260, `comfortable` 320, `large` 400), and the default preset (`"comfortable"`). |
-| `columnLabelText` / `columnCardLabel` | util | Label resolution for a column (used by card body fields and the sort dropdown): `meta.card.label` → ModelData attribute title via `fieldLabel` → rendered header → humanized column id. |
+| `columnLabelText` / `columnCardLabel` | util | Label resolution for a column (`ColumnLabels.tsx`, shared by the card body fields and the sort dropdown): `meta.card.label` → ModelData attribute title via `fieldLabel` → rendered header → humanized column id. |
 
 ## Signatures & Props
 
@@ -121,18 +126,19 @@ DataTable<TData extends RowData>(props: {
   virtualized?: boolean;
   estimatedRowHeight?: number;
   onBulkEditSuccess?: (selectedIds: string[], enabledData: Record<string, unknown>) => void;
-  toolbarActions?: (selectedIds: string[]) => ToolbarAction[];
+  toolbarActions?: (selectedIds: string[]) => ToolbarAction<TData>[];
   bulk_delete_enabled?: boolean;
   view?: DataTableView;                          // controlled layout mode
   defaultView?: DataTableView;                   // uncontrolled initial mode (default "table", "cards" under 768px)
   onViewChange?: (view: DataTableView) => void;
   viewStorageKey?: string;                       // opt-in localStorage persistence (uncontrolled only)
-  renderCard?: (row: Row<TData>) => ReactNode;   // card view: replace the default card
+  renderCard?: (row: Row<TData>, ctx: RenderCardContext) => ReactNode;  // card view: replace the default card
   estimatedCardHeight?: number;                  // card view: virtualizer estimate per grid row (default 220)
   cardSize?: CardSize;                           // card view: controlled density preset
   defaultCardSize?: CardSize;                    // card view: uncontrolled initial preset (default "comfortable")
   onCardSizeChange?: (size: CardSize) => void;
   cardMinWidth?: number;                         // card view: explicit min card width; overrides cardSize
+  animate?: boolean;                             // view-toggle cross-fade + card enter/exit (default true)
 }) => JSX.Element
 ```
 
@@ -196,7 +202,7 @@ StatsTable({
 ### `ToolbarAction`
 
 ```ts
-interface ToolbarAction {
+interface ToolbarAction<TData = unknown> {
   key: string;
   label: string;
   icon?: ReactNode;
@@ -204,6 +210,13 @@ interface ToolbarAction {
   visible?: boolean;
   variant?: string;
   disabled?: boolean;
+
+  // Card view: also render this action per card (see Card quick actions).
+  card?: "icon" | "full";
+  cardLabel?: string;                      // when the bulk label carries a count
+  cardVisible?: (row: TData) => boolean;
+  cardDisabled?: (row: TData) => boolean;
+  onCardClick?: (row: TData) => void;      // when the handler needs the row, not its id
 }
 ```
 
@@ -217,6 +230,71 @@ interface DataTableFilter {
   totalCount: number;
 }
 ```
+
+## Toolbar anatomy
+
+Everything above the rows lives in `DataTableToolbar`, in **two zones**. They
+used to be one wrapping flex row holding up to thirteen elements, six of which
+appear, disappear, or change width with the row selection — mixing *which rows
+am I looking at* with *what do I do with them*, and forcing the control order to
+be chosen for layout-shift avoidance rather than meaning.
+
+```
+┌──────────────────────────────────────────────────┐
+│ Parts (128/540)                                  │  zone 1 — which rows
+│ 🔍 search…   ⚙ Filters (3)   [Colour: Red ×]     │
+│ ┌ filter panel (expandable) ───────────────────┐ │
+│ └──────────────────────────────────────────────┘ │
+├──────────────────────────────────────────────────┤  divider
+│        [Edit 2][Delete 2][+ New][☑All][Sort][▦][⋮]│ zone 2 — what to do
+├──────────────────────────────────────────────────┤
+│ … rows / cards …                                 │
+└──────────────────────────────────────────────────┘
+```
+
+**Zone 1 — which rows.** Title, the `(filteredCount/totalCount)` pair, the
+filter search box / Filters pill / active chips (`filter.toolbar`), and the
+expandable `filter.panel`. The count heads this zone because it is the filters'
+output. The chip strip scrolls sideways rather than wrapping: chips are
+unbounded in number, and letting them grow the zone taller would push the table
+down every time one was added.
+
+**Zone 2 — what to do with them.** Bulk actions and view controls, sitting
+directly on the table they act on. Order: bulk edit → `toolbarActions` → delete
+→ create → `CardSelectAllControl` → `CardSizeControl` → `SortControl` → view
+toggle → columns dropdown.
+
+The **selection-dependent** buttons come first in this right-anchored group.
+They appear, disappear, and change width with the selection count; laid out last
+they would shove every stable control sideways on the very click that changed
+the selection. First, they grow leftward into the row's slack and the sort,
+view-toggle and column controls hold position to the pixel.
+
+With no `filter` prop the zones collapse to a bare title above the controls —
+no count, no divider, no panel node.
+
+`props.filter` is an opaque `{ toolbar, panel, filteredCount, totalCount }`
+object from `@bcl32/filters`' `useDataTableFilterBar`; DataTable only decides
+where to place those two nodes, so the zone split needs nothing from consumers.
+
+### Sorting
+
+`SortControl` (field dropdown + direction button) renders in the toolbar for
+**both** layouts:
+
+- Cards have no column headers to click.
+- The table's headers *do* scroll out of view — `TableHeader`'s `sticky top-0`
+  is defeated by the scroll wrapper inside the `Table` primitive (see
+  [Known Smells & Caveats](#known-smells--caveats)) — so on a long table sorting
+  was otherwise unreachable without scrolling back to the top.
+
+There is no state and nothing to keep in sync: the control and the header click
+handler both read and write TanStack's `sorting`, so the dropdown, its direction
+button and the header's ↑/↓ arrow always agree. Sortable options are all
+sortable non-control columns (`CONTROL_COLUMN_IDS` excluded). When the active
+sort has no visible column — DataTable defaults to `time_created`, which many
+tables don't show — it is still listed, rather than leaving a blank control that
+misreports the order the rows are in.
 
 ## Card view
 
@@ -246,7 +324,44 @@ interface CardMeta {
 
 - Body cells render as `label: value` rows. Labels resolve as `meta.card.label` → the matching `ModelData.model_attributes` title (via `fieldLabel` from `@bcl32/forms`) → the rendered column header → the humanized column id.
 - Unannotated tables degrade gracefully: the first non-control visible cell is promoted to the title slot and the rest become labeled body fields.
-- `renderCard={(row) => ...}` replaces the default card entirely (CardView still supplies the grid slot, click handling, selection `data-state`, and the expansion panel).
+- `renderCard={(row, ctx) => ...}` replaces the default card entirely (CardView still supplies the grid slot, click handling, keyboard navigation, selection `data-state`, and the expansion panel). See [Bespoke cards](#bespoke-cards-rendercard).
+
+### Card quick actions
+
+A `ToolbarAction` that sets `card` renders **twice from one declaration**: as the toolbar's bulk button over the selection, and as a per-card button in the card footer. The card button calls the same `onClick` with just that row's id (`[row.id]`), so an action written for the toolbar needs no second implementation — provided its handler uses the ids it is *passed* rather than closing over the selection.
+
+- `card: "icon"` renders icon-only (label becomes the tooltip / `aria-label`); `card: "full"` renders icon + label.
+- `cardLabel` overrides the label on cards. Bulk labels usually carry a selection count (`Move (3)`), which reads wrong on a single card.
+- `cardVisible(row)` / `cardDisabled(row)` gate the card button per row.
+- The card affordance **deliberately ignores `visible` / `disabled`**. Those are near-always derived from the selection ("enabled once something is ticked"), which says nothing about whether the action applies to the one row a card stands for.
+- That independence makes `{ visible: false, card: "full" }` the way to declare a **card-only action** — one that never made sense in bulk. Print-Tracker's per-item "Claim from bin" is declared this way: it opens a quantity dialog for one row, so it has no toolbar button at all.
+
+```ts
+toolbarActions={(selectedIds) => [
+  {
+    key: "move-items",
+    label: `Move (${selectedIds.length})`,
+    onClick: (ids) => openMoveDialog(ids),   // ids, not selectedIds
+    visible: selectedIds.length > 0,
+    card: "full",
+    cardLabel: "Move",
+  },
+]}
+```
+
+### Bespoke cards (`renderCard`)
+
+`renderCard(row, ctx)` hands back the controls the default card would otherwise have placed, so overriding the *layout* doesn't mean re-implementing the *features*:
+
+```ts
+interface RenderCardContext {
+  quickActions: ReactNode;  // the row's `card` toolbar actions, rendered
+  select: ReactNode;        // the select checkbox cell, or null
+  actions: ReactNode;       // the RowActions (⋯) menu cell, or null
+}
+```
+
+Everything else stays available on `row` itself (`row.original`, `row.getIsSelected()`, `row.toggleSelected()`). Reach for this when a card's shape is genuinely different from "one labelled row per field" — Print-Tracker's `ProjectItemCard` leads with a build-progress bar and gives print-job chips a full-width band, neither of which survives being flattened into body fields.
 
 ### Layout & virtualization
 
@@ -256,21 +371,51 @@ interface CardMeta {
 
 ### Card-mode toolbar controls
 
-Shown only while cards are active:
+Shown only while cards are active (see [Toolbar anatomy](#toolbar-anatomy) for
+where they sit):
 
-- `CardSelectAllControl` — the card-mode equivalent of the table's header checkbox, labelled with the row count it acts on (`Select all (413)` / `Clear (413)`). Renders nothing when the table has no visible `select` column. The count comes from the pre-grouped row model, i.e. exactly the rows `toggleAllRowsSelected` will select.
+- `CardSelectAllControl` — the card-mode equivalent of the table's header checkbox, labelled with the row count it acts on (`Select all (413)`). Renders nothing when the table has no visible `select` column. The count comes from the pre-grouped row model, i.e. exactly the rows `toggleAllRowsSelected` will select. It keeps its "Select all (N)" wording when everything is selected rather than swapping in a shorter label, which would resize the control on the click that toggled it.
 - `CardSizeControl` — card density (`compact` 260 px / `comfortable` 320 px / `large` 400 px, via the exported `CARD_SIZE_WIDTHS`). Since the grid is width-driven this is effectively a "how many columns" control. Controlled with `cardSize` + `onCardSizeChange`, or uncontrolled from `defaultCardSize` (default `"comfortable"`). Hidden below `sm` (one column fits regardless) and hidden entirely when the consumer pins an explicit `cardMinWidth`, which overrides the preset.
-- `CardSortControl` — field + direction, since there are no column headers to click. Sortable options are all sortable non-control columns; display-only columns are excluded automatically.
 
-The toolbar's button group wraps onto further lines rather than running off the card: it is `shrink-0` from `sm` up (so a narrow toolbar squeezes the scrollable filter bar, not the buttons) and shrinkable below that. Card mode adds two controls to a group that was already at the edge of fitting a phone, which is now also the default layout there.
+`SortControl` is **not** in this list — it serves both layouts. See below.
 
-Within that right-aligned group the **selection-dependent** buttons (bulk edit, `toolbarActions`, delete) come first, ahead of the create dialog and the view / column controls. They appear, disappear, and change width with the selection count; laid out last they would shove every stable control sideways on the very click that changed the selection — including the card-mode select-all. First, they grow leftward into the filter bar's slack instead. For the same reason `CardSelectAllControl` keeps its "Select all (N)" wording when everything is selected rather than swapping in a shorter label.
+### Keyboard navigation
+
+The card grid is a roving-tabindex `role="grid"`: exactly one card is in the tab order, so Tab moves *past* the grid rather than through every card in it. With a card focused:
+
+| Key | Action |
+| --- | --- |
+| `←` / `→` | previous / next card |
+| `↑` / `↓` | up / down one grid row (± the measured column count) |
+| `Home` / `End` | first / last row |
+| `Space` | toggle selection (only when the row is selectable) |
+| `Enter` | activate — same as clicking (row click and/or expand) |
+
+Keys are only handled when the event target *is* a card root, so a keystroke inside a card — typing in an inline editor, Space on its checkbox — belongs to that control. Under virtualization the target card often doesn't exist yet when focus moves; the request stays pending across commits until the virtualizer renders it.
+
+The keyboard cursor is a **dashed `outline` drawn inside the card** (`outline-offset: -3px`), and each of those three properties is load-bearing:
+
+- **`outline`, not `ring`.** A Tailwind ring is a `box-shadow`, which paints *under* the element's children — the opaque `<Card>` inside the focus wrapper would cover it completely. Outlines paint above descendants. Being a separate CSS property from the selection ring also means a card that is both focused and selected shows both indicators rather than one winning.
+- **Inside, not outside.** The card grid sits flush against its scroll region (zero gap at the top and left edges), so anything drawn outside a card is clipped away on the first row and either edge column. This is the same trap the inset selection ring already documents.
+- **Dashed.** `--ring` and `--primary` are the same colour in these themes, so shape rather than hue is what separates "the cursor is here" from "this row is selected".
+
+### Scroll position across a view toggle
+
+Toggling layouts preserves the reading position. Before swapping, `DataTable` reads the topmost visible row index off the outgoing layout's `ViewScrollHandle`; the incoming layout consumes it on mount and scrolls there (the card grid converting row index → chunk index via its measured column count). Accurate to about one row, since the two layouts have different row heights.
+
+Both layouts stamp `data-row-index` on every rendered row/card and mark their owning element with `data-row-scope`, which is also what makes the index readable from the DOM without either layout knowing about the other. The scope attribute exists because a `DataTable` nested inside an expansion panel stamps its own rows the same way.
+
+### Animation
+
+Framer Motion, on by default, disabled entirely under `prefers-reduced-motion` or `animate={false}`:
+
+- **View toggle** — a 120 ms cross-fade (`AnimatePresence mode="wait"`, so the two layouts never overlap in the scroll region).
+- **Card enter/exit + reflow** — cards fade and scale in and out as the row set changes, which is what makes filtering feel responsive. **Off while `virtualized`**: cards mount and unmount as the scroll position moves, so enter/exit would fire on scrolling rather than on the data changing.
 
 ### Differences from the table layout
 
 - No `<tfoot>` — column `footer` defs are not rendered (every footer in the apps duplicates its header).
 - `cellClassName` is not applied (it is `<td>`-specific); `maxCellHeight` applies to body-slot values, with the same `meta.noMaxHeight` opt-out.
-- Toggling views resets scroll position (the virtualizers remount).
 
 ## Dependencies
 
@@ -300,6 +445,7 @@ Within that right-aligned group the **selection-dependent** buttons (bulk edit, 
 | `@tanstack/react-virtual` | `^3.10.8` |
 | `@radix-ui/react-icons` | `^1.3.0` |
 | `lucide-react` | `^0.447.0` (new in 2.8.0) |
+| `framer-motion` | `^11.0.0` (new in 2.10.0 — card view animation; already a `@bcl32/utils` dependency, so no new weight for consumers of both) |
 
 _(`@mui/material` and `@mui/icons-material` were removed in 2.8.0.)_
 
@@ -317,6 +463,7 @@ _(`@mui/material` and `@mui/icons-material` were removed in 2.8.0.)_
 - **Proportional column sizing.** Header and cell widths are computed as `(column.getSize() / totalSize) * 100%`. The `size`, `minSize`, and `maxSize` values in a `ColumnDef` therefore set **relative proportions**, not fixed pixel widths.
 - **`maxCellHeight` opt-out via column meta.** Setting `meta: { noMaxHeight: true }` on a `ColumnDef` exempts that column's cells from the table-level `maxCellHeight` scroll wrapper. `ColumnGenerator` already applies this to the select and expander columns.
 - **Card placement via column meta.** Setting `meta: { card: { slot, label, hideLabel } }` on a `ColumnDef` controls where that column's cell lands in the card view (see [Card view](#card-view)). Unannotated columns become labeled body fields.
+- **Toolbar action handlers must use the ids they are passed.** `onClick(selectedIds)` receives the ids to act on. Closing over the outer `selectedIds` instead works for the toolbar but silently breaks the card affordance, which passes a single row's id — the card button would act on the selection rather than on its own card.
 - **Virtualization needs a bounded container.** `virtualized` is opt-in and requires the parent to give `DataTable` a bounded flex container so the internal `scrollRef` div can actually scroll. Without a bounded height context the virtualizer simply renders all rows (harmless, but no virtualization benefit).
 - **`toolbarStyle="compact"`.** Renders ghost icon buttons for edit / delete when nothing is selected (instead of hiding them), giving users a visual affordance that the actions exist.
 - **Subpath imports + `moduleResolution`.** All `@bcl32/*` imports resolve via `package.json` `exports` subpaths, so consumers must use `moduleResolution: "bundler"` or `"node16"`.
@@ -331,6 +478,7 @@ _(`@mui/material` and `@mui/icons-material` were removed in 2.8.0.)_
 - **`StatsTable` silently drops `children` / `id_list`.** Those `type` values hit empty `case` blocks (`src/StatsTable.tsx:165-166`) with no placeholder or warning, making unsupported types invisible.
 - **Array-index React keys.** `KeyValueTable` (`src/KeyValueTable.tsx:31`) and `StatsTable` (`src/StatsTable.tsx:51, 76`) use array index as the React key, which is fragile if rows are reordered or removed.
 - **Unused declared dependency.** `@bcl32/hooks` is listed in `package.json` but never imported in `src/`.
+- **Sticky table headers do not stick.** `TableHeader` carries `sticky top-0`, but the `Table` primitive wraps the `<table>` in a `div.overflow-x-auto` (`src/Table.tsx:9`). Per CSS, one non-`visible` overflow axis makes the other compute to `auto`, so that div becomes the nearest scrollport — and it never scrolls vertically, so the header has nowhere to stick. Long-standing, and not caused by the toolbar. Fixing it means collapsing to a single scroll container, which changes a primitive used by every table in three apps; note also that on a wide table (Print-Tracker's Parts Bin) *that wrapper* is currently the element providing horizontal scrolling, so it cannot simply be deleted. The cost is now mostly cosmetic: [`SortControl`](#sorting) put sorting in the toolbar, which was the main thing a pinned header was needed for.
 
 ## Minimal Usage Example
 

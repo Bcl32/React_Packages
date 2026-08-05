@@ -10,54 +10,20 @@ import {
 } from "@tanstack/react-table";
 
 import { TableView } from "./TableView";
-import {
-  CardView,
-  CardSortControl,
-  CardSelectAllControl,
-  CardSizeControl,
-  CARD_SIZE_WIDTHS,
-  DEFAULT_CARD_SIZE,
-} from "./CardView";
-import type { CardSize, DataTableView } from "./CardView";
+import { CardView, CARD_SIZE_WIDTHS, DEFAULT_CARD_SIZE } from "./CardView";
+import type { CardSize, DataTableView, RenderCardContext } from "./CardView";
+import { DataTableToolbar } from "./DataTableToolbar";
+import type { DataTableFilter } from "./DataTableToolbar";
+import type { ScrollRestoreRef, ViewScrollHandle } from "./ViewScroll";
+import type { ToolbarAction } from "./ToolbarAction";
 
-import {
-  DropdownMenu,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@bcl32/utils/Dropdown";
-
-import { Plus, Pencil, Columns3, Trash2, Table2, LayoutGrid } from "lucide-react";
-import { ToggleGroup, ToggleGroupItem } from "@bcl32/utils/ToggleGroup";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { DataTablePagination } from "./TablePagination";
 
-import { DialogButton } from "@bcl32/utils/DialogButton";
-import { Button } from "@bcl32/utils/Button";
-import { CustomTooltip } from "@bcl32/utils/Tooltip";
 import { useIsMobile } from "@bcl32/utils/useIsMobile";
-import { AddModelForm } from "@bcl32/forms/AddModelForm";
-import { BulkEditModelForm } from "@bcl32/forms/BulkEditModelForm";
-import { DeleteModelForm } from "@bcl32/forms/DeleteModelForm";
 import type { ModelData, RowData } from "@bcl32/data-utils";
 
-export interface ToolbarAction {
-  key: string;
-  label: string;
-  icon?: React.ReactNode;
-  onClick: (selectedIds: string[]) => void;
-  visible?: boolean;
-  variant?: "default" | "outline" | "ghost" | "grey" | "red" | "blue" | "danger";
-  disabled?: boolean;
-}
-
-export interface DataTableFilter {
-  toolbar: React.ReactNode;
-  panel: React.ReactNode;
-  filteredCount: number;
-  totalCount: number;
-}
+export type { ToolbarAction, DataTableFilter };
 
 interface DataTableProps<TData extends RowData> {
   title: string;
@@ -80,7 +46,7 @@ interface DataTableProps<TData extends RowData> {
   virtualized?: boolean;
   estimatedRowHeight?: number;
   onBulkEditSuccess?: (selectedIds: string[], enabledData: Record<string, unknown>) => void;
-  toolbarActions?: (selectedIds: string[]) => ToolbarAction[];
+  toolbarActions?: (selectedIds: string[]) => ToolbarAction<TData>[];
   bulk_delete_enabled?: boolean;
   /** Controlled layout mode. Omit to let the toolbar toggle manage it. */
   view?: DataTableView;
@@ -90,8 +56,9 @@ interface DataTableProps<TData extends RowData> {
   onViewChange?: (view: DataTableView) => void;
   /** Opt-in localStorage persistence of the uncontrolled view choice. */
   viewStorageKey?: string;
-  /** Card view: replace the default card entirely. */
-  renderCard?: (row: Row<TData>) => React.ReactNode;
+  /** Card view: replace the default card entirely. Receives the row's
+   *  ready-rendered quick actions so a bespoke card can still place them. */
+  renderCard?: (row: Row<TData>, ctx: RenderCardContext) => React.ReactNode;
   /** Card view: virtualizer size estimate per card row. Default 220. */
   estimatedCardHeight?: number;
   /** Card view: controlled card size preset. Omit to let the toolbar control
@@ -103,6 +70,10 @@ interface DataTableProps<TData extends RowData> {
   /** Card view: explicit minimum card width driving the responsive column
    *  count. Overrides the size preset and hides the toolbar size control. */
   cardMinWidth?: number;
+  /** Motion: cross-fade on the view toggle, and card enter/exit as the row set
+   *  changes. Defaults on; always off under `prefers-reduced-motion`, and card
+   *  enter/exit is additionally off while `virtualized`. */
+  animate?: boolean;
 }
 
 export function DataTable<TData extends RowData>(
@@ -110,15 +81,13 @@ export function DataTable<TData extends RowData>(
 ): JSX.Element {
   const [rowSelection, setRowSelection] = React.useState<Record<string, boolean>>({});
 
-  const [addDialogOpen, setAddDialogOpen] = React.useState(false);
-  const [bulkEditDialogOpen, setBulkEditDialogOpen] = React.useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(
     props.columnVisibility || {}
   );
 
   const isMobile = useIsMobile();
+  const reduceMotion = useReducedMotion();
+  const animateViews = (props.animate ?? true) && !reduceMotion;
 
   // `null` means "nothing chosen, stored, or configured" — only then does the
   // screen-width default get to decide.
@@ -133,7 +102,17 @@ export function DataTable<TData extends RowData>(
   // scrolls horizontally. useIsMobile reads the width synchronously, so this
   // resolves on the first render rather than flashing a table and reflowing.
   const view = props.view ?? uncontrolledView ?? (isMobile ? "cards" : "table");
+
+  // Scroll hand-off across the toggle. Only one layout is mounted at a time, so
+  // both write to the same handle; the position is read off the outgoing layout
+  // while it is still there and consumed by the incoming one on mount.
+  const viewScrollRef = React.useRef<ViewScrollHandle | null>(null);
+  const restoreRowIndexRef: ScrollRestoreRef = React.useRef<number | null>(null);
+
   const setView = (v: DataTableView) => {
+    if (v !== view) {
+      restoreRowIndexRef.current = viewScrollRef.current?.getFirstVisibleRowIndex() ?? null;
+    }
     props.onViewChange?.(v);
     if (props.view === undefined) {
       setUncontrolledView(v);
@@ -185,6 +164,12 @@ export function DataTable<TData extends RowData>(
 
   const selectedIds = Object.keys(rowSelection);
 
+  // Resolved once and split two ways: the toolbar renders every action as a
+  // bulk button, and the ones that set `card` additionally get a per-card
+  // affordance in the card footer.
+  const toolbarActions = props.toolbarActions?.(selectedIds) ?? [];
+  const cardActions = toolbarActions.filter((action) => action.card);
+
   const handleRowClick = props.rowClickFunction || ((_data: TData) => {
     // no-op default
   });
@@ -203,245 +188,76 @@ export function DataTable<TData extends RowData>(
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      {/* Toolbar */}
-      <div className="mb-2 shrink-0">
-        {/* Wraps rather than clips: the right-hand group is shrink-0 and grows
-            by two controls in card mode, which is also the default layout on
-            the narrow screens where it would otherwise run off the edge. */}
-        <div className="flex flex-wrap items-center gap-2 min-h-9">
-          <h3 className="text-lg font-semibold capitalize whitespace-nowrap shrink-0">
-            {props.title}
-            {props.filter && (
-              <span className="text-sm font-normal text-muted-foreground ml-1.5">
-                ({props.filter.filteredCount}/{props.filter.totalCount})
-              </span>
-            )}
-          </h3>
-
-          {props.filter?.toolbar && (
-            <div className="flex items-center gap-1.5 flex-1 min-w-0 overflow-x-auto">
-              {props.filter.toolbar}
-            </div>
-          )}
-
-          {/* shrink-0 from `sm` up so the filter bar (not the buttons) absorbs
-              a narrow toolbar; below that the group is allowed to shrink so
-              flex-wrap can actually break it onto more lines instead of
-              running off the card. */}
-          <div className="flex flex-wrap items-center justify-end gap-1.5 ml-auto min-w-0 shrink sm:shrink-0">
-            {/* The selection-dependent actions come FIRST in this right-anchored
-                group. They appear, disappear, and change width with the
-                selection count, so anything after them gets shoved sideways
-                every time — including the select-all the user just clicked.
-                Placed first they grow leftward into the filter bar's slack and
-                every stable control keeps its position. */}
-
-            {/* Bulk Edit */}
-            {props.ModelData.update_api_url && (
-              selectedIds.length > 0 ? (
-                <DialogButton
-                  key={"dialog-bulk-edit"}
-                  isModal={true}
-                  size="large"
-                  open={bulkEditDialogOpen}
-                  onOpenChange={setBulkEditDialogOpen}
-                  button={
-                    <Button size="sm">
-                      <Pencil size={16} />
-                      {`Edit (${selectedIds.length})`}
-                    </Button>
-                  }
-                  title={`Bulk Edit ${props.ModelData.model_name || "Entries"}`}
-                >
-                  <BulkEditModelForm
-                    ModelData={props.ModelData as ModelData & { update_api_url: string }}
-                    query_invalidation={props.query_invalidation || []}
-                    rowSelection={rowSelection}
-                    setRowSelection={setRowSelection}
-                    onSuccess={props.onBulkEditSuccess}
-                    onClose={() => setBulkEditDialogOpen(false)}
-                  />
-                </DialogButton>
-              ) : props.toolbarStyle === "compact" ? (
-                <CustomTooltip content="Select records to edit" delayDuration={300}>
-                  <span>
-                    <Button variant="ghost" size="icon" disabled className="opacity-40">
-                      <Pencil size={18} />
-                    </Button>
-                  </span>
-                </CustomTooltip>
-              ) : null
-            )}
-
-            {props.toolbarActions?.(selectedIds).map((action) => {
-              if (action.visible === false) return null;
-              return (
-                <Button
-                  key={action.key}
-                  size="sm"
-                  variant={action.variant}
-                  disabled={action.disabled}
-                  onClick={() => action.onClick(selectedIds)}
-                >
-                  {action.icon} {action.label}
-                </Button>
-              );
-            })}
-
-            {/* Delete */}
-            {props.bulk_delete_enabled === false ? null : selectedIds.length > 0 ? (
-              <DialogButton
-                key={"dialog-delete-entry"}
-                isModal={true}
-                open={deleteDialogOpen}
-                onOpenChange={setDeleteDialogOpen}
-                button={
-                  <Button size="sm" variant="danger">
-                    <Trash2 size={16} />
-                    {`Delete (${selectedIds.length})`}
-                  </Button>
-                }
-                title="Delete Entries"
-              >
-                <DeleteModelForm
-                  key={"delete_entry_form"}
-                  delete_api_url={props.ModelData.delete_api_url || ""}
-                  query_invalidation={props.query_invalidation || []}
-                  rowSelection={rowSelection}
-                  setRowSelection={setRowSelection}
-                  onClose={() => setDeleteDialogOpen(false)}
-                />
-              </DialogButton>
-            ) : props.toolbarStyle === "compact" ? (
-              <CustomTooltip content="Select records to delete" delayDuration={300}>
-                <span>
-                  <Button variant="ghost" size="icon" disabled className="opacity-40">
-                    <Trash2 size={18} />
-                  </Button>
-                </span>
-              </CustomTooltip>
-            ) : null}
-
-            {props.create_enabled && (
-              <DialogButton
-                key={"dialog-add-entry"}
-                size="large"
-                open={addDialogOpen}
-                onOpenChange={setAddDialogOpen}
-                button={
-                  <Button size="sm">
-                    <Plus size={16} />
-                    {"Create New"}
-                  </Button>
-                }
-                title={"Create New " + props.ModelData.model_name}
-                variant="default"
-              >
-                <AddModelForm
-                  key={"entryform_add_data_entry"}
-                  add_api_url={props.add_api_url || ""}
-                  ModelData={props.ModelData}
-                  query_invalidation={props.query_invalidation || []}
-                  onClose={() => setAddDialogOpen(false)}
-                />
-              </DialogButton>
-            )}
-
-            {view === "cards" && (
-              <>
-                <CardSelectAllControl table={tableInstance} />
-                {/* Card size only changes anything once more than one column
-                    fits, which it never does below the mobile breakpoint. */}
-                {props.cardMinWidth === undefined && (
-                  <div className="hidden sm:block">
-                    <CardSizeControl value={cardSize} onChange={setCardSize} />
-                  </div>
-                )}
-                <CardSortControl table={tableInstance} ModelData={props.ModelData} />
-              </>
-            )}
-
-            <ToggleGroup
-              type="single"
-              size="sm"
-              variant="outline"
-              value={view}
-              // Radix emits "" when the active item is re-clicked — ignore it.
-              onValueChange={(v) => {
-                if (v) setView(v as DataTableView);
-              }}
-            >
-              <ToggleGroupItem value="table" aria-label="Table view" title="Table view">
-                <Table2 size={16} />
-              </ToggleGroupItem>
-              <ToggleGroupItem value="cards" aria-label="Card view" title="Card view">
-                <LayoutGrid size={16} />
-              </ToggleGroupItem>
-            </ToggleGroup>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" title="Toggle Columns">
-                  <Columns3 size={18} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {tableInstance
-                  .getAllColumns()
-                  .filter((column) => column.getCanHide())
-                  .map((column) => {
-                    return (
-                      <DropdownMenuCheckboxItem
-                        key={column.id}
-                        className="capitalize"
-                        checked={column.getIsVisible()}
-                        onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                      >
-                        {column.id}
-                      </DropdownMenuCheckboxItem>
-                    );
-                  })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-          </div>
-        </div>
-      </div>
-
-      {/* Filter panel — rendered as sibling to table to avoid re-render on tab switch */}
-      {props.filter?.panel && <div className="shrink-0">{props.filter.panel}</div>}
+      <DataTableToolbar
+        title={props.title}
+        table={tableInstance}
+        ModelData={props.ModelData}
+        filter={props.filter}
+        toolbarStyle={props.toolbarStyle}
+        selectedIds={selectedIds}
+        rowSelection={rowSelection}
+        setRowSelection={setRowSelection}
+        actions={toolbarActions}
+        create_enabled={props.create_enabled}
+        add_api_url={props.add_api_url}
+        query_invalidation={props.query_invalidation}
+        bulk_delete_enabled={props.bulk_delete_enabled}
+        onBulkEditSuccess={props.onBulkEditSuccess}
+        view={view}
+        onViewChange={setView}
+        cardSize={cardSize}
+        onCardSizeChange={setCardSize}
+        showCardSizeControl={props.cardMinWidth === undefined}
+      />
 
       <div ref={scrollRef} className="flex-1 overflow-auto min-h-0">
-        {view === "cards" ? (
-          <CardView
-            table={tableInstance}
-            ModelData={props.ModelData}
-            scrollRef={scrollRef}
-            virtualized={props.virtualized}
-            estimatedCardHeight={props.estimatedCardHeight}
-            cardMinWidth={cardMinWidth}
-            maxCellHeight={props.maxCellHeight}
-            rowClickFunction={props.rowClickFunction}
-            expandOnRowClick={props.expandOnRowClick}
-            renderSubComponent={renderSubComponent}
-            renderCard={props.renderCard}
-          />
-        ) : (
-          <TableView
-            table={tableInstance}
-            columnsCount={props.columns.length}
-            scrollRef={scrollRef}
-            virtualized={props.virtualized}
-            estimatedRowHeight={props.estimatedRowHeight}
-            cellClassName={props.cellClassName}
-            maxCellHeight={props.maxCellHeight}
-            rowClickFunction={handleRowClick}
-            expandOnRowClick={props.expandOnRowClick}
-            renderSubComponent={renderSubComponent}
-          />
-        )}
+        {/* mode="wait" so the two layouts never overlap in the scroll region —
+            a cross-dissolve of a table over a card grid is just noise, and
+            overlapping them would double the scroll height mid-transition. */}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={view}
+            initial={animateViews ? { opacity: 0 } : false}
+            animate={{ opacity: 1 }}
+            exit={animateViews ? { opacity: 0 } : undefined}
+            transition={{ duration: animateViews ? 0.12 : 0 }}
+          >
+            {view === "cards" ? (
+              <CardView
+                table={tableInstance}
+                ModelData={props.ModelData}
+                scrollRef={scrollRef}
+                virtualized={props.virtualized}
+                estimatedCardHeight={props.estimatedCardHeight}
+                cardMinWidth={cardMinWidth}
+                maxCellHeight={props.maxCellHeight}
+                rowClickFunction={props.rowClickFunction}
+                expandOnRowClick={props.expandOnRowClick}
+                renderSubComponent={renderSubComponent}
+                renderCard={props.renderCard}
+                cardActions={cardActions}
+                scrollHandleRef={viewScrollRef}
+                restoreRowIndex={restoreRowIndexRef}
+                animate={props.animate}
+              />
+            ) : (
+              <TableView
+                table={tableInstance}
+                columnsCount={props.columns.length}
+                scrollRef={scrollRef}
+                virtualized={props.virtualized}
+                estimatedRowHeight={props.estimatedRowHeight}
+                cellClassName={props.cellClassName}
+                maxCellHeight={props.maxCellHeight}
+                rowClickFunction={handleRowClick}
+                expandOnRowClick={props.expandOnRowClick}
+                renderSubComponent={renderSubComponent}
+                scrollHandleRef={viewScrollRef}
+                restoreRowIndex={restoreRowIndexRef}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {tableInstance.getPageCount() > 1 && <DataTablePagination table={tableInstance} />}

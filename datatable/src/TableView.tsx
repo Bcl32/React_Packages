@@ -7,6 +7,14 @@ import { cn } from "@bcl32/utils/cn";
 import type { RowData } from "@bcl32/data-utils";
 
 import {
+  ROW_INDEX_ATTR,
+  ROW_SCOPE_ATTR,
+  firstVisibleRowIndex,
+  scrollRenderedRowToTop,
+} from "./ViewScroll";
+import type { ScrollRestoreRef, ViewScrollHandle } from "./ViewScroll";
+
+import {
   Table,
   TableBody,
   TableCell,
@@ -27,6 +35,11 @@ export interface TableViewProps<TData extends RowData> {
   rowClickFunction: (data: TData) => void;
   expandOnRowClick?: boolean;
   renderSubComponent: (props: { row: Row<TData> }) => React.ReactNode;
+  /** Filled with this layout's scroll handle so DataTable can read the
+   *  position off it just before swapping layouts. */
+  scrollHandleRef?: React.MutableRefObject<ViewScrollHandle | null>;
+  /** A row index left behind by the previous layout; consumed once on mount. */
+  restoreRowIndex?: ScrollRestoreRef;
 }
 
 /**
@@ -53,6 +66,37 @@ export function TableView<TData extends RowData>(
     overscan: 8,
     measureElement: (el) => el.getBoundingClientRect().height,
   });
+
+  // Scroll hand-off. Reassigned every render so the handle closes over the
+  // current virtualizer and row model rather than the mount-time ones.
+  const bodyRef = React.useRef<HTMLTableSectionElement>(null);
+  const scrollToRowIndex = (index: number) => {
+    if (props.virtualized) virtualizer.scrollToIndex(index, { align: "start" });
+    else scrollRenderedRowToTop(bodyRef.current, props.scrollRef.current, index);
+  };
+  const handleRef = props.scrollHandleRef;
+  React.useEffect(() => {
+    if (!handleRef) return;
+    handleRef.current = {
+      getFirstVisibleRowIndex: () =>
+        firstVisibleRowIndex(bodyRef.current, props.scrollRef.current),
+      scrollToRowIndex,
+    };
+    return () => {
+      handleRef.current = null;
+    };
+  });
+  React.useEffect(() => {
+    const pending = props.restoreRowIndex?.current;
+    if (pending == null) return;
+    props.restoreRowIndex!.current = null;
+    // One frame of slack: the virtualizer can't place an index until it has
+    // measured the scroll element, which only happens after this commit paints.
+    const raf = requestAnimationFrame(() => scrollToRowIndex(pending));
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const virtualItems = props.virtualized ? virtualizer.getVirtualItems() : [];
   const virtualTotalSize = props.virtualized ? virtualizer.getTotalSize() : 0;
   const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0;
@@ -109,7 +153,7 @@ export function TableView<TData extends RowData>(
             </TableRow>
           ))}
         </TableHeader>
-        <TableBody>
+        <TableBody ref={bodyRef} {...{ [ROW_SCOPE_ATTR]: "" }}>
           {rows.length === 0 ? (
             <TableRow>
               <TableCell
@@ -131,6 +175,9 @@ export function TableView<TData extends RowData>(
                   <TableRow
                     data-state={row.getIsSelected() && "selected"}
                     data-index={props.virtualized ? virtualItems[idx].index : undefined}
+                    {...{
+                      [ROW_INDEX_ATTR]: props.virtualized ? virtualItems[idx].index : idx,
+                    }}
                     ref={props.virtualized ? virtualizer.measureElement : undefined}
                     className={props.expandOnRowClick ? "cursor-pointer" : undefined}
                     onClick={(e) => {
