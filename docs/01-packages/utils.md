@@ -314,7 +314,7 @@ These must be provided by the consuming app:
 
 | Name | Kind | Signature | Description |
 | --- | --- | --- | --- |
-| `useIsMobile` | hook | `() => boolean` | `true` when `window.innerWidth < 768px`. Subscribes to `matchMedia` change events. |
+| `useIsMobile` | hook | `() => boolean` | `true` when `window.innerWidth < 768px`. Read synchronously on the first render (no desktop-first flash), then kept current via `matchMedia` change events. |
 | `cn` | util | `(...inputs: ClassValue[]) => string` | `clsx` + `tailwind-merge`: merges Tailwind class strings, deduplicating conflicting utilities. |
 
 ## Conventions & patterns

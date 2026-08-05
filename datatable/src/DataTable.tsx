@@ -1,28 +1,24 @@
-import React, { Fragment } from "react";
+import React from "react";
 import type { ColumnDef, Row, SortingState, VisibilityState } from "@tanstack/react-table";
 
 import {
   useReactTable,
   getExpandedRowModel,
   getCoreRowModel,
-  flexRender,
   getSortedRowModel,
   getPaginationRowModel,
 } from "@tanstack/react-table";
 
-import { useVirtualizer } from "@tanstack/react-virtual";
-
-import { cn } from "@bcl32/utils/cn";
-
+import { TableView } from "./TableView";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableFooter,
-  TableRow,
-} from "./Table";
+  CardView,
+  CardSortControl,
+  CardSelectAllControl,
+  CardSizeControl,
+  CARD_SIZE_WIDTHS,
+  DEFAULT_CARD_SIZE,
+} from "./CardView";
+import type { CardSize, DataTableView } from "./CardView";
 
 import {
   DropdownMenu,
@@ -33,12 +29,14 @@ import {
   DropdownMenuTrigger,
 } from "@bcl32/utils/Dropdown";
 
-import { Plus, Pencil, Columns3, Trash2 } from "lucide-react";
+import { Plus, Pencil, Columns3, Trash2, Table2, LayoutGrid } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@bcl32/utils/ToggleGroup";
 import { DataTablePagination } from "./TablePagination";
 
 import { DialogButton } from "@bcl32/utils/DialogButton";
 import { Button } from "@bcl32/utils/Button";
 import { CustomTooltip } from "@bcl32/utils/Tooltip";
+import { useIsMobile } from "@bcl32/utils/useIsMobile";
 import { AddModelForm } from "@bcl32/forms/AddModelForm";
 import { BulkEditModelForm } from "@bcl32/forms/BulkEditModelForm";
 import { DeleteModelForm } from "@bcl32/forms/DeleteModelForm";
@@ -84,6 +82,27 @@ interface DataTableProps<TData extends RowData> {
   onBulkEditSuccess?: (selectedIds: string[], enabledData: Record<string, unknown>) => void;
   toolbarActions?: (selectedIds: string[]) => ToolbarAction[];
   bulk_delete_enabled?: boolean;
+  /** Controlled layout mode. Omit to let the toolbar toggle manage it. */
+  view?: DataTableView;
+  /** Initial layout mode when uncontrolled. Defaults to "table", or "cards"
+   *  under the mobile breakpoint. */
+  defaultView?: DataTableView;
+  onViewChange?: (view: DataTableView) => void;
+  /** Opt-in localStorage persistence of the uncontrolled view choice. */
+  viewStorageKey?: string;
+  /** Card view: replace the default card entirely. */
+  renderCard?: (row: Row<TData>) => React.ReactNode;
+  /** Card view: virtualizer size estimate per card row. Default 220. */
+  estimatedCardHeight?: number;
+  /** Card view: controlled card size preset. Omit to let the toolbar control
+   *  manage it. */
+  cardSize?: CardSize;
+  /** Card view: initial card size preset when uncontrolled. Default "comfortable". */
+  defaultCardSize?: CardSize;
+  onCardSizeChange?: (size: CardSize) => void;
+  /** Card view: explicit minimum card width driving the responsive column
+   *  count. Overrides the size preset and hides the toolbar size control. */
+  cardMinWidth?: number;
 }
 
 export function DataTable<TData extends RowData>(
@@ -98,6 +117,39 @@ export function DataTable<TData extends RowData>(
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(
     props.columnVisibility || {}
   );
+
+  const isMobile = useIsMobile();
+
+  // `null` means "nothing chosen, stored, or configured" — only then does the
+  // screen-width default get to decide.
+  const [uncontrolledView, setUncontrolledView] = React.useState<DataTableView | null>(() => {
+    if (props.viewStorageKey && typeof window !== "undefined") {
+      const stored = window.localStorage.getItem(props.viewStorageKey);
+      if (stored === "table" || stored === "cards") return stored;
+    }
+    return props.defaultView ?? null;
+  });
+  // Cards are the better narrow-screen layout: the table is the thing that
+  // scrolls horizontally. useIsMobile reads the width synchronously, so this
+  // resolves on the first render rather than flashing a table and reflowing.
+  const view = props.view ?? uncontrolledView ?? (isMobile ? "cards" : "table");
+  const setView = (v: DataTableView) => {
+    props.onViewChange?.(v);
+    if (props.view === undefined) {
+      setUncontrolledView(v);
+      if (props.viewStorageKey) window.localStorage.setItem(props.viewStorageKey, v);
+    }
+  };
+
+  const [uncontrolledCardSize, setUncontrolledCardSize] = React.useState<CardSize>(
+    props.defaultCardSize ?? DEFAULT_CARD_SIZE
+  );
+  const cardSize = props.cardSize ?? uncontrolledCardSize;
+  const setCardSize = (size: CardSize) => {
+    props.onCardSizeChange?.(size);
+    if (props.cardSize === undefined) setUncontrolledCardSize(size);
+  };
+  const cardMinWidth = props.cardMinWidth ?? CARD_SIZE_WIDTHS[cardSize];
 
   const [sorting, setSorting] = React.useState<SortingState>([
     {
@@ -137,29 +189,9 @@ export function DataTable<TData extends RowData>(
     // no-op default
   });
 
-  const totalSize = tableInstance.getTotalSize();
-
-  // Virtualization plumbing. The scroll ref is attached to DataTable's
-  // own internal scroll region. When `virtualized` is set, we attempt
-  // to virtualize against it; if the parent didn't give DataTable a
-  // bounded flex context, the scroll region won't actually scroll and
-  // the virtualizer harmlessly renders all rows (same as non-virtualized).
+  // Shared scroll region for both layouts; each view runs its own
+  // virtualizer against it.
   const scrollRef = React.useRef<HTMLDivElement>(null);
-  const rows = tableInstance.getRowModel().rows;
-  const virtualizer = useVirtualizer({
-    count: props.virtualized ? rows.length : 0,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => props.estimatedRowHeight ?? 56,
-    overscan: 8,
-    measureElement: (el) => el.getBoundingClientRect().height,
-  });
-  const virtualItems = props.virtualized ? virtualizer.getVirtualItems() : [];
-  const virtualTotalSize = props.virtualized ? virtualizer.getTotalSize() : 0;
-  const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0;
-  const paddingBottom =
-    virtualItems.length > 0
-      ? virtualTotalSize - virtualItems[virtualItems.length - 1].end
-      : 0;
 
   const renderSubComponent = props.renderSubComponent || (({ row }: { row: Row<TData> }) => (
     <div className="h-96 overflow-scroll">
@@ -173,7 +205,10 @@ export function DataTable<TData extends RowData>(
     <div className="flex flex-col flex-1 min-h-0">
       {/* Toolbar */}
       <div className="mb-2 shrink-0">
-        <div className="flex items-center gap-2 min-h-9">
+        {/* Wraps rather than clips: the right-hand group is shrink-0 and grows
+            by two controls in card mode, which is also the default layout on
+            the narrow screens where it would otherwise run off the edge. */}
+        <div className="flex flex-wrap items-center gap-2 min-h-9">
           <h3 className="text-lg font-semibold capitalize whitespace-nowrap shrink-0">
             {props.title}
             {props.filter && (
@@ -189,58 +224,17 @@ export function DataTable<TData extends RowData>(
             </div>
           )}
 
-          <div className="flex items-center gap-1.5 ml-auto shrink-0">
-            {props.create_enabled && (
-              <DialogButton
-                key={"dialog-add-entry"}
-                size="large"
-                open={addDialogOpen}
-                onOpenChange={setAddDialogOpen}
-                button={
-                  <Button size="sm">
-                    <Plus size={16} />
-                    {"Create New"}
-                  </Button>
-                }
-                title={"Create New " + props.ModelData.model_name}
-                variant="default"
-              >
-                <AddModelForm
-                  key={"entryform_add_data_entry"}
-                  add_api_url={props.add_api_url || ""}
-                  ModelData={props.ModelData}
-                  query_invalidation={props.query_invalidation || []}
-                  onClose={() => setAddDialogOpen(false)}
-                />
-              </DialogButton>
-            )}
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" title="Toggle Columns">
-                  <Columns3 size={18} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {tableInstance
-                  .getAllColumns()
-                  .filter((column) => column.getCanHide())
-                  .map((column) => {
-                    return (
-                      <DropdownMenuCheckboxItem
-                        key={column.id}
-                        className="capitalize"
-                        checked={column.getIsVisible()}
-                        onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                      >
-                        {column.id}
-                      </DropdownMenuCheckboxItem>
-                    );
-                  })}
-              </DropdownMenuContent>
-            </DropdownMenu>
+          {/* shrink-0 from `sm` up so the filter bar (not the buttons) absorbs
+              a narrow toolbar; below that the group is allowed to shrink so
+              flex-wrap can actually break it onto more lines instead of
+              running off the card. */}
+          <div className="flex flex-wrap items-center justify-end gap-1.5 ml-auto min-w-0 shrink sm:shrink-0">
+            {/* The selection-dependent actions come FIRST in this right-anchored
+                group. They appear, disappear, and change width with the
+                selection count, so anything after them gets shoved sideways
+                every time — including the select-all the user just clicked.
+                Placed first they grow leftward into the filter bar's slack and
+                every stable control keeps its position. */}
 
             {/* Bulk Edit */}
             {props.ModelData.update_api_url && (
@@ -327,6 +321,91 @@ export function DataTable<TData extends RowData>(
                 </span>
               </CustomTooltip>
             ) : null}
+
+            {props.create_enabled && (
+              <DialogButton
+                key={"dialog-add-entry"}
+                size="large"
+                open={addDialogOpen}
+                onOpenChange={setAddDialogOpen}
+                button={
+                  <Button size="sm">
+                    <Plus size={16} />
+                    {"Create New"}
+                  </Button>
+                }
+                title={"Create New " + props.ModelData.model_name}
+                variant="default"
+              >
+                <AddModelForm
+                  key={"entryform_add_data_entry"}
+                  add_api_url={props.add_api_url || ""}
+                  ModelData={props.ModelData}
+                  query_invalidation={props.query_invalidation || []}
+                  onClose={() => setAddDialogOpen(false)}
+                />
+              </DialogButton>
+            )}
+
+            {view === "cards" && (
+              <>
+                <CardSelectAllControl table={tableInstance} />
+                {/* Card size only changes anything once more than one column
+                    fits, which it never does below the mobile breakpoint. */}
+                {props.cardMinWidth === undefined && (
+                  <div className="hidden sm:block">
+                    <CardSizeControl value={cardSize} onChange={setCardSize} />
+                  </div>
+                )}
+                <CardSortControl table={tableInstance} ModelData={props.ModelData} />
+              </>
+            )}
+
+            <ToggleGroup
+              type="single"
+              size="sm"
+              variant="outline"
+              value={view}
+              // Radix emits "" when the active item is re-clicked — ignore it.
+              onValueChange={(v) => {
+                if (v) setView(v as DataTableView);
+              }}
+            >
+              <ToggleGroupItem value="table" aria-label="Table view" title="Table view">
+                <Table2 size={16} />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="cards" aria-label="Card view" title="Card view">
+                <LayoutGrid size={16} />
+              </ToggleGroupItem>
+            </ToggleGroup>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" title="Toggle Columns">
+                  <Columns3 size={18} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {tableInstance
+                  .getAllColumns()
+                  .filter((column) => column.getCanHide())
+                  .map((column) => {
+                    return (
+                      <DropdownMenuCheckboxItem
+                        key={column.id}
+                        className="capitalize"
+                        checked={column.getIsVisible()}
+                        onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                      >
+                        {column.id}
+                      </DropdownMenuCheckboxItem>
+                    );
+                  })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
           </div>
         </div>
       </div>
@@ -335,144 +414,34 @@ export function DataTable<TData extends RowData>(
       {props.filter?.panel && <div className="shrink-0">{props.filter.panel}</div>}
 
       <div ref={scrollRef} className="flex-1 overflow-auto min-h-0">
-      {/* `table-layout: fixed` is required when virtualizing. Under the default
-          auto layout the browser sizes columns from the content of the rows it
-          can currently see — and virtualization swaps that row set on every
-          scroll, so column widths (and therefore text wrapping) oscillate as
-          you scroll. Fixed layout derives widths solely from the declared
-          sizes below, which are scroll-invariant. Non-virtualized tables render
-          every row, so their auto layout is already stable — left alone. */}
-      <Table
-        className="text-md border-4 rounded-lg"
-        style={props.virtualized ? { tableLayout: "fixed" } : undefined}
-      >
-        <TableHeader className="sticky top-0 z-10 bg-card">
-          {tableInstance.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead
-                  key={header.id}
-                  colSpan={header.colSpan}
-                  style={{
-                    width: `${(header.getSize() / totalSize) * 100}%`,
-                    minWidth: header.column.columnDef.minSize,
-                    maxWidth: header.column.columnDef.maxSize != null && header.column.columnDef.maxSize < Number.MAX_SAFE_INTEGER
-                      ? header.column.columnDef.maxSize : undefined,
-                  }}
-                >
-                  {header.isPlaceholder ? null : (
-                    <div
-                      className={
-                        header.column.getCanSort()
-                          ? "cursor-pointer select-none flex min-w-[36px]"
-                          : ""
-                      }
-                      onClick={header.column.getToggleSortingHandler()}
-                    >
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                      {{
-                        asc: <span className="pl-2">↑</span>,
-                        desc: <span className="pl-2">↓</span>,
-                      }[header.column.getIsSorted() as string] ?? null}
-                    </div>
-                  )}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {rows.length === 0 ? (
-            <TableRow>
-              <TableCell
-                colSpan={props.columns.length}
-                className="h-24 text-center"
-              >
-                No results.
-              </TableCell>
-            </TableRow>
-          ) : (
-            <>
-              {props.virtualized && paddingTop > 0 && (
-                <tr style={{ height: paddingTop }} aria-hidden>
-                  <td colSpan={props.columns.length} />
-                </tr>
-              )}
-              {(props.virtualized ? virtualItems.map((vi) => rows[vi.index]) : rows).map((row, idx) => (
-                <Fragment key={row.id}>
-                  <TableRow
-                    data-state={row.getIsSelected() && "selected"}
-                    data-index={props.virtualized ? virtualItems[idx].index : undefined}
-                    ref={props.virtualized ? virtualizer.measureElement : undefined}
-                    className={props.expandOnRowClick ? "cursor-pointer" : undefined}
-                    onClick={(e) => {
-                      const target = e.target as HTMLElement;
-                      if (target.closest("a, input, button, label")) return;
-                      if (props.expandOnRowClick) {
-                        row.toggleExpanded();
-                      }
-                      handleRowClick(row.original);
-                    }}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        // Fixed layout won't widen a column to fit an unbroken
-                        // token, so without this a long one spills into its
-                        // neighbour instead.
-                        className={cn(props.virtualized && "break-words", props.cellClassName)}
-                        style={{
-                          width: `${(cell.column.getSize() / totalSize) * 100}%`,
-                          minWidth: cell.column.columnDef.minSize,
-                          maxWidth: cell.column.columnDef.maxSize != null && cell.column.columnDef.maxSize < Number.MAX_SAFE_INTEGER
-                            ? cell.column.columnDef.maxSize : undefined,
-                        }}
-                      >
-                        {props.maxCellHeight && !(cell.column.columnDef.meta as Record<string, unknown>)?.noMaxHeight ? (
-                          <div style={{ maxHeight: props.maxCellHeight, overflowY: "auto" }}>
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </div>
-                        ) : (
-                          flexRender(cell.column.columnDef.cell, cell.getContext())
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-
-                  {row.getIsExpanded() && (
-                    <TableRow>
-                      <TableCell colSpan={row.getVisibleCells().length}>
-                        {renderSubComponent({ row })}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </Fragment>
-              ))}
-              {props.virtualized && paddingBottom > 0 && (
-                <tr style={{ height: paddingBottom }} aria-hidden>
-                  <td colSpan={props.columns.length} />
-                </tr>
-              )}
-            </>
-          )}
-        </TableBody>
-        <TableFooter>
-          {tableInstance.getFooterGroups().map((footerGroup) => (
-            <TableRow key={footerGroup.id}>
-              {footerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.footer,
-                        header.getContext()
-                      )}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableFooter>
-      </Table>
+        {view === "cards" ? (
+          <CardView
+            table={tableInstance}
+            ModelData={props.ModelData}
+            scrollRef={scrollRef}
+            virtualized={props.virtualized}
+            estimatedCardHeight={props.estimatedCardHeight}
+            cardMinWidth={cardMinWidth}
+            maxCellHeight={props.maxCellHeight}
+            rowClickFunction={props.rowClickFunction}
+            expandOnRowClick={props.expandOnRowClick}
+            renderSubComponent={renderSubComponent}
+            renderCard={props.renderCard}
+          />
+        ) : (
+          <TableView
+            table={tableInstance}
+            columnsCount={props.columns.length}
+            scrollRef={scrollRef}
+            virtualized={props.virtualized}
+            estimatedRowHeight={props.estimatedRowHeight}
+            cellClassName={props.cellClassName}
+            maxCellHeight={props.maxCellHeight}
+            rowClickFunction={handleRowClick}
+            expandOnRowClick={props.expandOnRowClick}
+            renderSubComponent={renderSubComponent}
+          />
+        )}
       </div>
 
       {tableInstance.getPageCount() > 1 && <DataTablePagination table={tableInstance} />}

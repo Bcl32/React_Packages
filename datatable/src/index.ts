@@ -1,4 +1,6 @@
 export * from "./DataTable";
+export * from "./TableView";
+export * from "./CardView";
 export * from "./Table";
 export * from "./KeyValueTable";
 export * from "./StatsTable";

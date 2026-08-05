@@ -3,6 +3,8 @@ import { defineConfig } from "tsup";
 export default defineConfig({
   entry: [
     "src/DataTable.tsx",
+    "src/TableView.tsx",
+    "src/CardView.tsx",
     "src/Table.tsx",
     "src/KeyValueTable.tsx",
     "src/StatsTable.tsx",

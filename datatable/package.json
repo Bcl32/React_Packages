@@ -17,6 +17,14 @@
       "types": "./dist/DataTable.d.ts",
       "import": "./dist/DataTable.js"
     },
+    "./TableView": {
+      "types": "./dist/TableView.d.ts",
+      "import": "./dist/TableView.js"
+    },
+    "./CardView": {
+      "types": "./dist/CardView.d.ts",
+      "import": "./dist/CardView.js"
+    },
     "./Table": {
       "types": "./dist/Table.d.ts",
       "import": "./dist/Table.js"
