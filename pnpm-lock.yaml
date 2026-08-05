@@ -169,7 +169,7 @@ importers:
         specifier: workspace:^4.0.1
         version: link:../hooks
       '@bcl32/utils':
-        specifier: workspace:^2.8.1
+        specifier: workspace:^2.9.0
         version: link:../utils
       '@radix-ui/react-slider':
         specifier: ^1.2.1
