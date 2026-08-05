@@ -282,13 +282,13 @@ function SwatchGridView({ colour_presets, selected, onToggle }: SwatchGridViewPr
 
   return (
     <div className="relative inline-block" ref={ref}>
-      <div className="flex items-center gap-1.5 flex-wrap mt-1">
+      <div className="flex items-center gap-2 flex-wrap mt-1">
         {selected.map((hex) => (
           <button
             key={hex}
             type="button"
             onClick={() => onToggle(hex)}
-            className="w-6 h-6 rounded-full border-2 border-primary ring-1 ring-primary cursor-pointer hover:scale-110 transition-transform"
+            className="w-9 h-9 rounded-full border-2 border-primary ring-1 ring-primary cursor-pointer hover:scale-110 transition-transform"
             style={{ backgroundColor: hex }}
             title={`Remove ${hex}`}
           />
@@ -296,7 +296,7 @@ function SwatchGridView({ colour_presets, selected, onToggle }: SwatchGridViewPr
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
-          className="w-6 h-6 rounded-full border-2 border-dashed border-border cursor-pointer hover:border-primary hover:scale-110 transition-all flex items-center justify-center text-muted-foreground text-sm"
+          className="w-9 h-9 rounded-full border-2 border-dashed border-border cursor-pointer hover:border-primary hover:scale-110 transition-all flex items-center justify-center text-muted-foreground text-lg leading-none"
           title="Add colour filter"
         >
           +
@@ -306,6 +306,7 @@ function SwatchGridView({ colour_presets, selected, onToggle }: SwatchGridViewPr
         <ColourPickerPopover
           swatchGroups={groupedSwatches}
           selectedColours={selected}
+          size="lg"
           onSelect={(hex) => {
             onToggle(hex);
           }}

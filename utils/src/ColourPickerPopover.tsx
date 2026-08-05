@@ -26,7 +26,19 @@ export interface ColourPickerPopoverProps {
   onSelect: (hex: string, filamentId?: string) => void;
   /** Custom dot renderer (e.g. finish-aware swatches); default is a flat circle. */
   renderSwatchIcon?: (s: ColourSwatch) => ReactNode;
+  /**
+   * Panel scale. "lg" widens the popover and grows the dots — worth it where
+   * the colour *is* the thing being picked (a colour filter) rather than one
+   * field among many in a form.
+   */
+  size?: "md" | "lg";
 }
+
+/** Per-size Tailwind classes: panel width, dot box, and label type scale. */
+const SIZES = {
+  md: { panel: "w-[32rem]", dot: "w-6 h-6", label: "text-xs" },
+  lg: { panel: "w-[44rem]", dot: "w-9 h-9", label: "text-sm" },
+} as const;
 
 export function ColourPickerPopover({
   swatchGroups,
@@ -36,7 +48,9 @@ export function ColourPickerPopover({
   defaultCustomColour = "#6b9bd2",
   onSelect,
   renderSwatchIcon,
+  size = "md",
 }: ColourPickerPopoverProps) {
+  const scale = SIZES[size] ?? SIZES.md;
   // Normalise either shape to nested Map<group, Map<subgroup, swatches>>.
   // A flat group's swatch array becomes a single ""-keyed subgroup (no header).
   const groups = new Map<string, Map<string, ColourSwatch[]>>();
@@ -68,7 +82,7 @@ export function ColourPickerPopover({
       }`}
     >
       <span
-        className={`w-6 h-6 rounded-full border-2 shrink-0 overflow-hidden ${
+        className={`${scale.dot} rounded-full border-2 shrink-0 overflow-hidden ${
           isSelected(s)
             ? "border-primary ring-1 ring-primary"
             : "border-border"
@@ -77,14 +91,16 @@ export function ColourPickerPopover({
       >
         {renderSwatchIcon?.(s)}
       </span>
-      <span className="text-xs text-foreground truncate">
+      <span className={`${scale.label} text-foreground truncate`}>
         {s.colour_name || s.colour_hex}
       </span>
     </button>
   );
 
   return (
-    <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-popover border rounded-lg shadow-lg p-3 w-[32rem] max-h-[80vh] overflow-y-auto">
+    <div
+      className={`fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-popover border rounded-lg shadow-lg p-3 ${scale.panel} max-w-[92vw] max-h-[80vh] overflow-y-auto`}
+    >
       {groups.size > 0 &&
         Array.from(groups.entries()).map(([groupLabel, subGroups]) => (
           <div key={groupLabel} className="mb-4">
