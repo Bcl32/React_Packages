@@ -1,5 +1,100 @@
 # Changelog
 
+## 2.10.0
+
+### Minor Changes
+
+- a849ecf: feat(datatable): split the toolbar into a filter zone and a table-operations row
+
+  The toolbar was one wrapping flex row carrying up to thirteen elements — title,
+  count, filter search, Filters pill, N active chips, bulk edit, N custom actions,
+  delete, create, card select-all, card density, card sort, view toggle, columns —
+  six of which appear, disappear, or change width with the row selection. It mixed
+  _which rows am I looking at_ with _what do I do with them_, and had reached the
+  point where the control order was dictated by layout-shift avoidance rather than
+  by meaning.
+
+  It is now two zones, extracted into a new `DataTableToolbar`:
+
+  - **Zone 1 — which rows.** Title, `(filteredCount/totalCount)`, the filter
+    search / pill / active chips, and the expandable filter panel. The count heads
+    this zone because it is the filters' output. The chip strip still scrolls
+    sideways rather than wrapping, so adding a chip can't push the table down.
+  - **Zone 2 — what to do with them.** Bulk actions and view controls, on a
+    divider directly above the rows they act on.
+
+  The selection-dependent buttons keep their leading position in zone 2 for the
+  original reason — measured across a selection change, the sort, view-toggle and
+  column controls now hold position to the pixel while three buttons appear beside
+  them. With no `filter` prop both zones collapse to a bare title above the
+  controls, close to the previous single-row look.
+
+  No consumer changes: `props.filter` was already an opaque
+  `{ toolbar, panel, filteredCount, totalCount }` object, so DataTable was only
+  ever choosing where to put those two nodes.
+
+  **Sorting is now available in the table layout.** `CardSortControl` becomes
+  `SortControl` (the old name stays as a deprecated alias) and renders in both
+  layouts. Cards never had headers to click; the table's headers _do_ scroll out
+  of view, because `TableHeader`'s `sticky top-0` is defeated by the scroll wrapper
+  inside the `Table` primitive — so on a long table sorting was unreachable
+  without scrolling back to the top. The control and the header click handler both
+  drive TanStack's `sorting` state, so the dropdown, its direction button and the
+  header's ↑/↓ arrow stay consistent with no extra state.
+
+  Also extracted the column-label helpers (`columnLabelText`, `columnCardLabel`,
+  `CardMeta`, `CONTROL_COLUMN_IDS`) out of `CardView` into `ColumnLabels`, since
+  the sort control needs them and is no longer card-specific. `DataTable.tsx`
+  drops from 487 to 266 lines.
+
+- a849ecf: feat(datatable): card quick actions, keyboard navigation, scroll hand-off and motion
+
+  Four follow-ups to the card view, all of which apply to every DataTable without
+  consumer changes.
+
+  **Quick actions.** A `ToolbarAction` that sets `card` now renders twice from one
+  declaration: the toolbar's bulk button over the selection, and a per-card button
+  in the card footer, invoked with just that row's id. `cardLabel`,
+  `cardVisible(row)` and `cardDisabled(row)` tune the card affordance, and
+  `onCardClick(row)` covers handlers that want the row rather than its id. The
+  card button deliberately ignores `visible` / `disabled` — those are near-always
+  derived from the selection, which says nothing about the single row a card
+  stands for — which also makes `{ visible: false, card: "full" }` the way to
+  declare an action that only ever made sense per row. `ToolbarAction` is now
+  generic in the row type, and `toolbarActions` is resolved once per render
+  instead of being called again for the card grid.
+
+  **Keyboard navigation.** The grid is a roving-tabindex `role="grid"`: arrows
+  move a focus ring in two dimensions using the measured column count, Home/End
+  jump to the ends, Space toggles selection, Enter activates. Keys are handled
+  only when the event target is a card root, so a keystroke inside a card's own
+  controls still belongs to that control. Focus requests survive across commits,
+  since under virtualization the card being moved to usually isn't rendered yet.
+  The pre-focus tab stop tracks the first _rendered_ card rather than index 0,
+  which would otherwise leave a scrolled grid with no tab stop at all.
+
+  **Scroll position across a view toggle.** Both layouts now expose a
+  `ViewScrollHandle`; `DataTable` reads the topmost visible row index off the
+  outgoing layout and the incoming one restores it on mount, the card grid
+  converting row index to chunk index via its column count. Both layouts stamp
+  `data-row-index` per row and `data-row-scope` on the element that owns them, so
+  a DataTable nested in an expansion panel can't be mistaken for the outer one's
+  rows. This removes the one UX regression the card view had shipped with.
+
+  **Motion** (framer-motion, already a `@bcl32/utils` dependency). A 120 ms
+  cross-fade on the view toggle, and card enter/exit plus reflow as the row set
+  changes. Both are off under `prefers-reduced-motion` or `animate={false}`, and
+  card enter/exit is additionally off while `virtualized`, where cards mount and
+  unmount on scroll and the transitions would fire on scrolling rather than on the
+  data changing.
+
+  **`renderCard` gains a context argument.** Building the first real bespoke card
+  showed the escape hatch forced consumers to re-implement selection and the
+  row-actions menu from scratch. `renderCard(row, ctx)` now hands back
+  `ctx.quickActions`, `ctx.select` and `ctx.actions` ready-rendered, keeping it a
+  layout override rather than a fork of the card feature. A card's media slot also
+  collapses instead of reserving padding when the row has no thumbnail.
+
 ## 2.9.0
 
 ### Minor Changes
