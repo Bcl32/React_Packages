@@ -9,6 +9,7 @@ import {
   type FilterSuggestion,
   type SearchFieldEntry,
 } from "./FilterSearch";
+import { FILTER_SEARCH_ATTR, releaseFilterSearch } from "./FilterSearchHotkey";
 import type { FilterInitialValue, Filters } from "./types";
 
 /** Suggestion panel geometry. Width matches the old `w-80`. */
@@ -169,8 +170,13 @@ export function FilterSearchBar({
 
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Escape") {
+      // Two steps out: clear what you typed, then leave the box entirely and
+      // hand focus back to wherever the `/` hotkey took it from.
       if (query) setQuery("");
-      else setFocused(false);
+      else {
+        setFocused(false);
+        releaseFilterSearch(inputRef.current);
+      }
       return;
     }
     if (e.key === "Tab" && ghost) {
@@ -208,6 +214,8 @@ export function FilterSearchBar({
         <div className="relative">
           <Input
             ref={inputRef}
+            // Jump target for the `/` hotkey — see FilterSearchHotkey.
+            {...{ [FILTER_SEARCH_ATTR]: "" }}
             variant="background"
             value={query}
             onChange={(e) => setQuery(e.target.value)}

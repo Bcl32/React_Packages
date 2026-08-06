@@ -125,6 +125,10 @@
       "types": "./dist/DataTableFilterBar.d.ts",
       "import": "./dist/DataTableFilterBar.js"
     },
+    "./FilterSearchHotkey": {
+      "types": "./dist/FilterSearchHotkey.d.ts",
+      "import": "./dist/FilterSearchHotkey.js"
+    },
     "./FilterProvider": {
       "types": "./dist/FilterProvider.d.ts",
       "import": "./dist/FilterProvider.js"
