@@ -99,6 +99,7 @@ import type { ModelData, Filters } from "@bcl32/filters/types";
 | `useDataTableFilterBar` | hook | `({ filters, changeFilters, activeFilters, filteredCount, totalCount }) => DataTableFilter` | Renders a compact inline filter toolbar (tab buttons + active-filter chips, `ListFilter`/`X` lucide icons since 3.2.0 — MUI icons removed) and a collapsible panel. Returns `{ toolbar, panel, filteredCount, totalCount }`. **Creates its own `FilterProvider` internally.** |
 | `useEntityGroups` | hook | `(dataset, modelData, attrName, options?) => { groups: EntityGroup[], attr: ModelAttribute \| null }` | Groups a dataset by a named options attribute, counting occurrences per value across `scalar`, `scalar-array`, and `object-array` source kinds; resolves an optional visual via `GroupVisualResolver`. |
 | `getGroupableAttrs` | util | `(modelData: ModelData) => ModelAttribute[]` | Returns attributes where `filter === true` and `filter_type === 'options'`; used to populate groupBy selectors. |
+| `rowGroupValues` | util | `(row, attr: ModelAttribute) => RowGroupValue[]` | Which group(s) one row belongs to for one attribute — several for the multi-valued kinds. `useEntityGroups` counts through this, so a consumer that *places* rows (the DataTable board layout assigning cards to lanes) can place them through the same function and cannot disagree with the counts. Returns `[{ value: '_none' }]` for an empty/null value. |
 | `EntityGroupCards` | component | `({ dataset, modelData, groupBy, groupableAttrs, onGroupByChange, onSelect, resolveVisual?, title?, onEmptySwitchToTable? }) => JSX.Element` | Card grid grouping entities by an options attribute; includes a `ToggleGroup` to switch groupBy field, click-to-select cards, and an optional empty-state escape hatch. |
 
 ### Pure data utilities
@@ -139,7 +140,8 @@ import type { ModelData, Filters } from "@bcl32/filters/types";
 | `ChartClickEvent` | type | `{ activePayload?: ClickPayload[] }` | recharts `onClick` event shape. |
 | `DataTableFilter` | type | `{ toolbar: React.ReactNode, panel: React.ReactNode, filteredCount: number, totalCount: number }` | Return shape of `useDataTableFilterBar`. |
 | `UseEntityFiltersReturn` | type | `{ filters, changeFilters, filteredData, activeFilters, datasetStats, filteredStats, filteredCount, totalCount, enrichedModelData }` | Return interface for `useEntityFilters`. |
-| `EntityGroup` | type | `{ value: string, label: string, count: number, visual?: ReactNode, isNone?: boolean }` | A group bucket from `useEntityGroups`. |
+| `EntityGroup` | type | `{ value: string, label: string, count: number, visual?: ReactNode, isNone?: boolean }` | A group bucket from `useEntityGroups`. Drop the `count` and it is `BoardLane` from `@bcl32/datatable` — the board's lane headers are these tiles, expanded. |
+| `RowGroupValue` | type | `{ value: string, label?: string }` | One row's membership in a group. `label` is set only for `object-array` kinds, which carry their own labels. |
 | `GroupVisualResolver` | type | `(attr: ModelAttribute, value: string, sampleRow: Record<string,unknown> \| undefined) => ReactNode \| undefined` | Callback returning an optional visual (e.g. a colour swatch) for a group value. |
 
 ---

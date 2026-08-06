@@ -1,17 +1,14 @@
 import React from "react";
-import type { Cell, Row, Table as TanstackTable } from "@tanstack/react-table";
-import { flexRender } from "@tanstack/react-table";
+import type { Row, Table as TanstackTable } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, useReducedMotion } from "framer-motion";
 
-import { cn } from "@bcl32/utils/cn";
-import { Card } from "@bcl32/utils/Card";
-import { Button } from "@bcl32/utils/Button";
 import { Select } from "@bcl32/utils/Select";
 import { Checkbox } from "@bcl32/utils/Checkbox";
-import type { ModelData, RowData } from "@bcl32/data-utils";
+import type { RowData } from "@bcl32/data-utils";
 
-import { columnCardLabel, getCardMeta } from "./ColumnLabels";
+import { RowCard } from "./RowCard";
+import type { CardRenderOptions, RenderCardContext } from "./RowCard";
 import {
   ROW_INDEX_ATTR,
   ROW_SCOPE_ATTR,
@@ -20,12 +17,15 @@ import {
   scrollRenderedRowToTop,
 } from "./ViewScroll";
 import type { ScrollRestoreRef, ViewScrollHandle } from "./ViewScroll";
-import type { ToolbarAction } from "./ToolbarAction";
 
-export type DataTableView = "table" | "cards";
+export type DataTableView = "table" | "cards" | "board";
 
+// The card contract lives in RowCard now (the board draws the same card), but
+// it is still part of this module's public surface — DataTable and every
+// consumer import it from here.
+export type { CardRenderOptions, RenderCardContext };
 
-/** Toolbar select-all shown while the card view is active. Cards have no
+/** Toolbar select-all shown while a card-based layout is active. Cards have no
  *  header row, so without this the header checkbox — the only select-all in the
  *  table layout — has no card-mode equivalent and a filtered set can't be
  *  bulk-selected. */
@@ -60,7 +60,8 @@ export function CardSelectAllControl<TData extends RowData>(props: {
 }
 
 /** Card size presets, in px of minimum card width. The grid's column count is
- *  purely width-driven, so picking a size *is* picking how many columns fit. */
+ *  purely width-driven, so picking a size *is* picking how many columns fit.
+ *  The board reuses them as its lane width. */
 export const CARD_SIZE_WIDTHS = {
   compact: 260,
   comfortable: 320,
@@ -78,7 +79,7 @@ const CARD_SIZE_LABELS: Record<CardSize, string> = {
 };
 
 /** Toolbar card-density control — feeds `cardMinWidth`, which the grid turns
- *  into a column count. */
+ *  into a column count and the board turns into a lane width. */
 export function CardSizeControl(props: {
   value: CardSize;
   onChange: (size: CardSize) => void;
@@ -100,340 +101,17 @@ export function CardSizeControl(props: {
   );
 }
 
-/**
- * What a bespoke card gets besides the row. Everything here is a control the
- * default card would otherwise have placed for it: without them a `renderCard`
- * consumer has to re-implement selection and the row-actions menu from scratch,
- * which is how an escape hatch turns into a fork.
- */
-export interface RenderCardContext {
-  /** The row's quick actions, already rendered. Empty when no toolbar action
-   *  opted in with `card`. */
-  quickActions: React.ReactNode;
-  /** The select checkbox cell, or null when the table has no select column. */
-  select: React.ReactNode;
-  /** The row-actions (⋯) menu cell, or null when the table has none. */
-  actions: React.ReactNode;
-}
-
-export interface CardViewProps<TData extends RowData> {
+export interface CardViewProps<TData extends RowData> extends CardRenderOptions<TData> {
   table: TanstackTable<TData>;
-  ModelData: ModelData;
   scrollRef: React.RefObject<HTMLDivElement>;
   virtualized?: boolean;
   estimatedCardHeight?: number;
   cardMinWidth?: number;
-  maxCellHeight?: number;
-  rowClickFunction?: (data: TData) => void;
-  expandOnRowClick?: boolean;
   renderSubComponent: (props: { row: Row<TData> }) => React.ReactNode;
-  /**
-   * Escape hatch: replaces the default card entirely. CardView still supplies
-   * the grid slot, click handling, keyboard navigation, and the expansion panel.
-   *
-   * A bespoke card has replaced the footer the quick actions would have gone
-   * in, so they are handed over ready-rendered in `ctx.quickActions` — place
-   * them wherever the card's design wants them, or drop them.
-   */
-  renderCard?: (row: Row<TData>, ctx: RenderCardContext) => React.ReactNode;
-  /** Toolbar actions that opted in with `card`, rendered per card in the
-   *  default card's footer. */
-  cardActions?: ToolbarAction<TData>[];
   scrollHandleRef?: React.MutableRefObject<ViewScrollHandle | null>;
   restoreRowIndex?: ScrollRestoreRef;
   /** Enter/exit + reflow animation on the cards. Forced off while virtualized. */
   animate?: boolean;
-}
-
-interface PartitionedCells<TData extends RowData> {
-  select?: Cell<TData, unknown>;
-  actions?: Cell<TData, unknown>;
-  edit?: Cell<TData, unknown>;
-  expander?: Cell<TData, unknown>;
-  media: Cell<TData, unknown>[];
-  title: Cell<TData, unknown>[];
-  badge: Cell<TData, unknown>[];
-  body: Cell<TData, unknown>[];
-  footer: Cell<TData, unknown>[];
-}
-
-function partitionCells<TData extends RowData>(row: Row<TData>): PartitionedCells<TData> {
-  const parts: PartitionedCells<TData> = {
-    media: [],
-    title: [],
-    badge: [],
-    body: [],
-    footer: [],
-  };
-  for (const cell of row.getVisibleCells()) {
-    const id = cell.column.id;
-    if (id === "select") parts.select = cell;
-    else if (id === "actions") parts.actions = cell;
-    else if (id === "EditEntry") parts.edit = cell;
-    else if (id === "expander") parts.expander = cell;
-    else {
-      const slot = getCardMeta(cell.column)?.slot ?? "body";
-      parts[slot].push(cell);
-    }
-  }
-  // Unannotated tables still need a readable card: promote the first field to
-  // the title position when nothing claims it.
-  if (parts.title.length === 0 && parts.body.length > 0) {
-    parts.title.push(parts.body.shift() as Cell<TData, unknown>);
-  }
-  return parts;
-}
-
-function renderCell<TData extends RowData>(cell: Cell<TData, unknown>): React.ReactNode {
-  return flexRender(cell.column.columnDef.cell, cell.getContext());
-}
-
-/** The toolbar actions that opted into a per-card affordance, filtered to the
- *  ones that apply to this row. */
-function applicableCardActions<TData extends RowData>(
-  row: Row<TData>,
-  actions: ToolbarAction<TData>[] | undefined
-): ToolbarAction<TData>[] {
-  if (!actions?.length) return [];
-  return actions.filter((action) => action.cardVisible?.(row.original) !== false);
-}
-
-function CardQuickActions<TData extends RowData>(props: {
-  row: Row<TData>;
-  actions: ToolbarAction<TData>[];
-}): JSX.Element {
-  return (
-    <>
-      {props.actions.map((action) => {
-        const iconOnly = action.card === "icon" && Boolean(action.icon);
-        const label = action.cardLabel ?? action.label;
-        return (
-          <Button
-            key={action.key}
-            size={iconOnly ? "icon" : "sm"}
-            variant={action.variant ?? "outline"}
-            disabled={action.cardDisabled?.(props.row.original) ?? false}
-            title={label}
-            aria-label={iconOnly ? label : undefined}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (action.onCardClick) action.onCardClick(props.row.original);
-              // Same handler the toolbar uses, scoped to the one row the card
-              // stands for — so a card action needs no separate declaration.
-              else action.onClick([props.row.id]);
-            }}
-          >
-            {action.icon}
-            {!iconOnly && label}
-          </Button>
-        );
-      })}
-    </>
-  );
-}
-
-/** The stock card: control columns in fixed positions, everything else placed
- *  by its `meta.card` slot hint. */
-function DefaultCard<TData extends RowData>(props: {
-  row: Row<TData>;
-  view: CardViewProps<TData>;
-  clickable: boolean;
-}): JSX.Element {
-  const { row, view } = props;
-  const cells = partitionCells(row);
-  const quickActions = applicableCardActions(row, view.cardActions);
-
-  return (
-    <Card
-      data-state={row.getIsSelected() ? "selected" : undefined}
-      className={cn(
-        "relative flex h-full flex-col",
-        // ring-inset, not an outside ring: the grid sits flush against the
-        // scroll region's edges, so an outside ring is clipped away on the
-        // first row (and either side column) and the selection reads as a
-        // card with its top cut off.
-        "data-[state=selected]:bg-muted data-[state=selected]:ring-2 data-[state=selected]:ring-inset data-[state=selected]:ring-primary",
-        props.clickable && "cursor-pointer hover:bg-accent/30 transition-colors"
-      )}
-    >
-      {cells.media.length > 0 && (
-        // Media renderers are sized for table cells (fixed column width, and
-        // ThumbnailCell-style negative-margin bleed) — neutralize the bleed and
-        // pin images to a uniform square so media can't swallow the card.
-        // empty:hidden so a row with no thumbnail doesn't reserve the padding
-        // for one.
-        <div className="flex justify-center gap-2 px-3 pt-3 empty:hidden [&>*]:!m-0 [&_img]:h-32 [&_img]:w-32 [&_img]:rounded [&_img]:object-cover">
-          {cells.media.map((cell) => (
-            <React.Fragment key={cell.id}>{renderCell(cell)}</React.Fragment>
-          ))}
-        </div>
-      )}
-
-      <div className="flex flex-col space-y-1 p-3 pb-1">
-        <div className="flex items-start gap-2">
-          {/* The select cell carries a -m-4/p-4 hit-area bleed tuned for table
-              cells; flattened here so the checkbox occupies real flex width. */}
-          {cells.select && (
-            <div className="shrink-0 [&_label]:!m-0 [&_label]:!p-0">
-              {renderCell(cells.select)}
-            </div>
-          )}
-          <div className="min-w-0 flex-1 font-medium">
-            {cells.title.map((cell) => (
-              <React.Fragment key={cell.id}>{renderCell(cell)}</React.Fragment>
-            ))}
-          </div>
-          {cells.actions && (
-            <div className="-mr-1 -mt-1 shrink-0">{renderCell(cells.actions)}</div>
-          )}
-        </div>
-        {cells.badge.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1">
-            {cells.badge.map((cell) => (
-              <React.Fragment key={cell.id}>{renderCell(cell)}</React.Fragment>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {cells.body.length > 0 && (
-        <div className="flex-1 space-y-1.5 p-3 pt-1 text-sm">
-          {cells.body.map((cell) => {
-            const meta = getCardMeta(cell.column);
-            const noMaxHeight = (cell.column.columnDef.meta as Record<string, unknown> | undefined)
-              ?.noMaxHeight;
-            const value =
-              view.maxCellHeight && !noMaxHeight ? (
-                <div style={{ maxHeight: view.maxCellHeight, overflowY: "auto" }}>
-                  {renderCell(cell)}
-                </div>
-              ) : (
-                renderCell(cell)
-              );
-            return (
-              <div key={cell.id} className="flex items-baseline gap-2">
-                {!meta?.hideLabel && (
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {columnCardLabel(cell.column, view.ModelData)}
-                  </span>
-                )}
-                <div className="min-w-0 flex-1">{value}</div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {(cells.footer.length > 0 ||
-        quickActions.length > 0 ||
-        cells.edit ||
-        cells.expander) && (
-        <div className="flex flex-wrap items-center gap-2 p-3 pt-0">
-          {cells.footer.map((cell) => (
-            <React.Fragment key={cell.id}>{renderCell(cell)}</React.Fragment>
-          ))}
-          <CardQuickActions row={row} actions={quickActions} />
-          {(cells.edit || cells.expander) && (
-            <div className="ml-auto flex items-center gap-1">
-              {cells.edit && renderCell(cells.edit)}
-              {cells.expander && renderCell(cells.expander)}
-            </div>
-          )}
-        </div>
-      )}
-    </Card>
-  );
-}
-
-function buildRenderCardContext<TData extends RowData>(
-  row: Row<TData>,
-  view: CardViewProps<TData>
-): RenderCardContext {
-  const cells = partitionCells(row);
-  return {
-    quickActions: (
-      <CardQuickActions row={row} actions={applicableCardActions(row, view.cardActions)} />
-    ),
-    // Flattened the same way the default card flattens them: both renderers
-    // carry a hit-area bleed sized for a table cell.
-    select: cells.select ? (
-      <span className="[&_label]:!m-0 [&_label]:!p-0">{renderCell(cells.select)}</span>
-    ) : null,
-    actions: cells.actions ? renderCell(cells.actions) : null,
-  };
-}
-
-/** Enter/exit + reflow motion. Deliberately short: this fires on every filter
- *  keystroke, so anything slower reads as lag rather than polish. */
-const CARD_MOTION = {
-  layout: true,
-  initial: { opacity: 0, scale: 0.96 },
-  animate: { opacity: 1, scale: 1 },
-  exit: { opacity: 0, scale: 0.94 },
-  transition: { duration: 0.18, ease: "easeOut" },
-} as const;
-
-function RowCard<TData extends RowData>(props: {
-  row: Row<TData>;
-  /** Index into the sorted row model — the coordinate arrow keys navigate over
-   *  and the scroll hand-off restores to. */
-  index: number;
-  tabIndex: number;
-  animated: boolean;
-  onFocus: () => void;
-  view: CardViewProps<TData>;
-}): JSX.Element {
-  const { row, view } = props;
-  const clickable = Boolean(view.rowClickFunction || view.expandOnRowClick);
-  const onClick = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.closest("a, input, button, label")) return;
-    if (view.expandOnRowClick) row.toggleExpanded();
-    view.rowClickFunction?.(row.original);
-  };
-
-  const inner = view.renderCard ? (
-    view.renderCard(row, buildRenderCardContext(row, view))
-  ) : (
-    <DefaultCard row={row} view={view} clickable={clickable} />
-  );
-
-  const common = {
-    role: "gridcell",
-    tabIndex: props.tabIndex,
-    onFocus: props.onFocus,
-    onClick,
-    "data-state": row.getIsSelected() ? "selected" : undefined,
-    [ROW_INDEX_ATTR]: props.index,
-    className: cn(
-      "h-full rounded-lg",
-      // The keyboard cursor is an `outline` drawn *inside* the card, and it has
-      // to be all three of those things:
-      //   - outline, not ring: a ring is a box-shadow, which paints under the
-      //     element's children — the opaque <Card> would cover it. Outlines
-      //     paint above descendants. It is also a separate property from the
-      //     selection ring, so a focused *and* selected card shows both.
-      //   - inside (negative offset), not outside: the grid sits flush against
-      //     the scroll region, so anything drawn outside the card is clipped
-      //     away on the first row and either edge column — the same trap the
-      //     selection ring documents just below.
-      //   - dashed: --ring and --primary are the same colour in these themes,
-      //     so shape, not hue, is what separates "cursor is here" from
-      //     "this row is selected".
-      "outline-none focus-visible:outline-dashed focus-visible:outline-2",
-      "focus-visible:outline-primary focus-visible:[outline-offset:-3px]",
-      clickable && "cursor-pointer"
-    ),
-  };
-
-  if (props.animated) {
-    return (
-      <motion.div {...common} {...CARD_MOTION}>
-        {inner}
-      </motion.div>
-    );
-  }
-  return <div {...common}>{inner}</div>;
 }
 
 const GRID_GAP_PX = 12; // Tailwind gap-3, shared by the column-count math below.
@@ -490,7 +168,7 @@ function Chunk<TData extends RowData>(props: {
 /**
  * Card-grid rendering of a DataTable's rows over the same TanStack table
  * instance as TableView — sorting, selection, expansion, and filtering state
- * all carry over. Cards derive their content from the visible column cells:
+ * all carry over. The card itself is `RowCard`, shared with the board layout:
  * control columns get fixed positions and the rest place themselves via
  * `meta.card` slot hints (default: labeled body fields).
  *
@@ -551,7 +229,7 @@ export function CardView<TData extends RowData>(props: CardViewProps<TData>): JS
   const reduceMotion = useReducedMotion();
   const animated = (props.animate ?? true) && !props.virtualized && !reduceMotion;
 
-  // ---- Scroll hand-off to and from the table layout ------------------------
+  // ---- Scroll hand-off to and from the other layouts -----------------------
   const scrollToRowIndex = (index: number) => {
     if (props.virtualized) {
       virtualizer.scrollToIndex(Math.floor(index / cols), { align: "start" });

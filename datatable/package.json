@@ -25,6 +25,14 @@
       "types": "./dist/CardView.d.ts",
       "import": "./dist/CardView.js"
     },
+    "./BoardView": {
+      "types": "./dist/BoardView.d.ts",
+      "import": "./dist/BoardView.js"
+    },
+    "./RowCard": {
+      "types": "./dist/RowCard.d.ts",
+      "import": "./dist/RowCard.js"
+    },
     "./Table": {
       "types": "./dist/Table.d.ts",
       "import": "./dist/Table.js"

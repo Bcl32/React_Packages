@@ -300,6 +300,8 @@ misreports the order the rows are in.
 
 Added in 2.9.0. Every DataTable gets a toolbar toggle (table / cards icons) that switches the row layout between the classic `<table>` and a responsive card grid. Both layouts consume the **same TanStack table instance**, so sorting, upstream filtering, row selection (bulk edit / delete), expansion, and row-click behaviour carry over unchanged — no consumer changes are required to enable it.
 
+A third icon appears when the consumer supplies `board` — see [Board view](#board-view), which draws the same cards in group lanes.
+
 ### View state
 
 - Uncontrolled by default. Resolution order: `view` (controlled) → the user's toggle choice / `viewStorageKey` localStorage value → `defaultView` → `"cards"` below the 768 px mobile breakpoint, else `"table"`.
@@ -371,11 +373,11 @@ Everything else stays available on `row` itself (`row.original`, `row.getIsSelec
 
 ### Card-mode toolbar controls
 
-Shown only while cards are active (see [Toolbar anatomy](#toolbar-anatomy) for
-where they sit):
+Shown while either card-based layout is active — the grid or the board (see
+[Toolbar anatomy](#toolbar-anatomy) for where they sit):
 
 - `CardSelectAllControl` — the card-mode equivalent of the table's header checkbox, labelled with the row count it acts on (`Select all (413)`). Renders nothing when the table has no visible `select` column. The count comes from the pre-grouped row model, i.e. exactly the rows `toggleAllRowsSelected` will select. It keeps its "Select all (N)" wording when everything is selected rather than swapping in a shorter label, which would resize the control on the click that toggled it.
-- `CardSizeControl` — card density (`compact` 260 px / `comfortable` 320 px / `large` 400 px, via the exported `CARD_SIZE_WIDTHS`). Since the grid is width-driven this is effectively a "how many columns" control. Controlled with `cardSize` + `onCardSizeChange`, or uncontrolled from `defaultCardSize` (default `"comfortable"`). Hidden below `sm` (one column fits regardless) and hidden entirely when the consumer pins an explicit `cardMinWidth`, which overrides the preset.
+- `CardSizeControl` — card density (`compact` 260 px / `comfortable` 320 px / `large` 400 px, via the exported `CARD_SIZE_WIDTHS`). Since the grid is width-driven this is effectively a "how many columns" control; on the board the same number is the lane width. Controlled with `cardSize` + `onCardSizeChange`, or uncontrolled from `defaultCardSize` (default `"comfortable"`). Hidden below `sm` **in the grid** (one column fits regardless) but kept on the board, where lane width always matters, and hidden entirely when the consumer pins an explicit `cardMinWidth`, which overrides the preset.
 
 `SortControl` is **not** in this list — it serves both layouts. See below.
 
@@ -403,7 +405,9 @@ The keyboard cursor is a **dashed `outline` drawn inside the card** (`outline-of
 
 Toggling layouts preserves the reading position. Before swapping, `DataTable` reads the topmost visible row index off the outgoing layout's `ViewScrollHandle`; the incoming layout consumes it on mount and scrolls there (the card grid converting row index → chunk index via its measured column count). Accurate to about one row, since the two layouts have different row heights.
 
-Both layouts stamp `data-row-index` on every rendered row/card and mark their owning element with `data-row-scope`, which is also what makes the index readable from the DOM without either layout knowing about the other. The scope attribute exists because a `DataTable` nested inside an expansion panel stamps its own rows the same way.
+All three layouts stamp `data-row-index` on every rendered row/card and mark their owning element with `data-row-scope`, which is also what makes the index readable from the DOM without any layout knowing about the others. The scope attribute exists because a `DataTable` nested inside an expansion panel stamps its own rows the same way.
+
+Note the index is always the **row-model** index, even on the board where a row can appear in several lanes. That is what keeps the hand-off meaningful across all three; the board carries a second, board-local coordinate (`data-board-pos`) for its own keyboard cursor.
 
 ### Animation
 
@@ -416,6 +420,63 @@ Framer Motion, on by default, disabled entirely under `prefers-reduced-motion` o
 
 - No `<tfoot>` — column `footer` defs are not rendered (every footer in the apps duplicates its header).
 - `cellClassName` is not applied (it is `<td>`-specific); `maxCellHeight` applies to body-slot values, with the same `meta.noMaxHeight` opt-out.
+
+## Board view
+
+A third layout: one vertical lane per group value, each lane holding the **same `RowCard`** the card grid draws. It runs on the same TanStack table instance as the others, so sorting, filtering, selection and expansion carry over, and cards within a lane follow the table's current sort.
+
+Pass `board` to enable it. Supplying it is also what puts the Board button in the toolbar — a table with nothing to group by would otherwise get a toggle that leads nowhere, and a stored `"board"` preference falls back to the table when `board` goes away.
+
+```ts
+interface BoardLane {
+  value: string;
+  label: string;
+  visual?: ReactNode;   // the group's swatch/icon, shown in the lane header
+  isNone?: boolean;     // the "no value" bucket: dashed, and hidden when empty
+}
+
+interface BoardConfig<TData> {
+  lanes: BoardLane[];
+  laneOf: (row: TData) => string[];   // array — a row can sit in several lanes
+  onLaneClick?: (value: string, isNone: boolean) => void;
+  groupLabel?: string;                // e.g. "Status", for the empty state
+}
+```
+
+### Where the lanes come from
+
+The board deliberately does **not** compute its own grouping — `@bcl32/filters` already does, for the group-cards landing view (`EntityGroupCards`). Feed it from there and a lane header *is* a group tile: same label, same visual, same `Untagged` bucket, same drill-in on click.
+
+- `getGroupableAttrs(modelData)` → the attributes worth grouping by (`filter: true` + `filter_type: "options"`).
+- `useEntityGroups(rows, modelData, groupBy, { resolveVisual })` → the lanes.
+- `rowGroupValues(row, attr)` → `laneOf`. Both the group counts and the lane membership go through this one function, so a header can't end up saying "(12)" above nine cards.
+
+Two contracts worth stating outright:
+
+- **`lanes` must cover every value `laneOf` can return.** A row whose value has no lane is not rendered anywhere. Deriving both from the same rows satisfies this automatically.
+- **Feed it the rows the table is showing** (post-filter), not the raw dataset. Lane counts are computed from `table.getRowModel().rows`, so passing filtered rows is what keeps the counts agreeing with the filter bar. (The landing view counts against everything on purpose — its tiles are a way *in*, before anything is filtered.)
+
+Empty lanes still render, with an `Empty` placeholder: `useEntityGroups` seeds enum buckets from `attr.options` up front, and a status with nothing in it is a fact worth showing. The `isNone` lane is the exception — an empty "Untagged" is noise, so it is dropped.
+
+### Read-only by design
+
+There is no drag. Grouping attributes are frequently multi-valued (a part in two systems is genuinely in both, so a drop has no single meaning) or derived (Print-Tracker's `Project.status` is computed from item progress and the API rejects a write to it outright). Adding drag is a per-entity opt-in for entities with a writable scalar enum and a rank column — not a rewrite of this layout.
+
+### Layout & keyboard
+
+- Lanes are a horizontal flex row, each `cardMinWidth` wide and non-shrinking; the shared scroll region scrolls sideways. Lane headers are `sticky top-0` with an opaque background so cards don't scroll through them.
+- **Not virtualized.** Consumers load whole collections client-side and a lane holds a fraction of that; the grid's chunk virtualizer is shaped around one flat row list and doesn't transfer to per-lane scrolling. Revisit if a lane ever holds thousands.
+- Same roving-tabindex `role="grid"` as the card grid, with lane-shaped keys:
+
+| Key | Action |
+| --- | --- |
+| `↑` / `↓` | previous / next card **within the lane** |
+| `←` / `→` | nearest lane with cards in it, keeping the position (empty lanes are skipped, not entered) |
+| `Home` / `End` | first / last card in the lane |
+| `Space` | toggle selection |
+| `Enter` | activate — same as clicking |
+
+Because a row can appear in more than one lane, `data-row-index` is no longer unique on screen; cards additionally carry `data-board-pos="<lane>:<position>"`, which is what the keyboard cursor addresses.
 
 ## Dependencies
 

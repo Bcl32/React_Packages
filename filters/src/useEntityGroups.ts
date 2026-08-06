@@ -19,7 +19,7 @@ interface UseEntityGroupsOptions {
   resolveVisual?: GroupVisualResolver;
 }
 
-const NONE_VALUE = "_none";
+export const NONE_VALUE = "_none";
 const NONE_LABEL = "Untagged";
 
 export function getGroupableAttrs(modelData: ModelData): ModelAttribute[] {
@@ -46,6 +46,55 @@ function objectArrayLabel(item: unknown, labelKey: string, fallback: string): st
   return v == null ? fallback : String(v);
 }
 
+/** A row's membership in one group, plus the label that group should carry when
+ *  only the row knows it (object-arrays hold their own labels). */
+export interface RowGroupValue {
+  value: string;
+  label?: string;
+}
+
+/**
+ * Which group(s) a row belongs to, for one attribute. Several, for the
+ * multi-valued kinds: a part in two systems is genuinely in both.
+ *
+ * Exported because the board layout needs to place each row in a lane, and
+ * placing rows with one function while counting them with another is how a
+ * header ends up saying "(12)" above nine cards. Both go through here.
+ */
+export function rowGroupValues(
+  row: Record<string, unknown>,
+  attr: ModelAttribute,
+): RowGroupValue[] {
+  const sourceKind = attr.source_kind ?? "scalar";
+  const valueKey = (attr.value_key as string) ?? "value";
+  const labelKey = (attr.label_key as string) ?? "label";
+  const raw = row[attr.name];
+
+  if (sourceKind === "scalar-array") {
+    const arr = Array.isArray(raw) ? raw : [];
+    if (arr.length === 0) return [{ value: NONE_VALUE }];
+    return arr
+      .filter((v) => v != null)
+      .map((v) => ({ value: String(v) }));
+  }
+
+  if (sourceKind === "object-array") {
+    const arr = Array.isArray(raw) ? raw : [];
+    if (arr.length === 0) return [{ value: NONE_VALUE }];
+    const out: RowGroupValue[] = [];
+    for (const item of arr) {
+      const value = objectArrayValue(item, valueKey);
+      if (value == null) continue;
+      out.push({ value, label: objectArrayLabel(item, labelKey, value) });
+    }
+    return out;
+  }
+
+  // scalar / enum
+  if (raw == null || raw === "") return [{ value: NONE_VALUE }];
+  return [{ value: String(raw) }];
+}
+
 export function useEntityGroups(
   dataset: Record<string, unknown>[] | undefined | null,
   modelData: ModelData,
@@ -63,8 +112,6 @@ export function useEntityGroups(
     const rows = Array.isArray(dataset) ? dataset : [];
 
     const sourceKind = (attr as ModelAttribute).source_kind ?? "scalar";
-    const valueKey = ((attr as ModelAttribute).value_key as string) ?? "value";
-    const labelKey = ((attr as ModelAttribute).label_key as string) ?? "label";
 
     const buckets = new Map<string, GroupAccumulator>();
     const seed = (value: string, label?: string) => {
@@ -79,57 +126,14 @@ export function useEntityGroups(
     }
 
     for (const row of rows) {
-      const raw = row[attrName];
-
-      if (sourceKind === "scalar-array") {
-        const arr = Array.isArray(raw) ? raw : [];
-        if (arr.length === 0) {
-          const acc = buckets.get(NONE_VALUE) ?? { count: 0 };
-          acc.count += 1;
-          acc.sampleRow ??= row;
-          buckets.set(NONE_VALUE, acc);
-          continue;
-        }
-        for (const v of arr) {
-          if (v == null) continue;
-          const key = String(v);
-          const acc = buckets.get(key) ?? { count: 0 };
-          acc.count += 1;
-          acc.sampleRow ??= row;
-          buckets.set(key, acc);
-        }
-      } else if (sourceKind === "object-array") {
-        const arr = Array.isArray(raw) ? raw : [];
-        if (arr.length === 0) {
-          const acc = buckets.get(NONE_VALUE) ?? { count: 0 };
-          acc.count += 1;
-          acc.sampleRow ??= row;
-          buckets.set(NONE_VALUE, acc);
-          continue;
-        }
-        for (const item of arr) {
-          const v = objectArrayValue(item, valueKey);
-          if (v == null) continue;
-          const acc = buckets.get(v) ?? { count: 0 };
-          acc.count += 1;
-          acc.sampleRow ??= row;
-          acc.label = objectArrayLabel(item, labelKey, v);
-          buckets.set(v, acc);
-        }
-      } else {
-        // scalar / enum
-        if (raw == null || raw === "") {
-          const acc = buckets.get(NONE_VALUE) ?? { count: 0 };
-          acc.count += 1;
-          acc.sampleRow ??= row;
-          buckets.set(NONE_VALUE, acc);
-          continue;
-        }
-        const key = String(raw);
-        const acc = buckets.get(key) ?? { count: 0 };
+      for (const { value, label } of rowGroupValues(row, attr)) {
+        const acc = buckets.get(value) ?? { count: 0 };
         acc.count += 1;
         acc.sampleRow ??= row;
-        buckets.set(key, acc);
+        // Only object-arrays carry a label on the row; everything else keeps
+        // whatever the enum seeding put there.
+        if (label !== undefined) acc.label = label;
+        buckets.set(value, acc);
       }
     }
 

@@ -9,7 +9,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@bcl32/utils/Dropdown";
-import { Plus, Pencil, Columns3, Trash2, Table2, LayoutGrid } from "lucide-react";
+import { Plus, Pencil, Columns3, Trash2, Table2, LayoutGrid, SquareKanban } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@bcl32/utils/ToggleGroup";
 import { DialogButton } from "@bcl32/utils/DialogButton";
 import { Button } from "@bcl32/utils/Button";
@@ -55,6 +55,9 @@ export interface DataTableToolbarProps<TData extends RowData> {
   /** False when the consumer pinned an explicit `cardMinWidth`, which the
    *  preset would only contradict. */
   showCardSizeControl: boolean;
+  /** Whether the page supplied board lanes. No lanes, no Board button — the
+   *  toggle would otherwise offer a layout that can't be built. */
+  boardEnabled?: boolean;
 }
 
 /**
@@ -250,13 +253,16 @@ export function DataTableToolbar<TData extends RowData>(
           </DialogButton>
         )}
 
-        {props.view === "cards" && (
+        {/* Both card-based layouts: neither has a header row to select from,
+            and both size themselves off the card width. */}
+        {(props.view === "cards" || props.view === "board") && (
           <>
             <CardSelectAllControl table={table} />
-            {/* Card size only changes anything once more than one column fits,
-                which it never does below the mobile breakpoint. */}
+            {/* In the grid, card size only changes anything once more than one
+                column fits, which it never does below the mobile breakpoint.
+                On the board it is the lane width, which always matters. */}
             {props.showCardSizeControl && (
-              <div className="hidden sm:block">
+              <div className={props.view === "board" ? undefined : "hidden sm:block"}>
                 <CardSizeControl value={props.cardSize} onChange={props.onCardSizeChange} />
               </div>
             )}
@@ -283,6 +289,11 @@ export function DataTableToolbar<TData extends RowData>(
           <ToggleGroupItem value="cards" aria-label="Card view" title="Card view">
             <LayoutGrid size={16} />
           </ToggleGroupItem>
+          {props.boardEnabled && (
+            <ToggleGroupItem value="board" aria-label="Board view" title="Board view">
+              <SquareKanban size={16} />
+            </ToggleGroupItem>
+          )}
         </ToggleGroup>
 
         <DropdownMenu>

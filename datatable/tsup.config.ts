@@ -5,6 +5,8 @@ export default defineConfig({
     "src/DataTable.tsx",
     "src/TableView.tsx",
     "src/CardView.tsx",
+    "src/BoardView.tsx",
+    "src/RowCard.tsx",
     "src/Table.tsx",
     "src/KeyValueTable.tsx",
     "src/StatsTable.tsx",

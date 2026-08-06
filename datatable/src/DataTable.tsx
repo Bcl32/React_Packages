@@ -12,6 +12,8 @@ import {
 import { TableView } from "./TableView";
 import { CardView, CARD_SIZE_WIDTHS, DEFAULT_CARD_SIZE } from "./CardView";
 import type { CardSize, DataTableView, RenderCardContext } from "./CardView";
+import { BoardView } from "./BoardView";
+import type { BoardConfig, BoardLane } from "./BoardView";
 import { DataTableToolbar } from "./DataTableToolbar";
 import type { DataTableFilter } from "./DataTableToolbar";
 import type { ScrollRestoreRef, ViewScrollHandle } from "./ViewScroll";
@@ -23,7 +25,7 @@ import { DataTablePagination } from "./TablePagination";
 import { useIsMobile } from "@bcl32/utils/useIsMobile";
 import type { ModelData, RowData } from "@bcl32/data-utils";
 
-export type { ToolbarAction, DataTableFilter };
+export type { ToolbarAction, DataTableFilter, BoardConfig, BoardLane };
 
 interface DataTableProps<TData extends RowData> {
   title: string;
@@ -70,6 +72,10 @@ interface DataTableProps<TData extends RowData> {
   /** Card view: explicit minimum card width driving the responsive column
    *  count. Overrides the size preset and hides the toolbar size control. */
   cardMinWidth?: number;
+  /** Board layout: the lanes and the row→lane mapping. Supplying this is what
+   *  puts the Board button in the toolbar — a table with nothing groupable
+   *  would otherwise get a toggle that leads nowhere. */
+  board?: BoardConfig<TData>;
   /** Motion: cross-fade on the view toggle, and card enter/exit as the row set
    *  changes. Defaults on; always off under `prefers-reduced-motion`, and card
    *  enter/exit is additionally off while `virtualized`. */
@@ -94,14 +100,19 @@ export function DataTable<TData extends RowData>(
   const [uncontrolledView, setUncontrolledView] = React.useState<DataTableView | null>(() => {
     if (props.viewStorageKey && typeof window !== "undefined") {
       const stored = window.localStorage.getItem(props.viewStorageKey);
-      if (stored === "table" || stored === "cards") return stored;
+      if (stored === "table" || stored === "cards" || stored === "board") return stored;
     }
     return props.defaultView ?? null;
   });
   // Cards are the better narrow-screen layout: the table is the thing that
   // scrolls horizontally. useIsMobile reads the width synchronously, so this
   // resolves on the first render rather than flashing a table and reflowing.
-  const view = props.view ?? uncontrolledView ?? (isMobile ? "cards" : "table");
+  const requestedView = props.view ?? uncontrolledView ?? (isMobile ? "cards" : "table");
+  // A stored (or controlled) "board" outlives the `board` prop — the page can
+  // stop supplying lanes when the group-by attribute goes away. Fall back
+  // rather than rendering an empty board.
+  const view: DataTableView =
+    requestedView === "board" && !props.board ? "table" : requestedView;
 
   // Scroll hand-off across the toggle. Only one layout is mounted at a time, so
   // both write to the same handle; the position is read off the outgoing layout
@@ -208,6 +219,7 @@ export function DataTable<TData extends RowData>(
         cardSize={cardSize}
         onCardSizeChange={setCardSize}
         showCardSizeControl={props.cardMinWidth === undefined}
+        boardEnabled={props.board !== undefined}
       />
 
       <div ref={scrollRef} className="flex-1 overflow-auto min-h-0">
@@ -222,7 +234,24 @@ export function DataTable<TData extends RowData>(
             exit={animateViews ? { opacity: 0 } : undefined}
             transition={{ duration: animateViews ? 0.12 : 0 }}
           >
-            {view === "cards" ? (
+            {view === "board" && props.board ? (
+              <BoardView
+                table={tableInstance}
+                ModelData={props.ModelData}
+                scrollRef={scrollRef}
+                board={props.board}
+                laneWidth={cardMinWidth}
+                maxCellHeight={props.maxCellHeight}
+                rowClickFunction={props.rowClickFunction}
+                expandOnRowClick={props.expandOnRowClick}
+                renderSubComponent={renderSubComponent}
+                renderCard={props.renderCard}
+                cardActions={cardActions}
+                scrollHandleRef={viewScrollRef}
+                restoreRowIndex={restoreRowIndexRef}
+                animate={props.animate}
+              />
+            ) : view === "cards" ? (
               <CardView
                 table={tableInstance}
                 ModelData={props.ModelData}
