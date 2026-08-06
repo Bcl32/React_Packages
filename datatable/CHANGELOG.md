@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.10.1
+
+### Patch Changes
+
+- 4e25144: feat(datatable): add gallery and detail-pane layouts, and derive the view toggle
+- c36fa7d: feat(datatable,filters): add a board view that fuses the card grid with entity groups
+
 ## 2.10.0
 
 ### Minor Changes

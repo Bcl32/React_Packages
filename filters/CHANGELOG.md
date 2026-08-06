@@ -1,5 +1,11 @@
 # @bcl32/filters
 
+## 3.4.1
+
+### Patch Changes
+
+- c36fa7d: feat(datatable,filters): add a board view that fuses the card grid with entity groups
+
 ## 3.4.0
 
 ### Minor Changes
