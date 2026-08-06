@@ -10,7 +10,7 @@
 
 ## Purpose
 
-A full-featured data table library built on [TanStack Table v8](https://tanstack.com/table) that provides a toolbar-integrated table with built-in CRUD dialogs (add / edit / bulk-edit / delete), column visibility toggling, row selection, optional virtualization, expandable rows, and pagination. Rows render in one of two switchable layouts over the same table instance — the classic `<table>` (`TableView`) or a responsive card grid (`CardView`, see [Card view](#card-view)). It also ships two simpler read-only table variants (`KeyValueTable`, `StatsTable`) and a set of unstyled HTML table primitives (`Table`, `TableHeader`, `TableBody`, etc.).
+A full-featured data table library built on [TanStack Table v8](https://tanstack.com/table) that provides a toolbar-integrated table with built-in CRUD dialogs (add / edit / bulk-edit / delete), column visibility toggling, row selection, optional virtualization, expandable rows, and pagination. Rows render in one of five switchable layouts over the same table instance — the classic `<table>` (`TableView`), a responsive card grid (`CardView`, see [Card view](#card-view)), a dense media-tile [gallery](#gallery-view), a master/[detail pane](#detail-pane-view), or a group-lane [board](#board-view). Which of them the toolbar offers is derived from what the table declares. It also ships two simpler read-only table variants (`KeyValueTable`, `StatsTable`) and a set of unstyled HTML table primitives (`Table`, `TableHeader`, `TableBody`, etc.).
 
 As a **composite** tier package it sits on top of several other `@bcl32/*` packages and is meant to be consumed directly by application code, not by other library packages.
 
@@ -44,7 +44,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 
 > **Note:** Subpath exports require the consumer's TypeScript config to use `moduleResolution: "bundler"` (or `"node16"`). Under `"node"` resolution the subpaths will not resolve.
 
-Available subpaths: `./DataTable`, `./TableView`, `./CardView`, `./Table`, `./KeyValueTable`, `./StatsTable`, `./ColumnGenerator`, `./RowActions`, `./TablePagination`.
+Available subpaths: `./DataTable`, `./TableView`, `./CardView`, `./BoardView`, `./RowCard`, `./GalleryCard`, `./DetailPaneView`, `./Table`, `./KeyValueTable`, `./StatsTable`, `./ColumnGenerator`, `./RowActions`, `./TablePagination`.
 
 ## Public Exports
 
@@ -52,12 +52,16 @@ Available subpaths: `./DataTable`, `./TableView`, `./CardView`, `./Table`, `./Ke
 
 | Name | Kind | Description |
 | --- | --- | --- |
-| `DataTable` | component | Primary full-featured table. Wraps TanStack Table with a sticky-header scrollable body, toolbar (title, filter slot, then a right-aligned button group: bulk-edit / custom toolbar actions / delete, create dialog, table↔cards view toggle, column-visibility dropdown), optional row virtualization via TanStack Virtual, expandable sub-rows, and a row-click handler. A pagination bar renders automatically when page count > 1. |
-| `TableView` | component | The `<table>` layout of a DataTable's rows, extracted so it can sit beside `CardView` as one of two renderings of the same TanStack table instance. Rarely used directly — `DataTable` renders it when `view === "table"`. |
-| `CardView` | component | Card-grid layout of a DataTable's rows over the same table instance (sorting / selection / expansion / filtering all carry over). Card content derives from the visible column cells via `meta.card` slot hints. Rarely used directly — `DataTable` renders it when `view === "cards"`. |
+| `DataTable` | component | Primary full-featured table. Wraps TanStack Table with a sticky-header scrollable body, toolbar (title, filter slot, then a right-aligned button group: bulk-edit / custom toolbar actions / delete, create dialog, layout toggle, column-visibility dropdown), optional row virtualization via TanStack Virtual, expandable sub-rows, and a row-click handler. A pagination bar renders automatically when page count > 1. |
+| `TableView` | component | The `<table>` layout of a DataTable's rows, extracted so it can sit beside the card-based layouts as one of several renderings of the same TanStack table instance. Rarely used directly — `DataTable` renders it when `view === "table"`. |
+| `CardView` | component | Card-grid layout of a DataTable's rows over the same table instance (sorting / selection / expansion / filtering all carry over). Card content derives from the visible column cells via `meta.card` slot hints. Rarely used directly — `DataTable` renders it when `view === "cards"`, and again with `variant="gallery"` when `view === "gallery"`. |
+| `GalleryTile` | component | The media-only tile `CardView` draws under `variant="gallery"`: the media cell at size, the title clamped to a two-line caption, select + row-actions overlaid on hover. See [Gallery view](#gallery-view). |
+| `DetailPaneView` | component | Master/detail layout — a compact card list beside a permanently docked `renderSubComponent`. Rarely used directly — `DataTable` renders it when `view === "detail"`. See [Detail pane view](#detail-pane-view). |
+| `partitionCells` / `renderCell` | util | Split a row's visible cells into card regions (`CardCells`). Shared by the card, gallery and detail layouts so all three agree on which cells are controls rather than content. |
+| `CardQuickActions` / `applicableCardActions` | component / util | Per-row rendering of the toolbar actions that opted in with `card` (`CardActions`). Used by the default card's footer and the detail pane's header. |
 | `CardSortControl` | component | Toolbar sort control (field `<select>` + direction button) shown by `DataTable` while the card view is active, since cards have no column headers to click. |
-| `CardSelectAllControl` | component | Toolbar select-all checkbox + row count, shown by `DataTable` in card view — the card-mode stand-in for the table's header checkbox. Renders `null` when the table has no visible `select` column. |
-| `CardSizeControl` | component | Toolbar card-density `<select>` (compact / comfortable / large), shown by `DataTable` in card view. Feeds `cardMinWidth`, which the width-driven grid turns into a column count. |
+| `CardSelectAllControl` | component | Toolbar select-all checkbox + row count, shown by `DataTable` in every non-table layout — the stand-in for the table's header checkbox. Renders `null` when the table has no visible `select` column. |
+| `CardSizeControl` | component | Toolbar card-density `<select>` (compact / comfortable / large), shown by `DataTable` in the card, gallery and board layouts. Feeds `cardMinWidth`, which the width-driven grid turns into a column count and the board into a lane width; the gallery resolves the same preset names against `GALLERY_SIZE_WIDTHS`. |
 | `ColumnGenerator` | util | Factory that prepends standard control columns (select checkbox, expand toggle, optional edit button) and appends standard timestamp columns (`time_created`, `time_updated`) plus a `RowActions` dropdown to a caller-supplied `custom_columns` array. Returns a complete `ColumnDef<RowData, unknown>[]` ready to pass to `DataTable`. |
 | `RowActions` | component | Per-row dropdown menu (three-dot icon) containing an Edit dialog (opens `EditModelForm`) plus Copy ID and Copy Row clipboard actions. Handles focus restoration after dialog close. |
 | `DataTablePagination` | component | Pagination control bar: selected-row count, a page-number input, and first / prev / next / last navigation buttons. Accepts a TanStack Table instance directly. *(Exported from the `./TablePagination` subpath.)* |
@@ -87,7 +91,8 @@ All primitives have the signature `React.ForwardRefExoticComponent<React.HTMLAtt
 | --- | --- | --- |
 | `ToolbarAction` | type (interface) | Describes a custom toolbar button injected via `DataTable`'s `toolbarActions` prop. |
 | `DataTableFilter` | type (interface) | Shape of the `filter` prop on `DataTable`. |
-| `DataTableView` | type (union) | `"table" \| "cards"` — the two DataTable layouts. |
+| `DataTableView` | type (union) | `"table" \| "cards" \| "gallery" \| "detail" \| "board"` — the DataTable layouts. Also exported as the `DATA_TABLE_VIEWS` const array plus an `isDataTableView` guard, so a persisted preference can be validated against it. |
+| `CardViewVariant` | type (union) | `"cards" \| "gallery"` — which card `RowCard` draws in a grid slot. |
 | `CardMeta` | type (interface) | Shape of a column's `meta.card` slot hint (see [Card view](#card-view)). |
 | `DataTableToolbar` | component | The two-zone toolbar (see [Toolbar anatomy](#toolbar-anatomy)). Rendered by `DataTable`; rarely used directly. |
 | `SortControl` | component | Field + direction sort for **both** layouts. `CardSortControl` remains as a deprecated alias. |
@@ -132,12 +137,16 @@ DataTable<TData extends RowData>(props: {
   defaultView?: DataTableView;                   // uncontrolled initial mode (default "table", "cards" under 768px)
   onViewChange?: (view: DataTableView) => void;
   viewStorageKey?: string;                       // opt-in localStorage persistence (uncontrolled only)
+  views?: DataTableView[];                       // override which layouts the toggle offers (default: derived)
   renderCard?: (row: Row<TData>, ctx: RenderCardContext) => ReactNode;  // card view: replace the default card
-  estimatedCardHeight?: number;                  // card view: virtualizer estimate per grid row (default 220)
+  estimatedCardHeight?: number;                  // card/gallery: virtualizer estimate per grid row (default 220 / tile width + 44)
   cardSize?: CardSize;                           // card view: controlled density preset
   defaultCardSize?: CardSize;                    // card view: uncontrolled initial preset (default "comfortable")
   onCardSizeChange?: (size: CardSize) => void;
   cardMinWidth?: number;                         // card view: explicit min card width; overrides cardSize
+  detailListWidth?: number;                      // detail view: master-list width in px (default 300)
+  estimatedDetailRowHeight?: number;             // detail view: virtualizer estimate per list item (default 68)
+  board?: BoardConfig<TData>;                    // board view: the lanes and the row→lane mapping
   animate?: boolean;                             // view-toggle cross-fade + card enter/exit (default true)
 }) => JSX.Element
 ```
@@ -300,7 +309,27 @@ misreports the order the rows are in.
 
 Added in 2.9.0. Every DataTable gets a toolbar toggle (table / cards icons) that switches the row layout between the classic `<table>` and a responsive card grid. Both layouts consume the **same TanStack table instance**, so sorting, upstream filtering, row selection (bulk edit / delete), expansion, and row-click behaviour carry over unchanged — no consumer changes are required to enable it.
 
-A third icon appears when the consumer supplies `board` — see [Board view](#board-view), which draws the same cards in group lanes.
+Three further icons appear when the table has what they need: [Gallery](#gallery-view), [Detail pane](#detail-pane-view), and [Board](#board-view).
+
+### Which layouts a table offers
+
+The toggle is built from a derived list, not a set of flags — each conditional layout needs something the table has already declared, so there is nothing extra to opt into:
+
+| View | Appears when |
+|---|---|
+| `table`, `cards` | always |
+| `gallery` | a **visible** column sets `meta.card.slot === "media"` |
+| `detail` | the consumer passes `renderSubComponent` |
+| `board` | the consumer passes `board` lanes |
+
+Reading media off the *visible* columns means hiding the thumbnail column withdraws the gallery, rather than leaving a toggle that lands on a grid of empty squares.
+
+Two consequences worth knowing:
+
+- **A stored preference is validated on every render.** It outlives the conditions it was chosen under — the group-by attribute goes away, the thumbnail column gets hidden, the same storage key is reused by a page with no expansion panel — so a `view` naming an unavailable layout falls back to `"table"` instead of rendering an empty one.
+- **`views` overrides the derivation** when a page wants a fixed set (e.g. gallery only). The consumer is then responsible for the layout being buildable; nothing re-checks it.
+
+With only one available view the toggle disappears entirely.
 
 ### View state
 
@@ -368,16 +397,16 @@ Everything else stays available on `row` itself (`row.original`, `row.getIsSelec
 ### Layout & virtualization
 
 - The column count derives from the measured container width and the effective minimum card width — not Tailwind breakpoints — so the grid and the virtualizer chunking always agree.
-- With `virtualized`, rows are chunked into grid rows of `cols` cards and one chunk is virtualized per item (same `measureElement` pattern as the table view, against the shared scroll region). `estimatedCardHeight` (default 220) seeds the estimates.
+- With `virtualized`, rows are chunked into grid rows of `cols` cards and one chunk is virtualized per item (same `measureElement` pattern as the table view, against the shared scroll region). `estimatedCardHeight` seeds the estimates — default 220 for cards, or the tile width + 44 in the gallery, whose height tracks its square rather than sitting at a fixed guess.
 - Expanded rows render `renderSubComponent` full-width (`col-span-full`) below their card's grid row.
 
 ### Card-mode toolbar controls
 
-Shown while either card-based layout is active — the grid or the board (see
-[Toolbar anatomy](#toolbar-anatomy) for where they sit):
+Shown while any non-table layout is active (see [Toolbar anatomy](#toolbar-anatomy)
+for where they sit):
 
-- `CardSelectAllControl` — the card-mode equivalent of the table's header checkbox, labelled with the row count it acts on (`Select all (413)`). Renders nothing when the table has no visible `select` column. The count comes from the pre-grouped row model, i.e. exactly the rows `toggleAllRowsSelected` will select. It keeps its "Select all (N)" wording when everything is selected rather than swapping in a shorter label, which would resize the control on the click that toggled it.
-- `CardSizeControl` — card density (`compact` 260 px / `comfortable` 320 px / `large` 400 px, via the exported `CARD_SIZE_WIDTHS`). Since the grid is width-driven this is effectively a "how many columns" control; on the board the same number is the lane width. Controlled with `cardSize` + `onCardSizeChange`, or uncontrolled from `defaultCardSize` (default `"comfortable"`). Hidden below `sm` **in the grid** (one column fits regardless) but kept on the board, where lane width always matters, and hidden entirely when the consumer pins an explicit `cardMinWidth`, which overrides the preset.
+- `CardSelectAllControl` — shown in **every** non-table layout, since none of them has a header row. The equivalent of the table's header checkbox, labelled with the row count it acts on (`Select all (413)`). Renders nothing when the table has no visible `select` column. The count comes from the pre-grouped row model, i.e. exactly the rows `toggleAllRowsSelected` will select. It keeps its "Select all (N)" wording when everything is selected rather than swapping in a shorter label, which would resize the control on the click that toggled it.
+- `CardSizeControl` — card density (`compact` 260 px / `comfortable` 320 px / `large` 400 px, via the exported `CARD_SIZE_WIDTHS`, or 104 / 144 / 208 px against `GALLERY_SIZE_WIDTHS` in the gallery — see `sizeWidthsForVariant`). Since both grids are width-driven this is effectively a "how many columns" control; on the board the same number is the lane width. Controlled with `cardSize` + `onCardSizeChange`, or uncontrolled from `defaultCardSize` (default `"comfortable"`). Hidden below `sm` **in the grids** (one column fits regardless) but kept on the board, where lane width always matters; not shown in the detail view, whose list is a fixed single column; and hidden entirely when the consumer pins an explicit `cardMinWidth`, which overrides the preset.
 
 `SortControl` is **not** in this list — it serves both layouts. See below.
 
@@ -403,11 +432,11 @@ The keyboard cursor is a **dashed `outline` drawn inside the card** (`outline-of
 
 ### Scroll position across a view toggle
 
-Toggling layouts preserves the reading position. Before swapping, `DataTable` reads the topmost visible row index off the outgoing layout's `ViewScrollHandle`; the incoming layout consumes it on mount and scrolls there (the card grid converting row index → chunk index via its measured column count). Accurate to about one row, since the two layouts have different row heights.
+Toggling layouts preserves the reading position. Before swapping, `DataTable` reads the topmost visible row index off the outgoing layout's `ViewScrollHandle`; the incoming layout consumes it on mount and scrolls there (the card grid converting row index → chunk index via its measured column count). Accurate to about one row, since the layouts have different row heights.
 
-All three layouts stamp `data-row-index` on every rendered row/card and mark their owning element with `data-row-scope`, which is also what makes the index readable from the DOM without any layout knowing about the others. The scope attribute exists because a `DataTable` nested inside an expansion panel stamps its own rows the same way.
+Every layout stamps `data-row-index` on its rendered rows/cards/list items and marks its owning element with `data-row-scope`, which is what makes the index readable from the DOM without any layout knowing about the others. The detail view measures against its own master-list scroller rather than the shared scroll region, since that region is not the thing that scrolls in that layout. The scope attribute exists because a `DataTable` nested inside an expansion panel stamps its own rows the same way.
 
-Note the index is always the **row-model** index, even on the board where a row can appear in several lanes. That is what keeps the hand-off meaningful across all three; the board carries a second, board-local coordinate (`data-board-pos`) for its own keyboard cursor.
+Note the index is always the **row-model** index, even on the board where a row can appear in several lanes. That is what keeps the hand-off meaningful across all five; the board carries a second, board-local coordinate (`data-board-pos`) for its own keyboard cursor.
 
 ### Animation
 
@@ -421,11 +450,40 @@ Framer Motion, on by default, disabled entirely under `prefers-reduced-motion` o
 - No `<tfoot>` — column `footer` defs are not rendered (every footer in the apps duplicates its header).
 - `cellClassName` is not applied (it is `<td>`-specific); `maxCellHeight` applies to body-slot values, with the same `meta.noMaxHeight` opt-out.
 
+## Gallery view
+
+Media-only tiles in a dense auto-fill grid, for rows whose **thumbnail is the information** — Parts and Plates, where you recognise the thing you want by its shape long before you read its name.
+
+It is `CardView` with `variant="gallery"`, so it inherits the chunking, virtualization, keyboard navigation, selection and scroll hand-off wholesale; only the card in the grid slot changes (`GalleryTile` instead of `RowCard`'s default). What that tile keeps:
+
+- The **media** cell, filling a square. The bleed that media renderers carry for table cells is neutralized, and the image fills the tile rather than being pinned to the card view's fixed `h-32 w-32` — here the tile itself is what sets the size.
+- The **title** cell as a caption, clamped to two lines. A caption allowed to run makes its tile taller than its neighbours, which in a grid means one long name adds a band of white space across the whole row. The clamp is repeated on descendant links (`[&_a]:line-clamp-2`) because a title cell is often a flex row rather than plain text (Plates renders name + kind badge), and a flex row is exactly one line box however tall its contents wrap.
+- **Select** and **row-actions**, overlaid on the image and revealed on hover/focus, so a grid you are only browsing reads as pictures rather than a checklist. A ticked checkbox stays visible regardless — hiding the evidence of a selection is how you bulk-edit rows you forgot you had picked.
+
+Everything else the card places (badges, labelled body fields, footer, quick actions) is dropped; that is what lets the grid run four to five times denser. `renderCard` is **ignored** here for the same reason — honouring a bespoke card would just render the card layout at tile widths.
+
+Sizes come from `GALLERY_SIZE_WIDTHS` (compact 104 px / comfortable 144 px / large 208 px) rather than `CARD_SIZE_WIDTHS`. The preset *names* are shared so the toolbar control and the stored preference carry across a view switch, but a "comfortable" tile is less than half a "comfortable" card. The virtualizer estimate tracks tile width (`cardMinWidth + 44`) instead of the card view's fixed 220.
+
+## Detail pane view
+
+A compact master list on the left, the row's `renderSubComponent` **permanently docked** on the right.
+
+This is the layout for entities whose expansion content is the real page — Spools and Filaments already render a full detail grid there. In the table and card views that content costs a click to open, pushes every row below it down the page, and can only be compared against another row by opening both and scrolling between them. Docked, it is always on screen and moving between rows is an arrow key.
+
+- **The active row is local state, not TanStack expansion.** Expansion is a set (any number open at once); this pane shows exactly one. On a wide screen "nothing picked" resolves to the first row rather than leaving the pane empty; the same fallback catches the active row leaving the row model on a filter keystroke, sort, or delete.
+- **List clicks dock; they do not navigate.** A title cell is usually a `<Link>` covering most of the item, so honouring it would mean nearly every click navigated away from the layout you just switched into. The pane header renders the same title cell, so the link is still one click away once you are there. Implemented in the **capture** phase with `stopPropagation` — a react-router `<Link>` cancels the event itself and navigates programmatically from its own `onClick`, so a bubbled `preventDefault` is too late.
+- **The pane header is an identity strip, not a heading.** The panels that get docked open with their own title, so a second full-weight one directly above reads as a repeat. What the row is for is staying put while the panel scrolls, and giving the row's actions (quick actions, edit, `⋯`) a home — the list items are too narrow to carry them.
+- **Keyboard**: ↑/↓/Home/End move the docked row, Space ticks it, Enter docks *and* runs `rowClickFunction` — the one thing a plain click deliberately no longer does.
+- **Panel remounts per row** (keyed on row id) rather than carrying the previous row's open accordions, scroll position, or half-typed inline edit across.
+- **Below the mobile breakpoint** the two panes become one column that takes turns: the list until a row is picked, then the panel with a "Back to list" button. Nothing is auto-picked there — it would hide the list behind a row the user never asked for.
+
+Unlike the other layouts this one does **not** scroll as a block: it owns two independently scrolling panes, so `DataTable` switches its scroll region to `overflow-hidden` for this view. It therefore wants a height-bounded parent (the usual `flex flex-col` + fixed-height container). Without one the panes degrade to growing with their content — untidy, not broken. `detailListWidth` (default 300) and `estimatedDetailRowHeight` (default 68) tune it.
+
 ## Board view
 
-A third layout: one vertical lane per group value, each lane holding the **same `RowCard`** the card grid draws. It runs on the same TanStack table instance as the others, so sorting, filtering, selection and expansion carry over, and cards within a lane follow the table's current sort.
+A fifth layout: one vertical lane per group value, each lane holding the **same `RowCard`** the card grid draws. It runs on the same TanStack table instance as the others, so sorting, filtering, selection and expansion carry over, and cards within a lane follow the table's current sort.
 
-Pass `board` to enable it. Supplying it is also what puts the Board button in the toolbar — a table with nothing to group by would otherwise get a toggle that leads nowhere, and a stored `"board"` preference falls back to the table when `board` goes away.
+Pass `board` to enable it. Supplying it is also what puts the Board button in the toolbar — a table with nothing to group by would otherwise get a toggle that leads nowhere, and a stored `"board"` preference falls back to the table when `board` goes away (see [Which layouts a table offers](#which-layouts-a-table-offers)).
 
 ```ts
 interface BoardLane {

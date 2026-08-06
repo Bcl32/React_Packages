@@ -12,6 +12,10 @@ export * from "./CardView";
 // modules export only what has no other route out.
 export { BoardView } from "./BoardView";
 export { RowCard, BOARD_POS_ATTR } from "./RowCard";
+export * from "./DetailPaneView";
+export * from "./GalleryCard";
+export * from "./CardCells";
+export * from "./CardActions";
 export * from "./Table";
 export * from "./KeyValueTable";
 export * from "./StatsTable";

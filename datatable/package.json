@@ -33,6 +33,14 @@
       "types": "./dist/RowCard.d.ts",
       "import": "./dist/RowCard.js"
     },
+    "./GalleryCard": {
+      "types": "./dist/GalleryCard.d.ts",
+      "import": "./dist/GalleryCard.js"
+    },
+    "./DetailPaneView": {
+      "types": "./dist/DetailPaneView.d.ts",
+      "import": "./dist/DetailPaneView.js"
+    },
     "./Table": {
       "types": "./dist/Table.d.ts",
       "import": "./dist/Table.js"

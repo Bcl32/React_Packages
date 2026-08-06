@@ -7,8 +7,11 @@ import { Select } from "@bcl32/utils/Select";
 import { Checkbox } from "@bcl32/utils/Checkbox";
 import type { RowData } from "@bcl32/data-utils";
 
+import { cn } from "@bcl32/utils/cn";
+
 import { RowCard } from "./RowCard";
-import type { CardRenderOptions, RenderCardContext } from "./RowCard";
+import type { CardRenderOptions, CardViewVariant, RenderCardContext } from "./RowCard";
+import { GALLERY_SIZE_WIDTHS } from "./GalleryCard";
 import {
   ROW_INDEX_ATTR,
   ROW_SCOPE_ATTR,
@@ -18,12 +21,39 @@ import {
 } from "./ViewScroll";
 import type { ScrollRestoreRef, ViewScrollHandle } from "./ViewScroll";
 
-export type DataTableView = "table" | "cards" | "board";
+/**
+ * The layouts a DataTable can render its rows in.
+ *
+ *   table     the classic grid of columns
+ *   cards     one card per row, fields placed by their `meta.card` slot
+ *   gallery   media-only tiles, dense — for rows whose thumbnail is the content
+ *   detail    compact list on the left, the expansion panel docked on the right
+ *   board     the cards again, dealt into lanes by a group-by attribute
+ *
+ * Kept as a const array as well as a union so a persisted string can be
+ * validated against it — the stored preference outlives the code that wrote it.
+ */
+export const DATA_TABLE_VIEWS = [
+  "table",
+  "cards",
+  "gallery",
+  "detail",
+  "board",
+] as const;
 
-// The card contract lives in RowCard now (the board draws the same card), but
-// it is still part of this module's public surface — DataTable and every
-// consumer import it from here.
-export type { CardRenderOptions, RenderCardContext };
+export type DataTableView = (typeof DATA_TABLE_VIEWS)[number];
+
+export function isDataTableView(value: unknown): value is DataTableView {
+  return (
+    typeof value === "string" &&
+    (DATA_TABLE_VIEWS as readonly string[]).includes(value)
+  );
+}
+
+// The card contract lives in RowCard now (the board draws the same card, and
+// the gallery a stripped-back one), but it is still part of this module's
+// public surface — DataTable and every consumer import it from here.
+export type { CardRenderOptions, CardViewVariant, RenderCardContext };
 
 /** Toolbar select-all shown while a card-based layout is active. Cards have no
  *  header row, so without this the header checkbox — the only select-all in the
@@ -71,6 +101,15 @@ export const CARD_SIZE_WIDTHS = {
 export type CardSize = keyof typeof CARD_SIZE_WIDTHS;
 
 export const DEFAULT_CARD_SIZE: CardSize = "comfortable";
+
+/** The min-width preset table for a layout. The size *names* are shared so the
+ *  toolbar control and the stored preference carry across a view switch, but a
+ *  "comfortable" gallery tile is less than half a "comfortable" card. */
+export function sizeWidthsForVariant(
+  variant: CardViewVariant
+): Record<CardSize, number> {
+  return variant === "gallery" ? GALLERY_SIZE_WIDTHS : CARD_SIZE_WIDTHS;
+}
 
 const CARD_SIZE_LABELS: Record<CardSize, string> = {
   compact: "Compact",
@@ -148,7 +187,13 @@ function Chunk<TData extends RowData>(props: {
   return (
     <div
       role="row"
-      className="grid gap-3 pb-3"
+      // The horizontal gap must stay at GRID_GAP_PX in both variants — the
+      // column-count math below is what decides the chunk size, and a grid that
+      // disagreed with it would wrap a card onto a line of its own.
+      className={cn(
+        "grid",
+        props.view.variant === "gallery" ? "gap-x-3 gap-y-4 pb-4" : "gap-3 pb-3"
+      )}
       style={{ gridTemplateColumns: `repeat(${props.cols}, minmax(0, 1fr))` }}
     >
       {props.animated ? <AnimatePresence initial={false}>{cards}</AnimatePresence> : cards}
@@ -178,7 +223,9 @@ function Chunk<TData extends RowData>(props: {
  */
 export function CardView<TData extends RowData>(props: CardViewProps<TData>): JSX.Element {
   const rows = props.table.getRowModel().rows;
-  const cardMinWidth = props.cardMinWidth ?? CARD_SIZE_WIDTHS[DEFAULT_CARD_SIZE];
+  const variant = props.variant ?? "cards";
+  const cardMinWidth =
+    props.cardMinWidth ?? sizeWidthsForVariant(variant)[DEFAULT_CARD_SIZE];
 
   // Column count derives from measured width, not Tailwind breakpoints — the
   // grid must agree exactly with the chunking math, and runtime
@@ -213,7 +260,11 @@ export function CardView<TData extends RowData>(props: CardViewProps<TData>): JS
   const virtualizer = useVirtualizer({
     count: props.virtualized ? chunks.length : 0,
     getScrollElement: () => props.scrollRef.current,
-    estimateSize: () => props.estimatedCardHeight ?? 220,
+    // A gallery tile is a square plus two lines of caption, so its height
+    // tracks the tile width rather than sitting at a card's fixed guess.
+    estimateSize: () =>
+      props.estimatedCardHeight ??
+      (variant === "gallery" ? cardMinWidth + 44 : 220),
     overscan: 4,
     measureElement: (el) => el.getBoundingClientRect().height,
   });

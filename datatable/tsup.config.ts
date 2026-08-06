@@ -7,6 +7,8 @@ export default defineConfig({
     "src/CardView.tsx",
     "src/BoardView.tsx",
     "src/RowCard.tsx",
+    "src/GalleryCard.tsx",
+    "src/DetailPaneView.tsx",
     "src/Table.tsx",
     "src/KeyValueTable.tsx",
     "src/StatsTable.tsx",

@@ -10,10 +10,17 @@ import {
 } from "@tanstack/react-table";
 
 import { TableView } from "./TableView";
-import { CardView, CARD_SIZE_WIDTHS, DEFAULT_CARD_SIZE } from "./CardView";
+import {
+  CardView,
+  DEFAULT_CARD_SIZE,
+  isDataTableView,
+  sizeWidthsForVariant,
+} from "./CardView";
 import type { CardSize, DataTableView, RenderCardContext } from "./CardView";
 import { BoardView } from "./BoardView";
 import type { BoardConfig, BoardLane } from "./BoardView";
+import { DetailPaneView } from "./DetailPaneView";
+import { getCardMeta } from "./ColumnLabels";
 import { DataTableToolbar } from "./DataTableToolbar";
 import type { DataTableFilter } from "./DataTableToolbar";
 import type { ScrollRestoreRef, ViewScrollHandle } from "./ViewScroll";
@@ -22,6 +29,7 @@ import type { ToolbarAction } from "./ToolbarAction";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { DataTablePagination } from "./TablePagination";
 
+import { cn } from "@bcl32/utils/cn";
 import { useIsMobile } from "@bcl32/utils/useIsMobile";
 import type { ModelData, RowData } from "@bcl32/data-utils";
 
@@ -58,6 +66,15 @@ interface DataTableProps<TData extends RowData> {
   onViewChange?: (view: DataTableView) => void;
   /** Opt-in localStorage persistence of the uncontrolled view choice. */
   viewStorageKey?: string;
+  /** Which layouts the toggle offers. Omit to derive them: table and cards
+   *  always, gallery once a visible column claims the `media` card slot, detail
+   *  once the consumer supplies a `renderSubComponent`, and board once it
+   *  supplies `board` lanes. */
+  views?: DataTableView[];
+  /** Detail view: master-list width in px. Default 300. */
+  detailListWidth?: number;
+  /** Detail view: virtualizer size estimate per list item. Default 68. */
+  estimatedDetailRowHeight?: number;
   /** Card view: replace the default card entirely. Receives the row's
    *  ready-rendered quick actions so a bespoke card can still place them. */
   renderCard?: (row: Row<TData>, ctx: RenderCardContext) => React.ReactNode;
@@ -100,36 +117,16 @@ export function DataTable<TData extends RowData>(
   const [uncontrolledView, setUncontrolledView] = React.useState<DataTableView | null>(() => {
     if (props.viewStorageKey && typeof window !== "undefined") {
       const stored = window.localStorage.getItem(props.viewStorageKey);
-      if (stored === "table" || stored === "cards" || stored === "board") return stored;
+      if (isDataTableView(stored)) return stored;
     }
     return props.defaultView ?? null;
   });
-  // Cards are the better narrow-screen layout: the table is the thing that
-  // scrolls horizontally. useIsMobile reads the width synchronously, so this
-  // resolves on the first render rather than flashing a table and reflowing.
-  const requestedView = props.view ?? uncontrolledView ?? (isMobile ? "cards" : "table");
-  // A stored (or controlled) "board" outlives the `board` prop — the page can
-  // stop supplying lanes when the group-by attribute goes away. Fall back
-  // rather than rendering an empty board.
-  const view: DataTableView =
-    requestedView === "board" && !props.board ? "table" : requestedView;
 
   // Scroll hand-off across the toggle. Only one layout is mounted at a time, so
   // both write to the same handle; the position is read off the outgoing layout
   // while it is still there and consumed by the incoming one on mount.
   const viewScrollRef = React.useRef<ViewScrollHandle | null>(null);
   const restoreRowIndexRef: ScrollRestoreRef = React.useRef<number | null>(null);
-
-  const setView = (v: DataTableView) => {
-    if (v !== view) {
-      restoreRowIndexRef.current = viewScrollRef.current?.getFirstVisibleRowIndex() ?? null;
-    }
-    props.onViewChange?.(v);
-    if (props.view === undefined) {
-      setUncontrolledView(v);
-      if (props.viewStorageKey) window.localStorage.setItem(props.viewStorageKey, v);
-    }
-  };
 
   const [uncontrolledCardSize, setUncontrolledCardSize] = React.useState<CardSize>(
     props.defaultCardSize ?? DEFAULT_CARD_SIZE
@@ -139,7 +136,6 @@ export function DataTable<TData extends RowData>(
     props.onCardSizeChange?.(size);
     if (props.cardSize === undefined) setUncontrolledCardSize(size);
   };
-  const cardMinWidth = props.cardMinWidth ?? CARD_SIZE_WIDTHS[cardSize];
 
   const [sorting, setSorting] = React.useState<SortingState>([
     {
@@ -172,6 +168,49 @@ export function DataTable<TData extends RowData>(
       },
     },
   });
+
+  // Which layouts this table can offer. Derived rather than opted into per
+  // page: each of the three extra layouts needs something the table has already
+  // declared — a gallery needs something to show a picture of, a docked detail
+  // pane needs something to dock, a board needs lanes. Media is read off the
+  // *visible* columns, so hiding the thumbnail column withdraws the gallery
+  // rather than leaving a toggle that lands on a grid of empty squares.
+  const hasMediaColumn = tableInstance
+    .getVisibleLeafColumns()
+    .some((column) => getCardMeta(column)?.slot === "media");
+  const availableViews: DataTableView[] = props.views?.length
+    ? props.views
+    : [
+        "table",
+        "cards",
+        ...(hasMediaColumn ? (["gallery"] as const) : []),
+        ...(props.renderSubComponent ? (["detail"] as const) : []),
+        ...(props.board ? (["board"] as const) : []),
+      ];
+
+  // Cards are the better narrow-screen layout: the table is the thing that
+  // scrolls horizontally. useIsMobile reads the width synchronously, so this
+  // resolves on the first render rather than flashing a table and reflowing.
+  const requestedView = props.view ?? uncontrolledView ?? (isMobile ? "cards" : "table");
+  // A stored preference outlives the conditions it was chosen under — the page
+  // stops supplying lanes when its group-by attribute goes away, the thumbnail
+  // column gets hidden, or the same entity key is reused by a page with no
+  // expansion panel. Falling back beats rendering a layout with nothing in it.
+  const view = availableViews.includes(requestedView) ? requestedView : "table";
+
+  const setView = (v: DataTableView) => {
+    if (v !== view) {
+      restoreRowIndexRef.current = viewScrollRef.current?.getFirstVisibleRowIndex() ?? null;
+    }
+    props.onViewChange?.(v);
+    if (props.view === undefined) {
+      setUncontrolledView(v);
+      if (props.viewStorageKey) window.localStorage.setItem(props.viewStorageKey, v);
+    }
+  };
+
+  const cardVariant = view === "gallery" ? "gallery" : "cards";
+  const cardMinWidth = props.cardMinWidth ?? sizeWidthsForVariant(cardVariant)[cardSize];
 
   const selectedIds = Object.keys(rowSelection);
 
@@ -219,22 +258,45 @@ export function DataTable<TData extends RowData>(
         cardSize={cardSize}
         onCardSizeChange={setCardSize}
         showCardSizeControl={props.cardMinWidth === undefined}
-        boardEnabled={props.board !== undefined}
+        availableViews={availableViews}
       />
 
-      <div ref={scrollRef} className="flex-1 overflow-auto min-h-0">
+      {/* The detail view is the one layout that does not scroll as a block: it
+          owns two independently scrolling panes, so the region around them has
+          to be a fixed-height box rather than a scroller. */}
+      <div
+        ref={scrollRef}
+        className={cn(
+          "flex-1 min-h-0",
+          view === "detail" ? "overflow-hidden" : "overflow-auto"
+        )}
+      >
         {/* mode="wait" so the two layouts never overlap in the scroll region —
             a cross-dissolve of a table over a card grid is just noise, and
             overlapping them would double the scroll height mid-transition. */}
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={view}
+            className={view === "detail" ? "h-full" : undefined}
             initial={animateViews ? { opacity: 0 } : false}
             animate={{ opacity: 1 }}
             exit={animateViews ? { opacity: 0 } : undefined}
             transition={{ duration: animateViews ? 0.12 : 0 }}
           >
-            {view === "board" && props.board ? (
+            {view === "detail" ? (
+              <DetailPaneView
+                table={tableInstance}
+                ModelData={props.ModelData}
+                virtualized={props.virtualized}
+                estimatedListRowHeight={props.estimatedDetailRowHeight}
+                listWidth={props.detailListWidth}
+                rowClickFunction={props.rowClickFunction}
+                renderSubComponent={renderSubComponent}
+                cardActions={cardActions}
+                scrollHandleRef={viewScrollRef}
+                restoreRowIndex={restoreRowIndexRef}
+              />
+            ) : view === "board" && props.board ? (
               <BoardView
                 table={tableInstance}
                 ModelData={props.ModelData}
@@ -251,11 +313,12 @@ export function DataTable<TData extends RowData>(
                 restoreRowIndex={restoreRowIndexRef}
                 animate={props.animate}
               />
-            ) : view === "cards" ? (
+            ) : view === "cards" || view === "gallery" ? (
               <CardView
                 table={tableInstance}
                 ModelData={props.ModelData}
                 scrollRef={scrollRef}
+                variant={cardVariant}
                 virtualized={props.virtualized}
                 estimatedCardHeight={props.estimatedCardHeight}
                 cardMinWidth={cardMinWidth}

@@ -1,14 +1,15 @@
 import React from "react";
-import type { Cell, Row } from "@tanstack/react-table";
-import { flexRender } from "@tanstack/react-table";
+import type { Row } from "@tanstack/react-table";
 import { motion } from "framer-motion";
 
 import { cn } from "@bcl32/utils/cn";
 import { Card } from "@bcl32/utils/Card";
-import { Button } from "@bcl32/utils/Button";
 import type { ModelData, RowData } from "@bcl32/data-utils";
 
 import { columnCardLabel, getCardMeta } from "./ColumnLabels";
+import { partitionCells, renderCell } from "./CardCells";
+import { applicableCardActions, CardQuickActions } from "./CardActions";
+import { GalleryTile } from "./GalleryCard";
 import { ROW_INDEX_ATTR } from "./ViewScroll";
 import type { ToolbarAction } from "./ToolbarAction";
 
@@ -22,11 +23,19 @@ import type { ToolbarAction } from "./ToolbarAction";
  *
  * The layout owns everything outside the card — placement, virtualization,
  * which coordinate `index` counts in — and passes the rest through here.
+ *
+ * The cell partitioner and the quick-action renderer live one level down again
+ * (`CardCells`, `CardActions`) because the gallery tile and the detail pane's
+ * list items need them without needing a card at all.
  */
 
 /** Board-local card coordinate, `"<laneIndex>:<positionInLane>"`. See
  *  `RowCard`'s `posAttr`. */
 export const BOARD_POS_ATTR = "data-board-pos";
+
+/** Which card a layout wants in its slot. `cards` is the full card the board
+ *  and the grid both draw; `gallery` is the media-only tile. */
+export type CardViewVariant = "cards" | "gallery";
 
 /**
  * What a card needs to know that isn't the row itself. Both CardView and
@@ -37,6 +46,8 @@ export interface CardRenderOptions<TData extends RowData> {
   maxCellHeight?: number;
   rowClickFunction?: (data: TData) => void;
   expandOnRowClick?: boolean;
+  /** Which card to draw. Default "cards". */
+  variant?: CardViewVariant;
   /**
    * Escape hatch: replaces the default card entirely. The layout still supplies
    * the slot, click handling, keyboard navigation, and the expansion panel.
@@ -44,6 +55,10 @@ export interface CardRenderOptions<TData extends RowData> {
    * A bespoke card has replaced the footer the quick actions would have gone
    * in, so they are handed over ready-rendered in `ctx.quickActions` — place
    * them wherever the card's design wants them, or drop them.
+   *
+   * Ignored under `variant="gallery"`: the gallery exists to strip a row back
+   * to its picture, and honouring a bespoke card there would just render the
+   * card layout at tile widths.
    */
   renderCard?: (row: Row<TData>, ctx: RenderCardContext) => React.ReactNode;
   /** Toolbar actions that opted in with `card`, rendered per card in the
@@ -65,93 +80,6 @@ export interface RenderCardContext {
   select: React.ReactNode;
   /** The row-actions (⋯) menu cell, or null when the table has none. */
   actions: React.ReactNode;
-}
-
-interface PartitionedCells<TData extends RowData> {
-  select?: Cell<TData, unknown>;
-  actions?: Cell<TData, unknown>;
-  edit?: Cell<TData, unknown>;
-  expander?: Cell<TData, unknown>;
-  media: Cell<TData, unknown>[];
-  title: Cell<TData, unknown>[];
-  badge: Cell<TData, unknown>[];
-  body: Cell<TData, unknown>[];
-  footer: Cell<TData, unknown>[];
-}
-
-function partitionCells<TData extends RowData>(row: Row<TData>): PartitionedCells<TData> {
-  const parts: PartitionedCells<TData> = {
-    media: [],
-    title: [],
-    badge: [],
-    body: [],
-    footer: [],
-  };
-  for (const cell of row.getVisibleCells()) {
-    const id = cell.column.id;
-    if (id === "select") parts.select = cell;
-    else if (id === "actions") parts.actions = cell;
-    else if (id === "EditEntry") parts.edit = cell;
-    else if (id === "expander") parts.expander = cell;
-    else {
-      const slot = getCardMeta(cell.column)?.slot ?? "body";
-      parts[slot].push(cell);
-    }
-  }
-  // Unannotated tables still need a readable card: promote the first field to
-  // the title position when nothing claims it.
-  if (parts.title.length === 0 && parts.body.length > 0) {
-    parts.title.push(parts.body.shift() as Cell<TData, unknown>);
-  }
-  return parts;
-}
-
-function renderCell<TData extends RowData>(cell: Cell<TData, unknown>): React.ReactNode {
-  return flexRender(cell.column.columnDef.cell, cell.getContext());
-}
-
-/** The toolbar actions that opted into a per-card affordance, filtered to the
- *  ones that apply to this row. */
-function applicableCardActions<TData extends RowData>(
-  row: Row<TData>,
-  actions: ToolbarAction<TData>[] | undefined
-): ToolbarAction<TData>[] {
-  if (!actions?.length) return [];
-  return actions.filter((action) => action.cardVisible?.(row.original) !== false);
-}
-
-function CardQuickActions<TData extends RowData>(props: {
-  row: Row<TData>;
-  actions: ToolbarAction<TData>[];
-}): JSX.Element {
-  return (
-    <>
-      {props.actions.map((action) => {
-        const iconOnly = action.card === "icon" && Boolean(action.icon);
-        const label = action.cardLabel ?? action.label;
-        return (
-          <Button
-            key={action.key}
-            size={iconOnly ? "icon" : "sm"}
-            variant={action.variant ?? "outline"}
-            disabled={action.cardDisabled?.(props.row.original) ?? false}
-            title={label}
-            aria-label={iconOnly ? label : undefined}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (action.onCardClick) action.onCardClick(props.row.original);
-              // Same handler the toolbar uses, scoped to the one row the card
-              // stands for — so a card action needs no separate declaration.
-              else action.onClick([props.row.id]);
-            }}
-          >
-            {action.icon}
-            {!iconOnly && label}
-          </Button>
-        );
-      })}
-    </>
-  );
 }
 
 /** The stock card: control columns in fixed positions, everything else placed
@@ -322,11 +250,14 @@ export function RowCard<TData extends RowData>(props: {
     view.rowClickFunction?.(row.original);
   };
 
-  const inner = view.renderCard ? (
-    view.renderCard(row, buildRenderCardContext(row, view))
-  ) : (
-    <DefaultCard row={row} view={view} clickable={clickable} />
-  );
+  const inner =
+    view.variant === "gallery" ? (
+      <GalleryTile row={row} clickable={clickable} />
+    ) : view.renderCard ? (
+      view.renderCard(row, buildRenderCardContext(row, view))
+    ) : (
+      <DefaultCard row={row} view={view} clickable={clickable} />
+    );
 
   const common = {
     role: "gridcell",
