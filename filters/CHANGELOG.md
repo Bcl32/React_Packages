@@ -1,5 +1,11 @@
 # @bcl32/filters
 
+## 3.4.2
+
+### Patch Changes
+
+- 3e499d2: feat: focus the filter search bar with a "/" hotkey
+
 ## 3.4.1
 
 ### Patch Changes
