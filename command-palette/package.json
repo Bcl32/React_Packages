@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/command-palette",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Ctrl+K command palette built on cmdk: navigation, actions, theme switching, and entity search pages",
   "author": "",
   "license": "ISC",

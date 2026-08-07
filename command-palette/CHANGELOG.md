@@ -1,5 +1,11 @@
 # @bcl32/command-palette
 
+## 1.0.5
+
+### Patch Changes
+
+- 97a286e: feat(command-palette): add numbered results with alt+1-9 selection
+
 ## 1.0.4
 
 ### Patch Changes
