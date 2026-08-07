@@ -211,6 +211,18 @@ export function useDataTableFilterBar({
           onApplied={() => setOpen(true)}
         />
       )}
+      {canAddFilters && (
+        <AddFilterPicker
+          catalog={catalog}
+          // Adding a filter mounts its control inside the panel, so reveal the
+          // panel too — otherwise the button appears to do nothing while the
+          // panel is collapsed.
+          onAdd={(field) => {
+            addFilter!(field);
+            setOpen(true);
+          }}
+        />
+      )}
       <button
         onClick={() => setOpen((prev) => !prev)}
         className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
@@ -262,18 +274,13 @@ export function useDataTableFilterBar({
             {/* One padded block, not three nested ones: the old pt-2 / py-2 /
                 pb-1 stack spent ~24px of the panel on its own margins. */}
             <div className="space-y-1.5 border-b py-1.5">
-              {canAddFilters && (
-                <div className="flex items-center gap-2">
-                  <AddFilterPicker
-                    catalog={catalog}
-                    onAdd={(field) => addFilter!(field)}
-                  />
-                  {orderedFilters.length === 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      Pick an attribute to start filtering.
-                    </span>
-                  )}
-                </div>
+              {canAddFilters && orderedFilters.length === 0 && (
+                // The picker itself lives in the toolbar above now, so an empty
+                // panel needs to point back at it rather than leave a blank
+                // strip that reads as a loading state.
+                <span className="text-xs text-muted-foreground">
+                  Pick an attribute from “Add filter” above to start filtering.
+                </span>
               )}
               {orderedFilters.length > 0 && (
                 // Denser than the old 1/2/3/4 ladder — the cards carry a

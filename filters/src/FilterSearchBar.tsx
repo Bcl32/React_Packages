@@ -10,41 +10,11 @@ import {
   type SearchFieldEntry,
 } from "./FilterSearch";
 import { FILTER_SEARCH_ATTR, releaseFilterSearch } from "./FilterSearchHotkey";
+import { anchoredPanelStyle, useAnchorRect } from "./AnchoredPanel";
 import type { FilterInitialValue, Filters } from "./types";
 
-/** Suggestion panel geometry. Width matches the old `w-80`. */
+/** Suggestion panel width. Matches the old `w-80`. */
 const PANEL_WIDTH = 320;
-const PANEL_GAP = 4;
-/** Below this, dropping downwards isn't worth it — flip above the input. */
-const PANEL_MIN_HEIGHT = 140;
-const VIEWPORT_MARGIN = 8;
-
-/**
- * Fixed-position box pinned under (or over) the search input.
- *
- * The panel is portalled to <body>, so it needs viewport coordinates rather
- * than the `absolute` offsets it used to get from its parent. Height is capped
- * to the space actually available, and the panel flips above the input when
- * the toolbar sits near the bottom of the window.
- */
-function panelStyle(rect: DOMRect): React.CSSProperties {
-  const viewportWidth = document.documentElement.clientWidth;
-  const viewportHeight = document.documentElement.clientHeight;
-  const below = viewportHeight - rect.bottom - PANEL_GAP - VIEWPORT_MARGIN;
-  const above = rect.top - PANEL_GAP - VIEWPORT_MARGIN;
-  const flip = below < PANEL_MIN_HEIGHT && above > below;
-  return {
-    position: "fixed",
-    width: PANEL_WIDTH,
-    left: Math.max(
-      VIEWPORT_MARGIN,
-      Math.min(rect.left, viewportWidth - PANEL_WIDTH - VIEWPORT_MARGIN),
-    ),
-    ...(flip
-      ? { bottom: viewportHeight - rect.top + PANEL_GAP, maxHeight: above }
-      : { top: rect.bottom + PANEL_GAP, maxHeight: below }),
-  };
-}
 
 interface FilterSearchBarProps {
   index: SearchFieldEntry[];
@@ -74,7 +44,10 @@ export function FilterSearchBar({
   changeFilters,
   addFilter,
   onApplied,
-  placeholder = "Search filters...",
+  // No placeholder by default: the magnifier icon beside the box already says
+  // what it is, and the old "Search filters..." only competed with the ghost
+  // completion that renders in the same spot.
+  placeholder = "",
 }: FilterSearchBarProps): JSX.Element {
   const [query, setQuery] = React.useState("");
   const [active, setActive] = React.useState(0);
@@ -82,7 +55,6 @@ export function FilterSearchBar({
   const containerRef = React.useRef<HTMLDivElement>(null);
   const panelRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const [anchor, setAnchor] = React.useState<DOMRect | null>(null);
 
   const suggestions = React.useMemo<FilterSuggestion[]>(
     () => SearchFilterIndex(index, query, { filters, canAdd: !!addFilter }),
@@ -124,23 +96,7 @@ export function FilterSearchBar({
     if (open) activeRef.current?.scrollIntoView({ block: "nearest" });
   }, [active, open]);
 
-  // Track the input's viewport box while the panel is up. Scroll is captured so
-  // that scrolling *any* ancestor — the toolbar strip, the page — re-anchors it,
-  // not just the window.
-  React.useLayoutEffect(() => {
-    if (!showPanel) return;
-    const measure = () => {
-      const el = containerRef.current;
-      if (el) setAnchor(el.getBoundingClientRect());
-    };
-    measure();
-    window.addEventListener("scroll", measure, true);
-    window.addEventListener("resize", measure);
-    return () => {
-      window.removeEventListener("scroll", measure, true);
-      window.removeEventListener("resize", measure);
-    };
-  }, [showPanel]);
+  const anchor = useAnchorRect(containerRef, showPanel);
   const highlighted = suggestions[active] ?? suggestions[0];
 
   // Inline completion from the highlighted suggestion, e.g. "pl" + ghost "A".
@@ -247,7 +203,7 @@ export function FilterSearchBar({
         createPortal(
           <div
             ref={panelRef}
-            style={panelStyle(anchor)}
+            style={anchoredPanelStyle(anchor, PANEL_WIDTH)}
             className="z-50 overflow-y-auto rounded-md border bg-popover p-1 shadow-md"
           >
             {open ? (

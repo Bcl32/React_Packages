@@ -1,9 +1,14 @@
 import * as React from "react";
+import { createPortal } from "react-dom";
 import dayjs from "dayjs";
 import { ChevronDown, ChevronRight, Plus, Search } from "lucide-react";
 
 import { Input } from "@bcl32/utils/Input";
+import { anchoredPanelStyle, useAnchorRect } from "./AnchoredPanel";
 import type { FilterCatalogEntry } from "./types";
+
+/** Dropdown width. Matches the old `w-80`. */
+const PANEL_WIDTH = 320;
 
 interface AddFilterPickerProps {
   catalog: FilterCatalogEntry[];
@@ -135,14 +140,20 @@ export function AddFilterPicker({
   const [query, setQuery] = React.useState("");
   const [showUnavailable, setShowUnavailable] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const panelRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const anchor = useAnchorRect(containerRef, open);
 
   React.useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      const target = e.target as Node;
+      // The panel is portalled out of the container, so it has to be tested
+      // separately — otherwise clicking a row (or the search box inside it)
+      // counts as "outside" and closes the picker before the click lands.
+      if (containerRef.current?.contains(target)) return;
+      if (panelRef.current?.contains(target)) return;
+      setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -255,57 +266,75 @@ export function AddFilterPicker({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+        className={`inline-flex shrink-0 items-center gap-1 rounded-full border border-dashed px-2.5 py-1 text-xs font-medium transition-colors ${
+          open
+            ? "border-primary text-primary"
+            : "border-border text-muted-foreground hover:border-primary hover:text-primary"
+        }`}
       >
         <Plus size={13} />
         {label}
       </button>
 
-      {open && (
-        <div className="absolute left-0 z-50 mt-1 w-80 rounded-md border bg-popover p-1 shadow-md">
-          <div className="flex items-center gap-1.5 px-1.5 pb-1">
-            <Search size={13} className="shrink-0 text-muted-foreground" />
-            <Input
-              ref={inputRef}
-              variant="background"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") setOpen(false);
-                if (e.key === "Enter" && available.length > 0) add(available[0]);
-              }}
-              placeholder="Search attributes..."
-              className="h-7 flex-1 text-xs"
-            />
-          </div>
+      {/* Portalled to <body>: this picker now sits in the data table's toolbar
+          strip, which is `overflow-x-auto`, and an overflow box clips its
+          absolutely positioned descendants no matter how high their z-index.
+          See AnchoredPanel. */}
+      {open &&
+        anchor &&
+        createPortal(
+          <div
+            ref={panelRef}
+            style={anchoredPanelStyle(anchor, PANEL_WIDTH)}
+            className="z-50 flex flex-col overflow-hidden rounded-md border bg-popover p-1 shadow-md"
+          >
+            <div className="flex shrink-0 items-center gap-1.5 px-1.5 pb-1">
+              <Search size={13} className="shrink-0 text-muted-foreground" />
+              <Input
+                ref={inputRef}
+                variant="background"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setOpen(false);
+                  if (e.key === "Enter" && available.length > 0) add(available[0]);
+                }}
+                placeholder="Search attributes..."
+                className="h-7 flex-1 text-xs"
+              />
+            </div>
 
-          <div className="max-h-64 overflow-y-auto">
-            {visible.length === 0 && (
-              <p className="px-2 py-3 text-center text-xs text-muted-foreground">
-                {catalog.length === 0 ? emptyHint : "No matches"}
-              </p>
-            )}
+            {/* `min-h-0` so the list — not the flex container — is what
+                shrinks when the panel's viewport cap bites; without it the
+                search box would be pushed out of the box instead. */}
+            <div className="max-h-64 min-h-0 flex-1 overflow-y-auto">
+              {visible.length === 0 && (
+                <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+                  {catalog.length === 0 ? emptyHint : "No matches"}
+                </p>
+              )}
 
-            {available.map((entry, index) => renderRow(entry, available[index - 1]))}
+              {available.map((entry, index) => renderRow(entry, available[index - 1]))}
 
-            {unavailable.length > 0 && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setShowUnavailable((v) => !v)}
-                  className="mt-1 flex w-full items-center gap-1 border-t px-2 pb-0.5 pt-1.5 text-left text-[10px] font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
-                  title="Attributes with no values in the current data"
-                >
-                  {revealUnavailable ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-                  {unavailable.length} unavailable
-                </button>
-                {revealUnavailable &&
-                  unavailable.map((entry) => renderRow(entry))}
-              </>
-            )}
-          </div>
-        </div>
-      )}
+              {unavailable.length > 0 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowUnavailable((v) => !v)}
+                    className="mt-1 flex w-full items-center gap-1 border-t px-2 pb-0.5 pt-1.5 text-left text-[10px] font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+                    title="Attributes with no values in the current data"
+                  >
+                    {revealUnavailable ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                    {unavailable.length} unavailable
+                  </button>
+                  {revealUnavailable &&
+                    unavailable.map((entry) => renderRow(entry))}
+                </>
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
