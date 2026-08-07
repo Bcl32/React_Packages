@@ -82,12 +82,14 @@ export function OptionsFilter({
         onRemove={onRemove}
       />
 
+      {/* Both spellings are the same autocomplete; `label`, not `name`, or a
+          dynamic instance advertises itself as "Filter weight_g#2...". */}
       {display === "combobox" && (
         <ComboboxView
           options={options}
           value={currentValue}
           multiple={selection === "multi"}
-          placeholder={`Add ${name}...`}
+          placeholder={`Add ${label.toLowerCase()}...`}
           onChange={setValue}
         />
       )}
@@ -97,7 +99,7 @@ export function OptionsFilter({
           options={options}
           value={currentValue}
           multiple={selection === "multi"}
-          placeholder={`Filter ${name}...`}
+          placeholder={`Filter ${label.toLowerCase()}...`}
           onChange={setValue}
         />
       )}
