@@ -63,7 +63,7 @@ export interface CommandPaletteProps {
   enableGlobalAliases?: boolean;
   /**
    * Number the first 9 visible results (badges 1–9 in visual order) and run
-   * the Nth one on Alt+1..9 while the palette is open. Default `true`.
+   * the Nth one on Shift+1..9 while the palette is open. Default `true`.
    */
   enableNumberedResults?: boolean;
 }
@@ -397,11 +397,11 @@ export function CommandPalette({
             shouldFilter={!activeSource || activeSource.mode === "client"}
             // MANDATORY: Backspace on empty input pops the page (cmdk README pattern).
             onKeyDown={(e) => {
-              // Alt+1..9 runs the Nth visible result. e.code, not e.key —
-              // macOS Option mutates the produced character. preventDefault
-              // even when fewer than N results exist so the browser doesn't
-              // grab Alt+digit (e.g. Firefox tab switch) mid-palette.
-              if (enableNumberedResults && e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+              // Shift+1..9 runs the Nth visible result. e.code, not e.key —
+              // shift mutates the produced character (Digit3 types "#").
+              // preventDefault even when fewer than N results exist so the
+              // symbol never leaks into the search input.
+              if (enableNumberedResults && e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
                 const digit = /^Digit([1-9])$/.exec(e.code);
                 if (digit) {
                   e.preventDefault();

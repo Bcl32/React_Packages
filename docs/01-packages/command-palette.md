@@ -85,7 +85,7 @@ import type { CommandEntry, SearchSource } from "@bcl32/command-palette/types";
 | `hotkey` | `string` | no | `"k"` | Single key that, with ctrl/cmd (and no shift/alt), toggles the palette. Compared lowercase. |
 | `placeholder` | `string` | no | `"Type a command or search…"` | Root-page input placeholder. On a search page the placeholder becomes `Search {label}…`. |
 | `enableGlobalAliases` | `boolean` | no | `true` | Installs the window-level listener that fires `alias` key sequences while the palette is **closed**. Set `false` to keep aliases as a Tab-only, in-palette feature. |
-| `enableNumberedResults` | `boolean` | no | `true` | Numbers the first 9 visible results (badges `1`–`9` in visual order) and runs the Nth one on `Alt+1..9` while the palette is **open**. See [Numbered results](#numbered-results). |
+| `enableNumberedResults` | `boolean` | no | `true` | Numbers the first 9 visible results (badges `1`–`9` in visual order) and runs the Nth one on `Shift+1..9` while the palette is **open**. See [Numbered results](#numbered-results). |
 
 ### `CommandEntry` fields
 
@@ -293,12 +293,14 @@ Theme commands intentionally have no aliases.
 ## Numbered results
 
 While the palette is open, the first **9 visible enabled results** carry a small
-number badge (`1`–`9`) on the left of the row, and **`Alt+1..9`** runs the Nth
+number badge (`1`–`9`) on the left of the row, and **`Shift+1..9`** runs the Nth
 one — at the root page *and* on entity-search pages. Clicking the badge is just
 clicking the row. Numbering always reflects **visual order**: as cmdk re-ranks
 results while you type, the numbers restamp to follow. Disabled items are
 skipped (numbering stays contiguous over enabled rows). Plain digit keys are
-untouched — they type into the input as normal.
+untouched — they type into the input as normal. (`Ctrl+digit` was never an
+option — browsers reserve it for tab switching; `Alt` was rejected as
+hard to reach.)
 
 Mechanism (why it looks the way it does in the source):
 
@@ -315,13 +317,13 @@ Mechanism (why it looks the way it does in the source):
   the alias `<kbd>` keeps its right-aligned slot. Without the attribute the
   rules are inert, which is also how `enableNumberedResults={false}` needs no
   CSS change.
-- `Alt+1..9` is matched on **`event.code`** (`Digit1`…`Digit9`), not
-  `event.key`, because macOS Option mutates the produced character. The keydown
-  is `preventDefault()`ed even when fewer than N results exist so the browser
-  doesn't act on Alt+digit (e.g. Firefox tab switching) mid-palette — this is
-  best-effort: OS/window-manager-level Alt+digit grabs cannot be overridden.
-- The global alias listener ignores `altKey` chords, so the two hotkey systems
-  cannot collide.
+- `Shift+1..9` is matched on **`event.code`** (`Digit1`…`Digit9`), not
+  `event.key`, because shift mutates the produced character (`Digit3` types
+  `#`). The keydown is `preventDefault()`ed even when fewer than N results
+  exist, so shifted digit **symbols** (`!@#…`) can never be typed into the
+  palette search input — the one trade-off of this binding.
+- The global alias listener only fires on bare `[a-z0-9]` keys while the
+  palette is closed, so the two hotkey systems cannot collide.
 
 ## Conventions & Patterns
 
