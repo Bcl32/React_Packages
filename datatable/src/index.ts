@@ -5,6 +5,7 @@ export * from "./DataTable";
 export * from "./ViewScroll";
 export * from "./ColumnLabels";
 export * from "./SortControl";
+export * from "./GroupControl";
 export * from "./TableView";
 export * from "./CardView";
 // Same reason as the note above: BoardConfig/BoardLane already arrive via

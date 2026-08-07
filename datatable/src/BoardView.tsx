@@ -43,6 +43,16 @@ export interface BoardConfig<TData extends RowData> {
   onLaneClick?: (value: string, isNone: boolean) => void;
   /** What the lanes are grouped by, e.g. "Status". Used in the empty state. */
   groupLabel?: string;
+  /** The attribute currently laning the board. Only needed alongside
+   *  `groupByOptions` — the lanes themselves are already resolved. */
+  groupBy?: string;
+  /**
+   * Attributes the board could lane by instead. Supplying two or more puts a
+   * picker in the toolbar next to the layout toggle; a page that resolves its
+   * grouping some other way can leave this out and the picker stays away.
+   */
+  groupByOptions?: { value: string; label: string }[];
+  onGroupByChange?: (attrName: string) => void;
 }
 
 export interface BoardViewProps<TData extends RowData> extends CardRenderOptions<TData> {

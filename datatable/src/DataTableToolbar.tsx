@@ -31,8 +31,10 @@ import { DeleteModelForm } from "@bcl32/forms/DeleteModelForm";
 import type { ModelData, RowData } from "@bcl32/data-utils";
 
 import { SortControl } from "./SortControl";
+import { GroupControl } from "./GroupControl";
 import { CardSelectAllControl, CardSizeControl } from "./CardView";
 import type { CardSize, DataTableView } from "./CardView";
+import type { BoardConfig } from "./BoardView";
 import type { ToolbarAction } from "./ToolbarAction";
 
 /** Icon and wording per layout, so the toggle can be built from whatever set
@@ -83,6 +85,9 @@ export interface DataTableToolbarProps<TData extends RowData> {
    *  the toggle only ever shows buttons that lead somewhere. It disappears
    *  entirely when there is only one. */
   availableViews: DataTableView[];
+  /** The board's config, for the group-by picker. Absent on tables with no
+   *  board, and ignored in every layout but the board. */
+  board?: BoardConfig<TData>;
 }
 
 /**
@@ -294,6 +299,17 @@ export function DataTableToolbar<TData extends RowData>(
               <CardSizeControl value={props.cardSize} onChange={props.onCardSizeChange} />
             </div>
           )}
+
+        {/* Only the board has lanes to relabel, and only when the consumer
+            offered a choice — one option is a caption, not a control. Sits
+            beside the sort control because both answer "how is this arranged". */}
+        {props.view === "board" && (props.board?.groupByOptions?.length ?? 0) > 1 && (
+          <GroupControl
+            value={props.board!.groupBy}
+            options={props.board!.groupByOptions!}
+            onChange={(name) => props.board!.onGroupByChange?.(name)}
+          />
+        )}
 
         {/* Both layouts: cards have no headers to click, and the table's
             headers scroll out of view. */}

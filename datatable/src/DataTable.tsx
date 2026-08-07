@@ -259,6 +259,7 @@ export function DataTable<TData extends RowData>(
         onCardSizeChange={setCardSize}
         showCardSizeControl={props.cardMinWidth === undefined}
         availableViews={availableViews}
+        board={props.board}
       />
 
       {/* The detail view is the one layout that does not scroll as a block: it
