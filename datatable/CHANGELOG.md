@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.10.2
+
+### Patch Changes
+
+- 1c5b15d: feat: let a board pick its own grouping, and lane by discrete values
+
 ## 2.10.1
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @bcl32/filters
 
+## 3.4.3
+
+### Patch Changes
+
+- 1c5b15d: feat: let a board pick its own grouping, and lane by discrete values
+
 ## 3.4.2
 
 ### Patch Changes
