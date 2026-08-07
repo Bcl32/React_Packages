@@ -1,5 +1,12 @@
 # @bcl32/filters
 
+## 3.4.4
+
+### Patch Changes
+
+- 8fe20b1: fix(filters): label the options combobox with its title, not the raw field
+- 09a8828: feat(filters): move the Add filter picker into the filter toolbar
+
 ## 3.4.3
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @bcl32/command-palette
 
+## 1.0.6
+
+### Patch Changes
+
+- e1d22d3: feat(command-palette): rebind numbered-result selection to shift+1-9
+
 ## 1.0.5
 
 ### Patch Changes
