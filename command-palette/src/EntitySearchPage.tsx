@@ -18,6 +18,18 @@ const itemClass =
   "data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground " +
   "data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50";
 
+// Duplicated from CommandPalette.tsx (like itemClass above — a shared module
+// would be a circular import). Renders the 1–9 number badge from the
+// data-palette-index attribute stamped by CommandPalette's MutationObserver.
+const numberBadgeClass =
+  "data-[palette-index]:before:content-[attr(data-palette-index)] " +
+  "data-[palette-index]:before:flex data-[palette-index]:before:h-4 data-[palette-index]:before:w-4 " +
+  "data-[palette-index]:before:shrink-0 data-[palette-index]:before:items-center " +
+  "data-[palette-index]:before:justify-center data-[palette-index]:before:rounded " +
+  "data-[palette-index]:before:border data-[palette-index]:before:border-border " +
+  "data-[palette-index]:before:bg-muted data-[palette-index]:before:font-mono " +
+  "data-[palette-index]:before:text-[10px] data-[palette-index]:before:text-muted-foreground";
+
 interface ListEnvelope {
   items?: unknown[];
   total?: number;
@@ -75,7 +87,7 @@ export function EntitySearchPage({ source, search, onPick }: EntitySearchPagePro
             value={String(item.id)}
             keywords={[label]}
             onSelect={() => onPick(source.getRoute(item))}
-            className={cn(itemClass)}
+            className={cn(itemClass, numberBadgeClass)}
           >
             {thumb && (
               <img

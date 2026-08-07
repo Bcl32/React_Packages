@@ -23,6 +23,22 @@ const groupClass =
 const badgeClass =
   "ml-auto shrink-0 rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground";
 
+/**
+ * Number badge for the first 9 visible results, rendered from the
+ * `data-palette-index` attribute stamped on `[cmdk-item]` nodes in visual
+ * order (see the MutationObserver effect in CommandPalette). A ::before
+ * pseudo-element is the first flex child, so the number lands left of the
+ * icon/thumbnail/label; without the attribute the rules are inert.
+ */
+const numberBadgeClass =
+  "data-[palette-index]:before:content-[attr(data-palette-index)] " +
+  "data-[palette-index]:before:flex data-[palette-index]:before:h-4 data-[palette-index]:before:w-4 " +
+  "data-[palette-index]:before:shrink-0 data-[palette-index]:before:items-center " +
+  "data-[palette-index]:before:justify-center data-[palette-index]:before:rounded " +
+  "data-[palette-index]:before:border data-[palette-index]:before:border-border " +
+  "data-[palette-index]:before:bg-muted data-[palette-index]:before:font-mono " +
+  "data-[palette-index]:before:text-[10px] data-[palette-index]:before:text-muted-foreground";
+
 /** How long a global alias sequence stays "live" before the buffer resets. */
 const ALIAS_SEQUENCE_TIMEOUT_MS = 1000;
 
@@ -45,6 +61,11 @@ export interface CommandPaletteProps {
    * (e.g. `g` `d` → Dashboard). Default `true`.
    */
   enableGlobalAliases?: boolean;
+  /**
+   * Number the first 9 visible results (badges 1–9 in visual order) and run
+   * the Nth one on Alt+1..9 while the palette is open. Default `true`.
+   */
+  enableNumberedResults?: boolean;
 }
 
 export function CommandPalette({
@@ -53,11 +74,13 @@ export function CommandPalette({
   hotkey = "k",
   placeholder = "Type a command or search…",
   enableGlobalAliases = true,
+  enableNumberedResults = true,
 }: CommandPaletteProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const [page, setPage] = React.useState<string | null>(null);
   const navigate = useNavigate();
+  const listRef = React.useRef<HTMLDivElement | null>(null);
 
   // Global toggle: Ctrl/Cmd+<hotkey>. vimBindings is disabled below so ctrl+k
   // reaching this listener while open acts as close (toggle semantics).
@@ -85,6 +108,49 @@ export function CommandPalette({
       setPage(null);
     }
   }, [open]);
+
+  // Numbered results: stamp data-palette-index="1..9" on the first 9 visible
+  // enabled items in VISUAL order. cmdk's sort physically re-appendChilds item
+  // nodes in score order (document order = visual order) inside a scheduled
+  // layout effect, so a plain React effect would race it — a MutationObserver
+  // on the list fires after each reorder, before paint. No feedback loop: we
+  // only write data-palette-index, which the observer doesn't watch.
+  //
+  // A callback ref (not an effect keyed on `open`): Radix's Portal mounts the
+  // dialog content one render pass after `open` flips, so at effect time on
+  // the opening commit the list node doesn't exist yet. The callback ref runs
+  // exactly when the node attaches, and with `null` on detach (cleanup).
+  const observerRef = React.useRef<MutationObserver | null>(null);
+  const attachList = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      listRef.current = node;
+      observerRef.current?.disconnect();
+      observerRef.current = null;
+      if (!node || !enableNumberedResults) return;
+      const stamp = () => {
+        const items = node.querySelectorAll<HTMLElement>(
+          '[cmdk-item=""]:not([aria-disabled="true"])'
+        );
+        items.forEach((el, i) => {
+          if (i < 9) el.setAttribute("data-palette-index", String(i + 1));
+          else el.removeAttribute("data-palette-index");
+        });
+        node
+          .querySelectorAll<HTMLElement>('[cmdk-item=""][aria-disabled="true"][data-palette-index]')
+          .forEach((el) => el.removeAttribute("data-palette-index"));
+      };
+      stamp();
+      const observer = new MutationObserver(stamp);
+      observer.observe(node, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["aria-disabled"],
+      });
+      observerRef.current = observer;
+    },
+    [enableNumberedResults]
+  );
 
   const activeSource = page ? searchSources.find((s) => s.key === page) : undefined;
 
@@ -331,6 +397,21 @@ export function CommandPalette({
             shouldFilter={!activeSource || activeSource.mode === "client"}
             // MANDATORY: Backspace on empty input pops the page (cmdk README pattern).
             onKeyDown={(e) => {
+              // Alt+1..9 runs the Nth visible result. e.code, not e.key —
+              // macOS Option mutates the produced character. preventDefault
+              // even when fewer than N results exist so the browser doesn't
+              // grab Alt+digit (e.g. Firefox tab switch) mid-palette.
+              if (enableNumberedResults && e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                const digit = /^Digit([1-9])$/.exec(e.code);
+                if (digit) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  listRef.current
+                    ?.querySelector<HTMLElement>(`[cmdk-item=""][data-palette-index="${digit[1]}"]`)
+                    ?.click();
+                  return;
+                }
+              }
               if (e.key === "Backspace" && !search && page) {
                 e.preventDefault();
                 setPage(null);
@@ -356,7 +437,7 @@ export function CommandPalette({
                 className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
             </div>
-            <Command.List className="max-h-[min(60vh,24rem)] overflow-y-auto p-2">
+            <Command.List ref={attachList} className="max-h-[min(60vh,24rem)] overflow-y-auto p-2">
               {!activeSource && (
                 <>
                   <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
@@ -376,7 +457,7 @@ export function CommandPalette({
                               ...(entry.alias ? [entry.alias] : []),
                             ]}
                             onSelect={() => runEntry(entry)}
-                            className={itemClass}
+                            className={cn(itemClass, numberBadgeClass)}
                           >
                             {Icon && <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />}
                             <span className="truncate">{entry.label}</span>
@@ -399,7 +480,7 @@ export function CommandPalette({
                               setPage(s.key);
                               setSearch("");
                             }}
-                            className={itemClass}
+                            className={cn(itemClass, numberBadgeClass)}
                           >
                             <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
                             <span className="truncate">Search {s.label}…</span>

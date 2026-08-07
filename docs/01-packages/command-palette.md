@@ -69,7 +69,7 @@ import type { CommandEntry, SearchSource } from "@bcl32/command-palette/types";
 
 | Name | Kind | Signature / Props | Description |
 | --- | --- | --- | --- |
-| `CommandPalette` | component | `({ commands, searchSources?, hotkey?, placeholder?, enableGlobalAliases? }: CommandPaletteProps) => JSX.Element` | The palette itself. Renders nothing visible until the hotkey opens it. Owns open/search/page state. |
+| `CommandPalette` | component | `({ commands, searchSources?, hotkey?, placeholder?, enableGlobalAliases?, enableNumberedResults? }: CommandPaletteProps) => JSX.Element` | The palette itself. Renders nothing visible until the hotkey opens it. Owns open/search/page state. |
 | `flattenNavItems` | function | `(items: NavLike[], group?: string) => CommandEntry[]` | Flattens a sidebar nav tree (`{title, url?, icon?, items?}`) into command entries. Skips url-less section headers, dedupes by `url`, defaults `group` to `"Navigation"`. |
 | `useThemeCommands` | hook | `() => CommandEntry[]` | One command per entry in `theme_options`, plus `"system"`. Labels read `Theme: dark`. Must be called inside a `ThemeProvider`. |
 | `EntitySearchPage` | component | `({ source, search, onPick }: EntitySearchPageProps) => JSX.Element` | The nested search page body. Rendered by `CommandPalette`; exported for custom shells. |
@@ -85,6 +85,7 @@ import type { CommandEntry, SearchSource } from "@bcl32/command-palette/types";
 | `hotkey` | `string` | no | `"k"` | Single key that, with ctrl/cmd (and no shift/alt), toggles the palette. Compared lowercase. |
 | `placeholder` | `string` | no | `"Type a command or search…"` | Root-page input placeholder. On a search page the placeholder becomes `Search {label}…`. |
 | `enableGlobalAliases` | `boolean` | no | `true` | Installs the window-level listener that fires `alias` key sequences while the palette is **closed**. Set `false` to keep aliases as a Tab-only, in-palette feature. |
+| `enableNumberedResults` | `boolean` | no | `true` | Numbers the first 9 visible results (badges `1`–`9` in visual order) and runs the Nth one on `Alt+1..9` while the palette is **open**. See [Numbered results](#numbered-results). |
 
 ### `CommandEntry` fields
 
@@ -288,6 +289,39 @@ const commands = React.useMemo(
 ```
 
 Theme commands intentionally have no aliases.
+
+## Numbered results
+
+While the palette is open, the first **9 visible enabled results** carry a small
+number badge (`1`–`9`) on the left of the row, and **`Alt+1..9`** runs the Nth
+one — at the root page *and* on entity-search pages. Clicking the badge is just
+clicking the row. Numbering always reflects **visual order**: as cmdk re-ranks
+results while you type, the numbers restamp to follow. Disabled items are
+skipped (numbering stays contiguous over enabled rows). Plain digit keys are
+untouched — they type into the input as normal.
+
+Mechanism (why it looks the way it does in the source):
+
+- cmdk's sort **physically re-appends item DOM nodes** in score order and
+  unmounts filtered-out items, so document order *is* visual order. A
+  `MutationObserver` on the `Command.List` node restamps
+  `data-palette-index="1..9"` after every reorder, before paint. The observer is
+  installed from a **callback ref** — Radix's Portal mounts the dialog content a
+  render pass after `open` flips, so an effect keyed on `open` runs before the
+  list node exists.
+- The badge itself is a CSS `::before` pseudo-element
+  (`data-[palette-index]:before:content-[attr(data-palette-index)]` …) — the
+  first flex child of the row, so it lands left of the icon/thumbnail/label and
+  the alias `<kbd>` keeps its right-aligned slot. Without the attribute the
+  rules are inert, which is also how `enableNumberedResults={false}` needs no
+  CSS change.
+- `Alt+1..9` is matched on **`event.code`** (`Digit1`…`Digit9`), not
+  `event.key`, because macOS Option mutates the produced character. The keydown
+  is `preventDefault()`ed even when fewer than N results exist so the browser
+  doesn't act on Alt+digit (e.g. Firefox tab switching) mid-palette — this is
+  best-effort: OS/window-manager-level Alt+digit grabs cannot be overridden.
+- The global alias listener ignores `altKey` chords, so the two hotkey systems
+  cannot collide.
 
 ## Conventions & Patterns
 
