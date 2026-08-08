@@ -57,7 +57,11 @@ import { CommandPalette } from "@bcl32/command-palette/CommandPalette";
 import { flattenNavItems } from "@bcl32/command-palette/flattenNavItems";
 import { useThemeCommands } from "@bcl32/command-palette/useThemeCommands";
 import { EntitySearchPage } from "@bcl32/command-palette/EntitySearchPage";
-import type { CommandEntry, SearchSource } from "@bcl32/command-palette/types";
+import { SequenceHUD } from "@bcl32/command-palette/SequenceHUD";
+import { LeaderGrid } from "@bcl32/command-palette/LeaderGrid";
+import { buildShortcutTrie } from "@bcl32/command-palette/shortcutTrie";
+import { useShortcutSequencer } from "@bcl32/command-palette/useShortcutSequencer";
+import type { CommandEntry, SearchSource, ShortcutNode } from "@bcl32/command-palette/types";
 ```
 
 > The package is built as **pure ESM** (`tsup` `format: esm`) with `@bcl32/*`
@@ -69,12 +73,18 @@ import type { CommandEntry, SearchSource } from "@bcl32/command-palette/types";
 
 | Name | Kind | Signature / Props | Description |
 | --- | --- | --- | --- |
-| `CommandPalette` | component | `({ commands, searchSources?, hotkey?, placeholder?, enableGlobalAliases?, enableNumberedResults? }: CommandPaletteProps) => JSX.Element` | The palette itself. Renders nothing visible until the hotkey opens it. Owns open/search/page state. |
+| `CommandPalette` | component | `({ commands, searchSources?, hotkey?, placeholder?, enableGlobalAliases?, enableNumberedResults?, shortcutTrees?, sequenceHints?, hintDelayMs?, leaderKey?, prefixLabels? }: CommandPaletteProps) => JSX.Element` | The palette itself. Renders nothing visible until the hotkey opens it. Owns open/search/page state, the shortcut trie, and both hint surfaces. |
 | `flattenNavItems` | function | `(items: NavLike[], group?: string) => CommandEntry[]` | Flattens a sidebar nav tree (`{title, url?, icon?, items?}`) into command entries. Skips url-less section headers, dedupes by `url`, defaults `group` to `"Navigation"`. |
 | `useThemeCommands` | hook | `() => CommandEntry[]` | One command per entry in `theme_options`, plus `"system"`. Labels read `Theme: dark`. Must be called inside a `ThemeProvider`. |
 | `EntitySearchPage` | component | `({ source, search, onPick }: EntitySearchPageProps) => JSX.Element` | The nested search page body. Rendered by `CommandPalette`; exported for custom shells. |
+| `SequenceHUD` | component | `({ path, node, activation, delayMs?, enterKey }: SequenceHUDProps) => JSX.Element \| null` | The which-key bottom panel, portalled to `document.body`. Rendered by `CommandPalette` when `sequenceHints === "hud"`. |
+| `LeaderGrid` | component | `({ open, path, node, rootLabel, enterKey, onClose }: LeaderGridProps) => JSX.Element` | The leader-key modal menu. Rendered by `CommandPalette` when `leaderKey` is set. |
+| `buildShortcutTrie` | function | `(opts: BuildShortcutTrieOptions) => TrieNode` | Expands aliases + `shortcutTrees` into the key-sequence trie. Dev alias validation is a side effect of building. |
+| `useShortcutSequencer` | hook | `(opts: UseShortcutSequencerOptions) => SequencerState & SequencerControls` | The global key-sequence engine (one window listener, refs for mutable state). Exported for custom shells. |
 | `CommandEntry` | type (interface) | see below | A single root-level command. |
 | `SearchSource` | type (interface) | see below | Declarative description of one searchable entity type. |
+| `ShortcutNode` | type (interface) | see below | One node of an explicit `shortcutTrees` branch. |
+| `TrieNode` / `TrieAction` | type (interface / union) | see [Sequence hints & leader grid](#sequence-hints--leader-grid) | The built trie and what a leaf fires. |
 
 ### `CommandPaletteProps`
 
@@ -86,6 +96,11 @@ import type { CommandEntry, SearchSource } from "@bcl32/command-palette/types";
 | `placeholder` | `string` | no | `"Type a command or search…"` | Root-page input placeholder. On a search page the placeholder becomes `Search {label}…`. |
 | `enableGlobalAliases` | `boolean` | no | `true` | Installs the window-level listener that fires `alias` key sequences while the palette is **closed**. Set `false` to keep aliases as a Tab-only, in-palette feature. |
 | `enableNumberedResults` | `boolean` | no | `true` | Numbers the first 9 visible results (badges `1`–`9` in visual order) and runs the Nth one on `Shift+1..9` while the palette is **open**. See [Numbered results](#numbered-results). |
+| `shortcutTrees` | `ShortcutNode[]` | no | `[]` | Explicit branches merged into the trie root **after** the alias-derived ones. Arbitrary depth (`f` → entity → field). See [Sequence hints & leader grid](#sequence-hints--leader-grid). |
+| `sequenceHints` | `"off" \| "hud"` | no | `"hud"` | `"hud"` shows the which-key panel for an unresolved prefix (and disables the 1000 ms buffer expiry). `"off"` restores the fully invisible buffer. |
+| `hintDelayMs` | `number` | no | `200` | How long a prefix must sit unresolved before the HUD appears. `0` shows it immediately. |
+| `leaderKey` | `string` | no | — | Single **non-alphanumeric** key (e.g. `"."`) that opens the trie root as a modal grid. Compared case-sensitively against `event.key`. Unset = disabled. |
+| `prefixLabels` | `Record<string, string>` | no | `{}` | Labels for the derived interior levels, keyed by the prefix leading to them (`{ g: "Go to page" }`). The `""` key names the leader grid's root. Must be a **stable identity** — a new object per render rebuilds (and re-validates) the trie. |
 
 ### `CommandEntry` fields
 
@@ -229,7 +244,15 @@ Guards — the listener bails out entirely when any of these hold:
   — so typing in any form field or other dialog never fires an alias.
 
 `Escape` clears the buffer. Only `/^[a-z0-9]$/i` keys accumulate (lowercased),
-and the buffer expires **1000 ms** after the last accepted key.
+and the buffer expires **1000 ms** after the last accepted key — unless hints
+are on, which replaces the silent expiry with a visible panel (see
+[Sequence hints & leader grid](#sequence-hints--leader-grid)).
+
+The engine itself is `useShortcutSequencer`: one window listener registered
+once, all mutable state in refs, walking the trie built by `buildShortcutTrie`.
+The listener is bypassed for `ALIAS_IGNORE_SELECTOR` targets *except* while the
+leader grid is open — that grid is itself a `[role="dialog"]`, and its keys have
+to reach the sequencer.
 
 Matching rule, applied after every accepted key:
 
@@ -267,7 +290,11 @@ ranks the item first even without pressing `Tab`.
 Outside `process.env.NODE_ENV === "production"` the palette `console.warn`s on
 mount (and whenever the registry changes) about **duplicate aliases** (only the
 first is reachable; search sources win over commands) and **prefix conflicts**
-(naming the slower alias and the timeout it now waits for).
+(naming the slower alias and the timeout it now waits for). Both are side
+effects of `buildShortcutTrie`, which the palette memoizes on
+`commands` / `searchSources` / `shortcutTrees` / `prefixLabels` — pass stable
+identities or the warnings repeat every render. A `leaderKey` that is
+alphanumeric or collides with a root key is warned about separately.
 
 ### Where aliases come from
 
@@ -289,6 +316,115 @@ const commands = React.useMemo(
 ```
 
 Theme commands intentionally have no aliases.
+
+## Sequence hints & leader grid
+
+A typed sequence is invisible while it is in flight, and nothing advertises that
+`g` is a menu at all. Two optional surfaces fix that. Both read the same
+**shortcut trie** and the same sequencer state as the keyboard does, so a hint
+can never describe a binding the keys don't have.
+
+### The trie
+
+`buildShortcutTrie` expands every alias character by character into a tree of
+`TrieNode`s — one node per key, `children` in insertion order (which is display
+order). Sources are inserted first, so **precedence is**:
+
+1. **search sources** (`sp`, `sl`, …) — first, matching the Tab handler's
+   source-before-command rule;
+2. **commands** (`gd`, `gt`, …);
+3. **`shortcutTrees`** — explicit branches merged into the root last.
+
+**First insertion wins.** A later declaration for an occupied path is dropped
+and `console.warn`ed in dev (the same duplicate/prefix-conflict warnings
+described under [Dev-mode validation](#dev-mode-validation), now emitted while
+the trie is built). Only `[a-z0-9]+` aliases enter the trie at all: PT's `/`
+alias for "Focus filter search" stays **palette-only** — badge, cmdk keyword and
+Tab token — and is never a bare-key binding, so it can coexist with the `/`
+filter-search hotkey.
+
+Interior nodes are derived from the alias text, so they have no label of their
+own and render as `prefixLabels[prefix] ?? key`. A `prefixLabels` entry also
+outranks a leaf label on a node that is both a target *and* a menu (alias `gd`
+declared alongside `gdx`).
+
+`TrieNode.action` is a `TrieAction` — `{ kind: "source" }`, `{ kind: "command" }`
+or `{ kind: "node" }` — and `CommandPalette` dispatches it exactly as the
+palette itself would (open the search page / run the entry / `perform()` or
+navigate).
+
+#### `ShortcutNode` fields
+
+| Field | Type | Required | Behaviour |
+| --- | --- | --- | --- |
+| `key` | `string` | yes | Single `[a-z0-9]` key at this level. |
+| `label` | `string` | yes | Menu text for this node. |
+| `icon` | `LucideIcon` | no | Rendered at `h-4 w-4` before the label. |
+| `children` | `ShortcutNode[]` | no | Makes this a **branch** — the next menu level. Arbitrary depth. |
+| `to` | `string` | no | Leaf: router path to navigate to. |
+| `perform` | `() => void` | no | Leaf: custom action. **Takes precedence over `to`.** |
+
+### Sequence HUD (`sequenceHints`, `hintDelayMs`)
+
+Default `"hud"`. Type an unresolved prefix, pause `hintDelayMs` (default 200 ms)
+and a which-key panel slides up across the bottom of the screen listing every
+continuation: `<kbd>` key + icon + label, with a muted `›` on entries that open
+a further level. Entries are real `<button>`s — clicking one walks the same step
+the key would (`enterKey`). `Escape` cancels; a click anywhere else abandons the
+sequence so the panel can never get stuck.
+
+Finishing inside the delay never paints the panel, so `g` `d` at typing speed
+stays a silent hotkey. The delay is spent once per sequence: drilling a level
+deeper re-renders the panel in place instead of blinking it away.
+
+While hints are enabled the 1000 ms buffer expiry is switched **off** — a
+visible prefix waits for `Escape`, a dead key, or resolution rather than
+vanishing on a timer. (It is disabled for the whole hinted mode, including the
+200 ms before the panel paints; that window is short enough that the difference
+is not observable.) `sequenceHints="off"` restores the invisible buffer and its
+expiry exactly as they were. An **ambiguous exact** node (`gd` declared
+alongside `gdx`) keeps its legacy 1000 ms auto-fire even with the panel up —
+only the leader grid suppresses it.
+
+The panel is portalled to `document.body` at `z-40`, so no transformed ancestor
+can capture its `fixed` positioning, and it renders under the palette dialog
+(`z-50`) rather than over it.
+
+### Leader grid (`leaderKey`)
+
+`leaderKey` is a single **non-alphanumeric** key — PT uses `.` — that opens the
+trie **root** as a centred modal menu: the same levels, from a cold start, with
+no prefix to remember. Letters drill in, cards are clickable, `Backspace` pops a
+level, `Escape` (or an overlay click) closes. The header breadcrumbs the pressed
+keys after a root label (`prefixLabels[""]`, default `"Shortcuts"`).
+
+Levels resolve exactly as typed sequences do with one deliberate exception: an
+ambiguous exact match (`gd` with `gdx` also declared) never auto-fires on the
+1000 ms timer while the grid is open, because its continuations are on screen.
+Every handled key is `preventDefault()`ed so nothing leaks to the page behind
+the modal.
+
+An alphanumeric `leaderKey`, or one that collides with a root shortcut key, is
+`console.warn`ed in dev — it would shadow the first key of every sequence
+starting with it.
+
+### Wiring it up
+
+```jsx
+// Module-level: a new object per render would rebuild the trie every render.
+const PREFIX_LABELS = { g: "Go to page", s: "Search" };
+
+<CommandPalette
+  commands={commands}
+  searchSources={searchSources}
+  prefixLabels={PREFIX_LABELS}
+  leaderKey="."
+/>;
+```
+
+That is the whole opt-in for an app that already declares aliases —
+`sequenceHints` defaults to `"hud"`, and `shortcutTrees` is only needed for
+branches that are not aliases (a filter tree, say).
 
 ## Numbered results
 
@@ -346,7 +482,10 @@ Things a consumer must follow:
    duplicates make keyboard selection ambiguous.
 6. **Always cap search results.** `maxResults` defaults to 50 because the list
    endpoints are unbounded (no `limit` param).
-7. **Aliases must be unique and same-length across the whole registry** —
+7. **Pass `prefixLabels` / `shortcutTrees` as module-level constants.** They are
+   memo dependencies of the shortcut trie; a fresh `{}` or `[]` per render
+   rebuilds it — and re-runs its dev warnings — on every render.
+8. **Aliases must be unique and same-length across the whole registry** —
    commands *and* search sources share one namespace. Duplicates make the later
    one unreachable; a strict prefix makes the shorter one wait 1000 ms. Both are
    `console.warn`ed in dev.
@@ -423,6 +562,18 @@ Known rough edges and deliberate design constraints:
 - **Dev alias validation depends on `process.env.NODE_ENV` being replaced by the
   consumer's bundler** (Vite does this by default). The built ESM keeps the
   literal expression.
+- **The leader grid never takes focus.** Its `Dialog.Content` prevents both
+  `onOpenAutoFocus` and `onCloseAutoFocus`: the sequencer owns every key while
+  the grid is open, so focusing a card would put a ring on an arbitrary entry
+  and make `Space`/`Enter` run it, and restoring focus on close would land
+  *after* a search alias has already focused the palette input. The trade-off is
+  that a modal dialog opens without moving focus into it, and a `Space` press
+  can still reach whatever was focused behind the grid.
+- **The HUD sits at `z-40`, portalled to `document.body`.** A consumer overlay
+  above `z-40` covers it; the palette dialog (`z-50`) deliberately does.
+- **Hint surfaces cannot show non-alphanumeric aliases.** Only `[a-z0-9]+`
+  aliases enter the trie, so a `/`-style alias is discoverable through the
+  palette list and its badge only.
 - **Hotkey matching is single-key only.** `hotkey` is compared against
   `event.key.toLowerCase()`, so only ctrl/cmd + one key is expressible; there is
   no way to require or forbid shift/alt beyond the built-in "neither pressed"

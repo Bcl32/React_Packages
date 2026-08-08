@@ -5,7 +5,11 @@ export default defineConfig({
     "src/types.ts",
     "src/flattenNavItems.ts",
     "src/useThemeCommands.ts",
+    "src/shortcutTrie.ts",
+    "src/useShortcutSequencer.ts",
     "src/EntitySearchPage.tsx",
+    "src/SequenceHUD.tsx",
+    "src/LeaderGrid.tsx",
     "src/CommandPalette.tsx",
     "src/index.ts"
   ],

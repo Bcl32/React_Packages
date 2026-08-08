@@ -21,6 +21,22 @@
       "types": "./dist/EntitySearchPage.d.ts",
       "import": "./dist/EntitySearchPage.js"
     },
+    "./SequenceHUD": {
+      "types": "./dist/SequenceHUD.d.ts",
+      "import": "./dist/SequenceHUD.js"
+    },
+    "./LeaderGrid": {
+      "types": "./dist/LeaderGrid.d.ts",
+      "import": "./dist/LeaderGrid.js"
+    },
+    "./shortcutTrie": {
+      "types": "./dist/shortcutTrie.d.ts",
+      "import": "./dist/shortcutTrie.js"
+    },
+    "./useShortcutSequencer": {
+      "types": "./dist/useShortcutSequencer.d.ts",
+      "import": "./dist/useShortcutSequencer.js"
+    },
     "./useThemeCommands": {
       "types": "./dist/useThemeCommands.d.ts",
       "import": "./dist/useThemeCommands.js"
@@ -68,6 +84,7 @@
     "@radix-ui/react-dialog": "^1.1.1",
     "@tanstack/react-query": "^5.18.1",
     "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
     "react-router-dom": "^6.22.0",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2"

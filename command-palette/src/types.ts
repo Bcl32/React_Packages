@@ -22,6 +22,19 @@ export interface CommandEntry {
   perform?: () => void;
 }
 
+export interface ShortcutNode {
+  /** Single [a-z0-9] key at this level. */
+  key: string;
+  label: string;
+  icon?: LucideIcon;
+  /** Branch: shows the next menu level. */
+  children?: ShortcutNode[];
+  /** Leaf: router path to navigate to. */
+  to?: string;
+  /** Leaf: custom action; takes precedence over `to`. */
+  perform?: () => void;
+}
+
 export interface SearchSource {
   /** Unique page key, e.g. "parts". */
   key: string;
