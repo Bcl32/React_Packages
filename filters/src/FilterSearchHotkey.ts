@@ -27,7 +27,14 @@ const FLASH_MS = 900;
 
 const flashTimers = new WeakMap<Element, ReturnType<typeof setTimeout>>();
 
-function flash(el: HTMLElement): void {
+/**
+ * Exported for FilterTargeting, which lands on a filter card rather than a
+ * search box but owes the user the same "you were moved here" cue. It lives
+ * here rather than in a shared module so FLASH_CLASSES is written out exactly
+ * once — those class names only exist because Tailwind's scanner reads them
+ * from this file, and a second copy would be a second thing to keep in sync.
+ */
+export function flash(el: HTMLElement): void {
   const pending = flashTimers.get(el);
   if (pending) clearTimeout(pending);
   el.classList.add(...FLASH_CLASSES);
@@ -47,8 +54,12 @@ function flash(el: HTMLElement): void {
  * (part pickers, the part-set wizard) with its own filter search inside a
  * dialog, and those should be reachable — but a bar on the page *behind* the
  * modal must never steal focus out of it.
+ *
+ * Exported because FilterTargeting has to make the identical call about filter
+ * *bars* — one rule for "which layer of the page is live", not two that can
+ * disagree.
  */
-function searchRoot(): ParentNode {
+export function topmostFilterRoot(): ParentNode {
   const dialogs = document.querySelectorAll<HTMLElement>(
     '[role="dialog"][data-state="open"]',
   );
@@ -62,7 +73,7 @@ function searchRoot(): ParentNode {
  * would usually agree but is not guaranteed to.
  */
 function visibleTargets(): HTMLElement[] {
-  return Array.from(searchRoot().querySelectorAll<HTMLElement>(TARGET_SELECTOR))
+  return Array.from(topmostFilterRoot().querySelectorAll<HTMLElement>(TARGET_SELECTOR))
     .filter((el) => el.getClientRects().length > 0)
     .sort((a, b) => {
       const ra = a.getBoundingClientRect();

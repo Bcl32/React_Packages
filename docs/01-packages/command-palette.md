@@ -426,6 +426,63 @@ That is the whole opt-in for an app that already declares aliases —
 `sequenceHints` defaults to `"hud"`, and `shortcutTrees` is only needed for
 branches that are not aliases (a filter tree, say).
 
+### Worked example: the filter tree
+
+Print-Tracker's `f` branch — `f` → entity → filter — is the reference consumer
+of `shortcutTrees`. It needed no changes to this package, which is the point:
+depth, digits and `perform` leaves were already supported.
+
+```jsx
+// Entity keys are the second character of the entity's nav alias, so a letter
+// means the same entity under `f` as under `g`: `g a` goes to Parts, `f a`
+// filters Parts.
+const FILTER_ENTITIES = [
+  { key: "a", to: "/Parts", model: PartModelData },
+  { key: "j", to: "/PrintJobs", model: PrintJobModelData },
+  // …
+];
+
+const buildFilterTree = (navigate) => ({
+  key: "f",
+  label: "Filter",
+  icon: Filter,
+  children: FILTER_ENTITIES.map((entity) => ({
+    key: entity.key,
+    label: entity.model.set_name,
+    children: [
+      ...filterFields(entity.model).map((attr, index) => ({
+        key: String(index + 1),
+        label: attr.title,
+        perform: () => {
+          navigate(entity.to);
+          requestFilter(attr.name, { path: entity.to });
+        },
+      })),
+      { key: "s", label: "Search filters…", perform: /* … */ },
+      { key: "a", label: "Add filter…", perform: /* … */ },
+    ],
+  })),
+});
+```
+
+Three things worth copying:
+
+1. **Digits for the generated level, letters for fixed actions.** The fields
+   come from the schema, so any letter they could take might one day collide
+   with `s`/`a` or with each other (Parts declares both *Systems* and *System
+   units*). Numbering costs the mnemonic and buys a namespace that cannot
+   conflict — and the HUD lists the numbered fields after `hintDelayMs`, so the
+   sequence is read rather than recalled.
+2. **A leaf that navigates must build the tree inside the component**, since it
+   needs `useNavigate`. Memoize on `navigate` — the trie is rebuilt and
+   re-validated whenever the array identity changes.
+3. **Do the work through a queue, not from `perform`.** `perform` fires while
+   the destination page does not exist yet. See `@bcl32/filters`'
+   `FilterTargeting`, whose requests retry as the route lands and the data
+   loads. A synchronous action here would also run while the leader grid is
+   still mounted, which matters to anything that scopes itself to the topmost
+   `[role="dialog"]`.
+
 ## Numbered results
 
 While the palette is open, the first **9 visible enabled results** carry a small

@@ -6,6 +6,8 @@ import { OrderFilters } from "./OrderFilters";
 import { FilterElement } from "./FilterElement";
 import { AddFilterPicker } from "./AddFilterPicker";
 import { FilterSearchBar } from "./FilterSearchBar";
+import { baseFieldName } from "./BuildFilterCatalog";
+import { pumpFilterRequests, registerFilterBar } from "./FilterTargeting";
 import type { SearchFieldEntry } from "./FilterSearch";
 import { humanizeFieldName, prettyOptionLabel } from "./utils";
 import type { Filters, FilterValue, FilterOption, FilterCatalogEntry, FilterInitialValue } from "./types";
@@ -144,10 +146,55 @@ export function useDataTableFilterBar({
   // here.
   const orderedFilters = allFilters ? OrderFilters(allFilters) : [];
   const [open, setOpen] = useState(false);
+  const [addPickerOpen, setAddPickerOpen] = useState(false);
   const hasSetInitialOpen = useRef(false);
+  const panelRef = useRef<HTMLDivElement>(null);
   const activeCount = Object.keys(activeFilters).length;
   const catalog = filterCatalog ?? [];
   const canAddFilters = !!addFilter && catalog.length > 0;
+
+  // The registration below is made once, on mount, but its callbacks have to
+  // answer with this render's props — so they read through a box rather than
+  // closing over them.
+  const latest = useRef({ allFilters, catalog, addFilter, canAddFilters });
+  latest.current = { allFilters, catalog, addFilter, canAddFilters };
+
+  /** The mounted instance of `field`, preferring the schema-declared one. */
+  const keyForField = (field: string): string | null => {
+    const filters = latest.current.allFilters ?? {};
+    for (const key of Object.keys(filters)) {
+      if ((filters[key].field ?? baseFieldName(key)) === field) return key;
+    }
+    return null;
+  };
+
+  // Publishes this bar so a keyboard shortcut can reach a filter that lives on
+  // whatever page happens to be mounted. See FilterTargeting for why this is a
+  // registry and not the data-attribute trick the `/` hotkey uses.
+  useEffect(
+    () =>
+      registerFilterBar({
+        element: () => panelRef.current,
+        reveal: () => setOpen(true),
+        hasField: (field) =>
+          keyForField(field) !== null ||
+          latest.current.catalog.some((entry) => entry.field === field),
+        keyForField,
+        addField: (field) => latest.current.addFilter?.(field) ?? null,
+        openAddPicker: () => {
+          if (latest.current.canAddFilters) setAddPickerOpen(true);
+        },
+      }),
+    [],
+  );
+
+  // A targeting request usually cannot finish on its first try — the dataset is
+  // still loading, or the filter it just asked for is a render away from being
+  // in the DOM. Each of those resolves into one of these dependencies, so this
+  // replaces guessing at timeouts with retrying exactly when something changed.
+  useEffect(() => {
+    pumpFilterRequests();
+  }, [allFilters, filterCatalog, open]);
 
   // Entities with no primaryFilter (Vendors, Printers, …) would otherwise open
   // to an empty panel. Fall back to the table's own columns: they're already a
@@ -214,6 +261,10 @@ export function useDataTableFilterBar({
       {canAddFilters && (
         <AddFilterPicker
           catalog={catalog}
+          // Controlled so the `f <entity> a` shortcut can open it; the picker
+          // still drives every open/close itself through onOpenChange.
+          open={addPickerOpen}
+          onOpenChange={setAddPickerOpen}
           // Adding a filter mounts its control inside the panel, so reveal the
           // panel too — otherwise the button appears to do nothing while the
           // panel is collapsed.
@@ -260,6 +311,7 @@ export function useDataTableFilterBar({
 
   const panel = (
     <div
+      ref={panelRef}
       className={`grid transition-[grid-template-rows] duration-200 ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
     >
       <div className={open ? "overflow-visible" : "overflow-hidden"}>

@@ -4,6 +4,7 @@ import { DebouncedTextFilter } from "./DebouncedTextFilter";
 import { DebouncedNumberFilter } from "./DebouncedNumberFilter";
 import { OptionsFilter } from "./OptionsFilter";
 import { TimeFilter } from "./TimeFilter";
+import { FILTER_FIELD_ATTR } from "./FilterTargeting";
 import type { FilterContextValue, FilterData, FilterDisplay, FilterOption, FilterSelection, FilterSourceKind, ColourPresetsConfig } from "./types";
 
 interface FilterElementProps {
@@ -23,7 +24,16 @@ export function FilterElement({ filter_data }: FilterElementProps): JSX.Element 
 
   // `min-w-0` is what lets a long title or a wide value truncate instead of
   // forcing its grid column wider than the share it was given.
-  return <div className="min-w-0">{get_chart_type(filter_data, onRemove)}</div>;
+  //
+  // The data attribute is how a keyboard shortcut finds this card once its
+  // filter is mounted — see FilterTargeting. Keyed by `name` (the instance key)
+  // rather than the field, so a duplicate "tags#2" is distinguishable from the
+  // original sitting beside it.
+  return (
+    <div className="min-w-0" {...{ [FILTER_FIELD_ATTR]: filter_data["name"] }}>
+      {get_chart_type(filter_data, onRemove)}
+    </div>
+  );
 }
 
 function get_chart_type(filter_data: FilterData, onRemove?: () => void): JSX.Element {

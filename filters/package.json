@@ -129,6 +129,10 @@
       "types": "./dist/FilterSearchHotkey.d.ts",
       "import": "./dist/FilterSearchHotkey.js"
     },
+    "./FilterTargeting": {
+      "types": "./dist/FilterTargeting.d.ts",
+      "import": "./dist/FilterTargeting.js"
+    },
     "./FilterProvider": {
       "types": "./dist/FilterProvider.d.ts",
       "import": "./dist/FilterProvider.js"

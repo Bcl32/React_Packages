@@ -31,6 +31,7 @@ export default defineConfig({
     "src/useEntityFilters.ts",
     "src/DataTableFilterBar.tsx",
     "src/FilterSearchHotkey.ts",
+    "src/FilterTargeting.ts",
     "src/FilterProvider.tsx",
     "src/useFilterContext.ts",
     "src/types.ts",

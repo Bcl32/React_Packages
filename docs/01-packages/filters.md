@@ -102,6 +102,49 @@ import type { ModelData, Filters } from "@bcl32/filters/types";
 | `rowGroupValues` | util | `(row, attr: ModelAttribute) => RowGroupValue[]` | Which group(s) one row belongs to for one attribute — several for the multi-valued kinds. `useEntityGroups` counts through this, so a consumer that *places* rows (the DataTable board layout assigning cards to lanes) can place them through the same function and cannot disagree with the counts. Returns `[{ value: '_none' }]` for an empty/null value. |
 | `EntityGroupCards` | component | `({ dataset, modelData, groupBy, groupableAttrs, onGroupByChange, onSelect, resolveVisual?, title?, onEmptySwitchToTable? }) => JSX.Element` | Card grid grouping entities by an options attribute; includes a `ToggleGroup` to switch groupBy field, click-to-select cards, and an optional empty-state escape hatch. |
 
+### Keyboard targeting
+
+Filter state lives in per-page React state and there is no provider at the app
+root, so reaching a filter from outside the page that owns it needs its own
+plumbing. Two mechanisms, split by what they have to touch:
+
+`FilterSearchHotkey` only moves focus, so it finds its targets through a DOM
+attribute. `FilterTargeting` (3.5.0) has to call React callbacks — expand the
+panel, add a filter — so `useDataTableFilterBar` publishes itself to a
+module-scoped registry instead.
+
+| Name | Kind | Signature | Description |
+|---|---|---|---|
+| `useFilterSearchHotkey` | hook | `({ key?, enabled? }) => void` | Binds a global "jump to the filter search box" key (default `/`). Mount once at the app layout. Repeated presses cycle the page's bars in visual order. |
+| `focusFilterSearch` | util | `() => boolean` | The same jump, callable directly (the command palette offers it as a command). Returns false when the page has no search box, so the caller can leave the keystroke alone. |
+| `releaseFilterSearch` | util | `(el: HTMLElement \| null) => void` | Step back out, restoring focus to wherever the hotkey took it from. Called by `FilterSearchBar` on Escape with an empty query. |
+| `requestFilter` | util | `(field: string, options?: { path?: string }) => void` | Reveal `field`'s filter and focus its control, adding the filter first if it isn't mounted. A combobox opens its list on focus, so an options filter lands ready to type a value. |
+| `requestFilterSearch` | util | `(options?: { path?: string }) => void` | `focusFilterSearch`, but queued — safe to call before the target page exists. |
+| `requestAddFilter` | util | `(options?: { path?: string }) => void` | Open the "+ Add filter" picker. |
+| `registerFilterBar` | util | `(handle: FilterBarHandle) => () => void` | Publishes a bar. `useDataTableFilterBar` calls this; consumers do not. |
+| `pumpFilterRequests` | util | `() => void` | Retry the pending request. Called by a bar whenever its filters, catalog or open state change. |
+| `FILTER_SEARCH_ATTR` | const | `"data-filter-search"` | Marks a search input as a jump target. |
+| `FILTER_FIELD_ATTR` | const | `"data-filter-field"` | On each rendered filter card, carrying the filter **key** — a duplicate instance is `"tags#2"`, so the key distinguishes it from the original beside it. |
+| `FILTER_HEADER_ATTR` | const | `"data-filter-header"` | On the shared header row, so control-focus can skip its rule pill and ✕. |
+
+**Requests are queued, never immediate.** Every step can legitimately fail on
+the first try — the route hasn't changed, the bar hasn't mounted, the dataset
+hasn't loaded so `addFilter` returns null, the new card isn't in the DOM until
+React commits. Each attempt gets one step further and the request expires after
+8s. This is what lets a shortcut navigate to another entity's page and act once
+it arrives.
+
+**Pass `path` whenever you navigate first.** `navigate()` calls
+`history.pushState` synchronously while React has not re-rendered, so for one
+moment the URL says the new page while the *old* page's bar is still mounted.
+`path` pins the request to a route; without it, a field name two entities share
+(`name`, `tags`) is answered by whichever page the user was looking at.
+
+Bars are picked visible-first, topmost-first, scoped to the same layer
+`FilterSearchHotkey` uses — a picker table inside an open modal outranks the
+page behind it. Combined with `path`, that is why no call site has to identify
+its entity.
+
 ### Pure data utilities
 
 | Name | Kind | Signature / Props | Description |

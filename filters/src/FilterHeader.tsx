@@ -1,5 +1,6 @@
 import * as React from "react";
 import { X } from "lucide-react";
+import { FILTER_HEADER_ATTR } from "./FilterTargeting";
 
 interface FilterHeaderProps {
   /** Already-resolved label — schema `title`, or a humanized field name. */
@@ -31,7 +32,10 @@ interface FilterHeaderProps {
  */
 export function FilterHeader({ label, rule, actions, onRemove }: FilterHeaderProps): JSX.Element {
   return (
-    <div className="flex min-w-0 items-center gap-1">
+    // Marked so a shortcut landing on this card can focus the actual control
+    // rather than the rule pill or the ✕, both of which precede it in document
+    // order — see FilterTargeting's focusControl.
+    <div className="flex min-w-0 items-center gap-1" {...{ [FILTER_HEADER_ATTR]: "" }}>
       <span
         className="truncate text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
         title={label}

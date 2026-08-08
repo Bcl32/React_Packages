@@ -24,6 +24,7 @@ export * from "./AddFilterPicker";
 export * from "./FilterSearch";
 export * from "./FilterSearchBar";
 export * from "./FilterSearchHotkey";
+export * from "./FilterTargeting";
 export * from "./GroupFilters";
 export * from "./OrderFilters";
 export * from "./ProcessDataset";

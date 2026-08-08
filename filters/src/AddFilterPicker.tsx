@@ -16,6 +16,13 @@ interface AddFilterPickerProps {
   label?: string;
   /** Rendered when the catalog is empty (e.g. dataset still loading). */
   emptyHint?: string;
+  /**
+   * Optional controlled open state. Supplied together, these let something
+   * outside the toolbar (a keyboard shortcut) open the picker; omitted, the
+   * picker manages itself exactly as before.
+   */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /** Compact span for a datetime attribute: "Mar 4 '25 – Aug 2 '26". */
@@ -135,8 +142,18 @@ export function AddFilterPicker({
   onAdd,
   label = "Add filter",
   emptyHint = "No attributes available",
+  open: openProp,
+  onOpenChange,
 }: AddFilterPickerProps): JSX.Element {
-  const [open, setOpen] = React.useState(false);
+  const [selfOpen, setSelfOpen] = React.useState(false);
+  const open = openProp ?? selfOpen;
+  // Accepts the updater form the toggle button already uses, so the two modes
+  // stay call-compatible and only the storage differs.
+  const setOpen = (next: boolean | ((prev: boolean) => boolean)) => {
+    const resolved = typeof next === "function" ? next(open) : next;
+    if (openProp === undefined) setSelfOpen(resolved);
+    onOpenChange?.(resolved);
+  };
   const [query, setQuery] = React.useState("");
   const [showUnavailable, setShowUnavailable] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
