@@ -19,6 +19,7 @@ import {
   Images,
   PanelRight,
   SquareKanban,
+  X,
 } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@bcl32/utils/ToggleGroup";
 import { DialogButton } from "@bcl32/utils/DialogButton";
@@ -62,7 +63,9 @@ export interface DataTableToolbarProps<TData extends RowData> {
   table: TanstackTable<TData>;
   ModelData: ModelData;
   filter?: DataTableFilter;
-  toolbarStyle?: "standard" | "compact";
+  /** See DataTable's prop of the same name. "none" never reaches here — the
+   *  table skips the toolbar entirely — but "quiet" is handled below. */
+  toolbarStyle?: "standard" | "compact" | "quiet" | "none";
   selectedIds: string[];
   rowSelection: Record<string, boolean>;
   setRowSelection: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
@@ -90,6 +93,92 @@ export interface DataTableToolbarProps<TData extends RowData> {
   board?: BoardConfig<TData>;
 }
 
+/** The consumer's `toolbarActions`, as buttons. One renderer with two callers —
+ *  zone 2 of the standard toolbar and the quiet bulk bar. They differ only in
+ *  button metrics, which is not enough to justify a second copy that would then
+ *  have to be kept in step every time an action gains a field. */
+function ToolbarActionButtons<TData extends RowData>(props: {
+  actions: ToolbarAction<TData>[];
+  selectedIds: string[];
+  /** Metric overrides for the caller's scale. Omit for the standard size. */
+  className?: string;
+}): JSX.Element {
+  return (
+    <>
+      {props.actions.map((action) => {
+        if (action.visible === false) return null;
+        return (
+          <Button
+            key={action.key}
+            size="sm"
+            variant={action.variant}
+            disabled={action.disabled}
+            className={props.className}
+            onClick={() => action.onClick(props.selectedIds)}
+          >
+            {action.icon} {action.label}
+          </Button>
+        );
+      })}
+    </>
+  );
+}
+
+/**
+ * The whole of `toolbarStyle="quiet"`: nothing at rest, and one slim bar once
+ * rows are selected.
+ *
+ * For tables that are a *section* of a page rather than the page — a stack of
+ * them down one screen. There the standard toolbar's title, filters, sort and
+ * view toggle are either duplicated by the page or meaningless per section,
+ * and the permanent 2-zone header repeated eight times reads as chrome. What is
+ * genuinely per-section is what you do with the rows you ticked *here*, so that
+ * is all this draws, and only while something is ticked.
+ *
+ * Deliberately no bulk edit / delete dialogs: those belong to the table that
+ * owns the entity (the standard toolbar), not to a section view of it. Actions
+ * a section does want it declares through `toolbarActions` like any other.
+ */
+function QuietBulkBar<TData extends RowData>(
+  props: DataTableToolbarProps<TData>
+): JSX.Element | null {
+  if (props.selectedIds.length === 0) return null;
+
+  // Matching CardSelectAllControl's h-8/text-xs so the row reads as one band
+  // rather than as buttons of three heights; the gap is what keeps an action's
+  // icon off its label at this smaller scale.
+  const control = "h-8 gap-1 px-2 text-xs";
+
+  return (
+    <div className="mb-2 shrink-0 flex flex-wrap items-center gap-1.5 rounded-md border bg-muted px-2 py-1">
+      <span className="text-xs font-medium whitespace-nowrap">
+        {props.selectedIds.length} selected
+      </span>
+
+      <CardSelectAllControl table={props.table} />
+
+      <ToolbarActionButtons
+        actions={props.actions}
+        selectedIds={props.selectedIds}
+        className={control}
+      />
+
+      {/* Last, and pushed to the far end: it is the one control here that
+          undoes rather than does, and it must not sit under the pointer that
+          just clicked an action. */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className={cn(control, "ml-auto")}
+        onClick={() => props.setRowSelection({})}
+      >
+        <X size={14} />
+        Clear
+      </Button>
+    </div>
+  );
+}
+
 /**
  * Everything above the rows, in two zones.
  *
@@ -112,7 +201,7 @@ export interface DataTableToolbarProps<TData extends RowData> {
  */
 export function DataTableToolbar<TData extends RowData>(
   props: DataTableToolbarProps<TData>
-): JSX.Element {
+): JSX.Element | null {
   // Dialog state lives here rather than in DataTable: nothing outside this
   // toolbar opens or reads it.
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
@@ -121,6 +210,11 @@ export function DataTableToolbar<TData extends RowData>(
 
   const { selectedIds, table } = props;
   const hasFilters = Boolean(props.filter);
+
+  // A different toolbar rather than a variation on this one — quiet mode keeps
+  // none of the two zones, so branching inside them would be a conditional
+  // around every child.
+  if (props.toolbarStyle === "quiet") return <QuietBulkBar {...props} />;
 
   return (
     <div className="mb-2 shrink-0">
@@ -209,20 +303,7 @@ export function DataTableToolbar<TData extends RowData>(
           ) : null
         )}
 
-        {props.actions.map((action) => {
-          if (action.visible === false) return null;
-          return (
-            <Button
-              key={action.key}
-              size="sm"
-              variant={action.variant}
-              disabled={action.disabled}
-              onClick={() => action.onClick(selectedIds)}
-            >
-              {action.icon} {action.label}
-            </Button>
-          );
-        })}
+        <ToolbarActionButtons actions={props.actions} selectedIds={selectedIds} />
 
         {/* Delete */}
         {props.bulk_delete_enabled === false ? null : selectedIds.length > 0 ? (

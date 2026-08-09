@@ -1,5 +1,12 @@
 import React from "react";
-import type { ColumnDef, Row, SortingState, VisibilityState } from "@tanstack/react-table";
+import type {
+  ColumnDef,
+  Row,
+  RowSelectionState,
+  SortingState,
+  Updater,
+  VisibilityState,
+} from "@tanstack/react-table";
 
 import {
   useReactTable,
@@ -46,7 +53,20 @@ interface DataTableProps<TData extends RowData> {
   add_api_url?: string;
   query_invalidation?: string[];
   filter?: DataTableFilter;
-  toolbarStyle?: "standard" | "compact";
+  /** How much of the toolbar to draw.
+   *
+   *    standard  the full two-zone toolbar
+   *    compact   as standard, but edit/delete stay visible (disabled) at rest
+   *    quiet     nothing at rest; one slim bulk bar while rows are selected
+   *    none      no toolbar at all — for pages that own their own selection UI
+   */
+  toolbarStyle?: "standard" | "compact" | "quiet" | "none";
+  /** Controlled row selection, keyed by row id (`getRowId` is `String(row.id)`,
+   *  so the keys are entity ids). Omit to keep the table self-managed. */
+  rowSelection?: RowSelectionState;
+  /** Notified on every selection write, controlled or not. Takes TanStack's
+   *  updater shape, so a plain `setState` can be handed straight to it. */
+  onRowSelectionChange?: (updater: Updater<RowSelectionState>) => void;
   rowClickFunction?: (data: TData) => void;
   renderSubComponent?: (props: { row: Row<TData> }) => React.ReactNode;
   expandOnRowClick?: boolean;
@@ -102,7 +122,24 @@ interface DataTableProps<TData extends RowData> {
 export function DataTable<TData extends RowData>(
   props: DataTableProps<TData>
 ): JSX.Element {
-  const [rowSelection, setRowSelection] = React.useState<Record<string, boolean>>({});
+  // Selection follows the same controlled/uncontrolled shape as `view` and
+  // `cardSize` below: the prop wins when supplied, the callback fires either
+  // way. Everything inside — the table instance, the toolbar's bulk edit and
+  // delete forms, the quiet bar's clear — writes through the single
+  // `setRowSelection` resolved here, so neither mode needs a second code path.
+  const [uncontrolledRowSelection, setUncontrolledRowSelection] =
+    React.useState<RowSelectionState>({});
+  const rowSelection = props.rowSelection ?? uncontrolledRowSelection;
+  // Typed as a setState dispatch because that is what the bulk forms expect;
+  // it is the same signature as TanStack's OnChangeFn, so the updater passes
+  // through untouched rather than being flattened to a value here — a consumer
+  // merging into a wider selection map needs the function form.
+  const setRowSelection: React.Dispatch<React.SetStateAction<RowSelectionState>> = (
+    updater
+  ) => {
+    props.onRowSelectionChange?.(updater);
+    if (props.rowSelection === undefined) setUncontrolledRowSelection(updater);
+  };
 
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(
     props.columnVisibility || {}
@@ -212,7 +249,10 @@ export function DataTable<TData extends RowData>(
   const cardVariant = view === "gallery" ? "gallery" : "cards";
   const cardMinWidth = props.cardMinWidth ?? sizeWidthsForVariant(cardVariant)[cardSize];
 
-  const selectedIds = Object.keys(rowSelection);
+  // Filtered rather than a bare Object.keys: TanStack deletes a deselected
+  // key, but a controlled consumer merging maps by hand can easily leave an
+  // `id: false` behind, and that would otherwise count as a selected row.
+  const selectedIds = Object.keys(rowSelection).filter((id) => rowSelection[id]);
 
   // Resolved once and split two ways: the toolbar renders every action as a
   // bulk button, and the ones that set `card` additionally get a per-card
@@ -238,29 +278,34 @@ export function DataTable<TData extends RowData>(
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <DataTableToolbar
-        title={props.title}
-        table={tableInstance}
-        ModelData={props.ModelData}
-        filter={props.filter}
-        toolbarStyle={props.toolbarStyle}
-        selectedIds={selectedIds}
-        rowSelection={rowSelection}
-        setRowSelection={setRowSelection}
-        actions={toolbarActions}
-        create_enabled={props.create_enabled}
-        add_api_url={props.add_api_url}
-        query_invalidation={props.query_invalidation}
-        bulk_delete_enabled={props.bulk_delete_enabled}
-        onBulkEditSuccess={props.onBulkEditSuccess}
-        view={view}
-        onViewChange={setView}
-        cardSize={cardSize}
-        onCardSizeChange={setCardSize}
-        showCardSizeControl={props.cardMinWidth === undefined}
-        availableViews={availableViews}
-        board={props.board}
-      />
+      {/* "none" is a consumer saying it supplies the selection UI itself (a
+          page-level bulk bar over several tables, say) — mounting an empty
+          toolbar would only reserve space above every one of them. */}
+      {props.toolbarStyle !== "none" && (
+        <DataTableToolbar
+          title={props.title}
+          table={tableInstance}
+          ModelData={props.ModelData}
+          filter={props.filter}
+          toolbarStyle={props.toolbarStyle}
+          selectedIds={selectedIds}
+          rowSelection={rowSelection}
+          setRowSelection={setRowSelection}
+          actions={toolbarActions}
+          create_enabled={props.create_enabled}
+          add_api_url={props.add_api_url}
+          query_invalidation={props.query_invalidation}
+          bulk_delete_enabled={props.bulk_delete_enabled}
+          onBulkEditSuccess={props.onBulkEditSuccess}
+          view={view}
+          onViewChange={setView}
+          cardSize={cardSize}
+          onCardSizeChange={setCardSize}
+          showCardSizeControl={props.cardMinWidth === undefined}
+          availableViews={availableViews}
+          board={props.board}
+        />
+      )}
 
       {/* The detail view is the one layout that does not scroll as a block: it
           owns two independently scrolling panes, so the region around them has

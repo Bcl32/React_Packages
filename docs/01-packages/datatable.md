@@ -121,7 +121,9 @@ DataTable<TData extends RowData>(props: {
   add_api_url?: string;
   query_invalidation?: string[];
   filter?: DataTableFilter;
-  toolbarStyle?: "standard" | "compact";
+  toolbarStyle?: "standard" | "compact" | "quiet" | "none";  // see Toolbar styles
+  rowSelection?: RowSelectionState;                          // controlled selection, keyed by row id
+  onRowSelectionChange?: (updater: Updater<RowSelectionState>) => void;
   rowClickFunction?: (data: TData) => void;
   renderSubComponent?: ({ row }) => ReactNode;
   expandOnRowClick?: boolean;
@@ -285,6 +287,61 @@ no count, no divider, no panel node.
 `props.filter` is an opaque `{ toolbar, panel, filteredCount, totalCount }`
 object from `@bcl32/filters`' `useDataTableFilterBar`; DataTable only decides
 where to place those two nodes, so the zone split needs nothing from consumers.
+
+### Toolbar styles
+
+`toolbarStyle` chooses how much of the above is drawn:
+
+| Value | What renders |
+|---|---|
+| `"standard"` (default) | Both zones, as drawn above. Edit / delete appear only once something is selected. |
+| `"compact"` | As standard, but edit and delete stay visible as disabled ghost icon buttons at rest, so the actions advertise themselves. |
+| `"quiet"` | **Nothing at rest.** Once rows are selected, one slim bar in the toolbar's place: `N selected` · `CardSelectAllControl` · the `toolbarActions` as buttons · `Clear`. No title, filters, sort, view toggle or card-size control. |
+| `"none"` | No toolbar at all. |
+
+`"quiet"` and `"none"` exist for tables that are a **section of a page rather
+than the page** — a stack of them down one screen, where the title, filters and
+view toggle are either the page's job or meaningless per section, and eight
+permanent 2-zone headers read as chrome. What is genuinely per-section is what
+you do with the rows ticked *there*, which is all the quiet bar draws. Pick
+`"none"` when even that belongs to the page (one bulk bar over the union of
+every section's selection); pair it with controlled `rowSelection` so the page
+can see what was ticked.
+
+The quiet bar deliberately carries **no bulk edit or delete dialog** — those
+belong to the table that owns the entity, not to a section view of it. Anything
+a section does want, it declares through `toolbarActions` as usual; both
+toolbars render those through the same code, so an action never has to be
+written twice.
+
+### Row selection
+
+Selection is self-managed by default. Supply `rowSelection` to control it and
+`onRowSelectionChange` to be told about writes — the same shape TanStack uses,
+so a plain `setState` can be passed straight in, and a handler that merges into
+a wider map gets the updater function rather than a flattened value:
+
+```tsx
+onRowSelectionChange={(updater) =>
+  setSelections((prev) => {
+    const current = prev[sectionId] ?? {};
+    return {
+      ...prev,
+      [sectionId]: typeof updater === "function" ? updater(current) : updater,
+    };
+  })
+}
+```
+
+Row ids come from `getRowId: (row) => String(row.id)`, so the keys of the map
+are entity ids. Keep the object identity stable while the selection is
+unchanged — a literal `rowSelection={map[id] ?? {}}` hands TanStack a fresh
+object on every render and re-derives the selected-row model each time (cheap,
+but pointless on a long table; hoist the empty default to a module constant). Supplying `onRowSelectionChange` *without* `rowSelection` keeps
+the table self-managed and simply notifies — useful for a page that mirrors a
+count. Every internal writer (the header and card checkboxes, select-all, the
+bulk edit / delete forms, the quiet bar's Clear) goes through one resolved
+setter, so all of them work identically in both modes.
 
 ### Sorting
 
@@ -584,7 +641,8 @@ _(`@mui/material` and `@mui/icons-material` were removed in 2.8.0.)_
 - **Card placement via column meta.** Setting `meta: { card: { slot, label, hideLabel } }` on a `ColumnDef` controls where that column's cell lands in the card view (see [Card view](#card-view)). Unannotated columns become labeled body fields.
 - **Toolbar action handlers must use the ids they are passed.** `onClick(selectedIds)` receives the ids to act on. Closing over the outer `selectedIds` instead works for the toolbar but silently breaks the card affordance, which passes a single row's id — the card button would act on the selection rather than on its own card.
 - **Virtualization needs a bounded container.** `virtualized` is opt-in and requires the parent to give `DataTable` a bounded flex container so the internal `scrollRef` div can actually scroll. Without a bounded height context the virtualizer simply renders all rows (harmless, but no virtualization benefit).
-- **`toolbarStyle="compact"`.** Renders ghost icon buttons for edit / delete when nothing is selected (instead of hiding them), giving users a visual affordance that the actions exist.
+- **`toolbarStyle="compact"`.** Renders ghost icon buttons for edit / delete when nothing is selected (instead of hiding them), giving users a visual affordance that the actions exist. See [Toolbar styles](#toolbar-styles) for `"quiet"` and `"none"`, which drop most of the toolbar for section-of-a-page tables.
+- **Controlled selection is all-or-nothing per table.** Passing `rowSelection` without `onRowSelectionChange` freezes the selection: writes are routed to a handler that isn't there, exactly as with any controlled React input. Pass both, or neither.
 - **Subpath imports + `moduleResolution`.** All `@bcl32/*` imports resolve via `package.json` `exports` subpaths, so consumers must use `moduleResolution: "bundler"` or `"node16"`.
 
 ## Known Smells & Caveats
