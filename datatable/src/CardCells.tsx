@@ -5,6 +5,7 @@ import { flexRender } from "@tanstack/react-table";
 import type { RowData } from "@bcl32/data-utils";
 
 import { getCardMeta } from "./ColumnLabels";
+import type { CardSlotOverrides } from "./ColumnLabels";
 
 /**
  * Splitting a row's visible cells into the regions the card-shaped layouts draw.
@@ -29,7 +30,15 @@ export interface PartitionedCells<TData extends RowData> {
 }
 
 export function partitionCells<TData extends RowData>(
-  row: Row<TData>
+  row: Row<TData>,
+  /**
+   * Per-view slot remapping (`DataTableViewDef.cardSlots`). Wins over the
+   * column's own `meta.card.slot`, so two views can arrange the same columns
+   * differently. Control columns are matched by id before this is consulted —
+   * a select checkbox pushed into the body would be a control the card no
+   * longer places, not a field.
+   */
+  slotOverrides?: CardSlotOverrides
 ): PartitionedCells<TData> {
   const parts: PartitionedCells<TData> = {
     media: [],
@@ -45,7 +54,7 @@ export function partitionCells<TData extends RowData>(
     else if (id === "EditEntry") parts.edit = cell;
     else if (id === "expander") parts.expander = cell;
     else {
-      const slot = getCardMeta(cell.column)?.slot ?? "body";
+      const slot = slotOverrides?.[id] ?? getCardMeta(cell.column)?.slot ?? "body";
       parts[slot].push(cell);
     }
   }

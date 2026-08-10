@@ -9,18 +9,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@bcl32/utils/Dropdown";
-import {
-  Plus,
-  Pencil,
-  Columns3,
-  Trash2,
-  Table2,
-  LayoutGrid,
-  Images,
-  PanelRight,
-  SquareKanban,
-  X,
-} from "lucide-react";
+import { Plus, Pencil, Columns3, Trash2, X } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@bcl32/utils/ToggleGroup";
 import { DialogButton } from "@bcl32/utils/DialogButton";
 import { Button } from "@bcl32/utils/Button";
@@ -34,22 +23,47 @@ import type { ModelData, RowData } from "@bcl32/data-utils";
 import { SortControl } from "./SortControl";
 import { GroupControl } from "./GroupControl";
 import { CardSelectAllControl, CardSizeControl } from "./CardView";
-import type { CardSize, DataTableView } from "./CardView";
+import type { CardSize, DataTableViewDef } from "./CardView";
 import type { BoardConfig } from "./BoardView";
 import type { ToolbarAction } from "./ToolbarAction";
 
-/** Icon and wording per layout, so the toggle can be built from whatever set
- *  of views the table turned out to support. */
-const VIEW_TOGGLE_ITEMS: Record<
-  DataTableView,
-  { icon: JSX.Element; label: string }
-> = {
-  table: { icon: <Table2 size={16} />, label: "Table view" },
-  cards: { icon: <LayoutGrid size={16} />, label: "Card view" },
-  gallery: { icon: <Images size={16} />, label: "Gallery view" },
-  detail: { icon: <PanelRight size={16} />, label: "Detail pane view" },
-  board: { icon: <SquareKanban size={16} />, label: "Board view" },
-};
+/**
+ * The layout toggle, as a piece both toolbars can draw.
+ *
+ * Built from the resolved view defs rather than a fixed icon table, so a
+ * consumer-declared shape gets a button on the same terms as a built-in layout.
+ * Renders nothing when there is only one view — a segmented control with one
+ * segment is a label.
+ */
+function ViewToggle<TData extends RowData>(props: {
+  views: DataTableViewDef<TData>[];
+  value: string;
+  onChange: (key: string) => void;
+  hidden?: boolean;
+}): JSX.Element | null {
+  if (props.hidden || props.views.length <= 1) return null;
+  return (
+    <ToggleGroup
+      type="single"
+      size="sm"
+      variant="outline"
+      value={props.value}
+      // Radix emits "" when the active item is re-clicked — ignore it.
+      onValueChange={(v) => {
+        if (v) props.onChange(v);
+      }}
+      // A catalogue can run to five or six shapes; keep it whole and let the
+      // toolbar row wrap around it rather than letting flex crush the buttons.
+      className="shrink-0"
+    >
+      {props.views.map((def) => (
+        <ToggleGroupItem key={def.key} value={def.key} aria-label={def.label} title={def.label}>
+          {def.icon}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
+  );
+}
 
 export interface DataTableFilter {
   toolbar: React.ReactNode;
@@ -66,6 +80,8 @@ export interface DataTableToolbarProps<TData extends RowData> {
   /** See DataTable's prop of the same name. "none" never reaches here — the
    *  table skips the toolbar entirely — but "quiet" is handled below. */
   toolbarStyle?: "standard" | "compact" | "quiet" | "none";
+  /** See DataTable's prop of the same name: the consumer draws the switch. */
+  hideViewToggle?: boolean;
   selectedIds: string[];
   rowSelection: Record<string, boolean>;
   setRowSelection: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
@@ -76,18 +92,23 @@ export interface DataTableToolbarProps<TData extends RowData> {
   query_invalidation?: string[];
   bulk_delete_enabled?: boolean;
   onBulkEditSuccess?: (selectedIds: string[], enabledData: Record<string, unknown>) => void;
-  view: DataTableView;
-  onViewChange: (view: DataTableView) => void;
+  /** The active view's key. */
+  view: string;
+  /** The active view itself, already resolved. Every "is this layout X" test in
+   *  here reads `activeView.base`, so a consumer-declared shape behaves as
+   *  whichever layout draws it. */
+  activeView: DataTableViewDef<TData>;
+  onViewChange: (view: string) => void;
   cardSize: CardSize;
   onCardSizeChange: (size: CardSize) => void;
-  /** False when the consumer pinned an explicit `cardMinWidth`, which the
-   *  preset would only contradict. */
+  /** False when an explicit `cardMinWidth` is pinned — by the table or by the
+   *  active view — which the preset would only contradict. */
   showCardSizeControl: boolean;
-  /** The layouts this table can offer, already derived by DataTable — a board
+  /** The views this table can offer, already resolved by DataTable — a board
    *  needs lanes, a gallery a media column, a detail pane something to dock, so
    *  the toggle only ever shows buttons that lead somewhere. It disappears
    *  entirely when there is only one. */
-  availableViews: DataTableView[];
+  availableViews: DataTableViewDef<TData>[];
   /** The board's config, for the group-by picker. Absent on tables with no
    *  board, and ignored in every layout but the board. */
   board?: BoardConfig<TData>;
@@ -134,6 +155,9 @@ function ToolbarActionButtons<TData extends RowData>(props: {
  * and the permanent 2-zone header repeated eight times reads as chrome. What is
  * genuinely per-section is what you do with the rows you ticked *here*, so that
  * is all this draws, and only while something is ticked.
+ *
+ * A section that also wants a shape switch draws its own and passes
+ * `hideViewToggle`; see that prop on DataTable.
  *
  * Deliberately no bulk edit / delete dialogs: those belong to the table that
  * owns the entity (the standard toolbar), not to a section view of it. Actions
@@ -210,6 +234,9 @@ export function DataTableToolbar<TData extends RowData>(
 
   const { selectedIds, table } = props;
   const hasFilters = Boolean(props.filter);
+  // Which layout is actually drawing. A declared shape answers as the layout it
+  // is built on, so "cards have no header row" stays true of every card shape.
+  const base = props.activeView.base;
 
   // A different toolbar rather than a variation on this one — quiet mode keeps
   // none of the two zones, so branching inside them would be a conditional
@@ -366,25 +393,23 @@ export function DataTableToolbar<TData extends RowData>(
 
         {/* Every layout but the table lacks a header row, and with it the only
             select-all the table layout has. */}
-        {props.view !== "table" && <CardSelectAllControl table={table} />}
+        {base !== "table" && <CardSelectAllControl table={table} />}
 
         {/* In the grid and the gallery, card size only changes anything once
             more than one column fits, which it never does below the mobile
             breakpoint. On the board it is the lane width, which always matters.
             The detail view's list is a fixed single column, so it has no
             density to set. */}
-        {props.view !== "table" &&
-          props.view !== "detail" &&
-          props.showCardSizeControl && (
-            <div className={props.view === "board" ? undefined : "hidden sm:block"}>
-              <CardSizeControl value={props.cardSize} onChange={props.onCardSizeChange} />
-            </div>
-          )}
+        {base !== "table" && base !== "detail" && props.showCardSizeControl && (
+          <div className={base === "board" ? undefined : "hidden sm:block"}>
+            <CardSizeControl value={props.cardSize} onChange={props.onCardSizeChange} />
+          </div>
+        )}
 
         {/* Only the board has lanes to relabel, and only when the consumer
             offered a choice — one option is a caption, not a control. Sits
             beside the sort control because both answer "how is this arranged". */}
-        {props.view === "board" && (props.board?.groupByOptions?.length ?? 0) > 1 && (
+        {base === "board" && (props.board?.groupByOptions?.length ?? 0) > 1 && (
           <GroupControl
             value={props.board!.groupBy}
             options={props.board!.groupByOptions!}
@@ -396,29 +421,12 @@ export function DataTableToolbar<TData extends RowData>(
             headers scroll out of view. */}
         <SortControl table={table} ModelData={props.ModelData} />
 
-        {props.availableViews.length > 1 && (
-          <ToggleGroup
-            type="single"
-            size="sm"
-            variant="outline"
-            value={props.view}
-            // Radix emits "" when the active item is re-clicked — ignore it.
-            onValueChange={(v) => {
-              if (v) props.onViewChange(v as DataTableView);
-            }}
-          >
-            {props.availableViews.map((v) => (
-              <ToggleGroupItem
-                key={v}
-                value={v}
-                aria-label={VIEW_TOGGLE_ITEMS[v].label}
-                title={VIEW_TOGGLE_ITEMS[v].label}
-              >
-                {VIEW_TOGGLE_ITEMS[v].icon}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        )}
+        <ViewToggle
+          views={props.availableViews}
+          value={props.view}
+          onChange={props.onViewChange}
+          hidden={props.hideViewToggle}
+        />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

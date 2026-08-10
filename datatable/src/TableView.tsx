@@ -118,6 +118,18 @@ export function TableView<TData extends RowData>(
         className="text-md border-4 rounded-lg"
         style={props.virtualized ? { tableLayout: "fixed" } : undefined}
       >
+        {/* `sticky top-0` does NOT stick, and the classes are kept only so the
+            header keeps its opaque ground and stacking order. Measured: the
+            nearest scroll container to this <thead> is the wrapper the `Table`
+            primitive puts around every table (`overflow-x-auto`, which makes
+            the block axis a scroll container too), and that wrapper is as tall
+            as its content and never scrolls vertically. The region that does
+            scroll is three levels up, in DataTable. Sticky resolves against the
+            nearest scrolling ancestor, so it has nothing to stick to.
+            This is why the toolbar carries a `SortControl` at all — see the
+            note at the top of that file. Making the header genuinely sticky
+            means moving the vertical scroll onto this wrapper, which is a
+            change to the `Table` primitive every consumer shares. */}
         <TableHeader className="sticky top-0 z-10 bg-card">
           {tableInstance.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>

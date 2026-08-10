@@ -1,15 +1,22 @@
 /**
- * Scroll-position hand-off between the two DataTable layouts.
+ * Scroll-position hand-off between a DataTable's layouts.
  *
- * Both layouts render the same sorted row model, so a scroll position can be
+ * Every layout renders the same sorted row model, so a scroll position can be
  * expressed as "the index of the topmost visible row" and re-applied after a
- * view toggle — even though the two lay those rows out completely differently
- * (one row per line vs `cols` cards per line). Without this, toggling always
- * dumped you back at the top of the list.
+ * view toggle — even though they lay those rows out completely differently (one
+ * row per line, `cols` cards per line, lanes of cards, a docked list). Without
+ * this, toggling always dumped you back at the top.
+ *
+ * Written when there were two layouts; there are five now, and the same
+ * contract carries all of them.
  */
 import type React from "react";
 
-/** Stamped by both layouts on every rendered row / card. */
+/** Stamped by every layout on every rendered row, card, tile or list item — the
+ *  table, the card grid, the gallery, the board and the detail pane's list.
+ *  Always the index into the *row model*, never a layout-local position: the
+ *  board can draw one row in several lanes, and it carries `BOARD_POS_ATTR` for
+ *  its own cursor precisely so this one stays comparable across layouts. */
 export const ROW_INDEX_ATTR = "data-row-index";
 
 /** Marks the element owning a set of `ROW_INDEX_ATTR` nodes. A DataTable

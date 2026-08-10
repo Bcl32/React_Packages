@@ -20,10 +20,15 @@ import { TableView } from "./TableView";
 import {
   CardView,
   DEFAULT_CARD_SIZE,
-  isDataTableView,
   sizeWidthsForVariant,
 } from "./CardView";
-import type { CardSize, DataTableView, RenderCardContext } from "./CardView";
+import type {
+  CardSize,
+  DataTableViewDef,
+  DataTableViewOption,
+  RenderCardContext,
+} from "./CardView";
+import { resolveViewDefs } from "./ViewDefs";
 import { BoardView } from "./BoardView";
 import type { BoardConfig, BoardLane } from "./BoardView";
 import { DetailPaneView } from "./DetailPaneView";
@@ -61,6 +66,16 @@ interface DataTableProps<TData extends RowData> {
    *    none      no toolbar at all — for pages that own their own selection UI
    */
   toolbarStyle?: "standard" | "compact" | "quiet" | "none";
+  /**
+   * Draw no layout toggle, whatever `views` offers.
+   *
+   * For a consumer that renders the switch itself — it still owns `view` and
+   * `onViewChange`, so the table is driven exactly as before; it just puts the
+   * control somewhere the toolbar can't reach, like a page's own header. Without
+   * this the toggle would appear twice and the two would fight for the same
+   * question.
+   */
+  hideViewToggle?: boolean;
   /** Controlled row selection, keyed by row id (`getRowId` is `String(row.id)`,
    *  so the keys are entity ids). Omit to keep the table self-managed. */
   rowSelection?: RowSelectionState;
@@ -78,19 +93,27 @@ interface DataTableProps<TData extends RowData> {
   onBulkEditSuccess?: (selectedIds: string[], enabledData: Record<string, unknown>) => void;
   toolbarActions?: (selectedIds: string[]) => ToolbarAction<TData>[];
   bulk_delete_enabled?: boolean;
-  /** Controlled layout mode. Omit to let the toolbar toggle manage it. */
-  view?: DataTableView;
-  /** Initial layout mode when uncontrolled. Defaults to "table", or "cards"
-   *  under the mobile breakpoint. */
-  defaultView?: DataTableView;
-  onViewChange?: (view: DataTableView) => void;
+  /** Controlled view. A built-in layout name, or the `key` of one of the
+   *  declarations passed to `views`. Omit to let the toolbar toggle manage it. */
+  view?: string;
+  /** Initial view when uncontrolled. Defaults to "table", or "cards" under the
+   *  mobile breakpoint. */
+  defaultView?: string;
+  onViewChange?: (view: string) => void;
   /** Opt-in localStorage persistence of the uncontrolled view choice. */
   viewStorageKey?: string;
-  /** Which layouts the toggle offers. Omit to derive them: table and cards
-   *  always, gallery once a visible column claims the `media` card slot, detail
-   *  once the consumer supplies a `renderSubComponent`, and board once it
-   *  supplies `board` lanes. */
-  views?: DataTableView[];
+  /**
+   * Which views the toggle offers. Omit to derive the built-ins: table and
+   * cards always, gallery once a visible column claims the `media` card slot,
+   * detail once the consumer supplies a `renderSubComponent`, and board once it
+   * supplies `board` lanes.
+   *
+   * Entries may be built-in layout names (as before) or `DataTableViewDef`
+   * declarations — a named shape with its own card, width and column preset
+   * over one of those layouts. Mixing the two is fine; a page usually wants the
+   * table it already had plus two or three shapes of its own.
+   */
+  views?: DataTableViewOption<TData>[];
   /** Detail view: master-list width in px. Default 300. */
   detailListWidth?: number;
   /** Detail view: virtualizer size estimate per list item. Default 68. */
@@ -151,10 +174,15 @@ export function DataTable<TData extends RowData>(
 
   // `null` means "nothing chosen, stored, or configured" — only then does the
   // screen-width default get to decide.
-  const [uncontrolledView, setUncontrolledView] = React.useState<DataTableView | null>(() => {
+  //
+  // A stored key is taken at face value here and validated below against the
+  // resolved list, which is the only thing that knows what this table offers.
+  // Checking it against the built-in five instead would reject every
+  // consumer-declared view the moment it came back from localStorage.
+  const [uncontrolledView, setUncontrolledView] = React.useState<string | null>(() => {
     if (props.viewStorageKey && typeof window !== "undefined") {
       const stored = window.localStorage.getItem(props.viewStorageKey);
-      if (isDataTableView(stored)) return stored;
+      if (stored) return stored;
     }
     return props.defaultView ?? null;
   });
@@ -215,15 +243,21 @@ export function DataTable<TData extends RowData>(
   const hasMediaColumn = tableInstance
     .getVisibleLeafColumns()
     .some((column) => getCardMeta(column)?.slot === "media");
-  const availableViews: DataTableView[] = props.views?.length
-    ? props.views
-    : [
-        "table",
-        "cards",
-        ...(hasMediaColumn ? (["gallery"] as const) : []),
-        ...(props.renderSubComponent ? (["detail"] as const) : []),
-        ...(props.board ? (["board"] as const) : []),
-      ];
+  const availableViews: DataTableViewDef<TData>[] = React.useMemo(
+    () =>
+      resolveViewDefs<TData>(
+        props.views?.length
+          ? props.views
+          : [
+              "table",
+              "cards",
+              ...(hasMediaColumn ? (["gallery"] as const) : []),
+              ...(props.renderSubComponent ? (["detail"] as const) : []),
+              ...(props.board ? (["board"] as const) : []),
+            ]
+      ),
+    [props.views, hasMediaColumn, props.renderSubComponent, props.board]
+  );
 
   // Cards are the better narrow-screen layout: the table is the thing that
   // scrolls horizontally. useIsMobile reads the width synchronously, so this
@@ -231,23 +265,63 @@ export function DataTable<TData extends RowData>(
   const requestedView = props.view ?? uncontrolledView ?? (isMobile ? "cards" : "table");
   // A stored preference outlives the conditions it was chosen under — the page
   // stops supplying lanes when its group-by attribute goes away, the thumbnail
-  // column gets hidden, or the same entity key is reused by a page with no
-  // expansion panel. Falling back beats rendering a layout with nothing in it.
-  const view = availableViews.includes(requestedView) ? requestedView : "table";
+  // column gets hidden, the same entity key is reused by a page with no
+  // expansion panel, or a page reorganises the shapes it declares. Falling back
+  // beats rendering a view that isn't there.
+  //
+  // The fallback is the list's own first entry rather than a hard-coded
+  // "table": a page that declares its shapes has said, by ordering them, which
+  // one it opens on, and it may not offer a plain table at all.
+  const activeView =
+    availableViews.find((v) => v.key === requestedView) ?? availableViews[0];
+  const view = activeView.key;
 
-  const setView = (v: DataTableView) => {
-    if (v !== view) {
+  // Re-seed the column preset when the view changes.
+  //
+  // `columnVisibility` is table state, seeded once from the prop — so a view
+  // carrying its own preset would only ever apply on the mount that happened to
+  // start there. Consumers used to work around that by putting a `key` on the
+  // element and remounting the whole table per shape, which threw away sorting,
+  // scroll position and the row selection along with it.
+  //
+  // Adjusted during render rather than in an effect: React discards this render
+  // and re-runs before committing, so the switch never paints one frame of the
+  // outgoing view's columns. Guarded on the *view key* alone, so a user's own
+  // column toggles survive every unrelated re-render — they are only reset by
+  // deliberately moving to a different shape.
+  // Starts null so the *first* render seeds too — otherwise a table opening
+  // straight onto a view with a preset would show the shared columns until
+  // something else moved it.
+  const [seededView, setSeededView] = React.useState<string | null>(null);
+  if (seededView !== view) {
+    setSeededView(view);
+    setColumnVisibility(activeView.columnVisibility ?? props.columnVisibility ?? {});
+  }
+
+  const setView = (key: string) => {
+    if (key !== view) {
       restoreRowIndexRef.current = viewScrollRef.current?.getFirstVisibleRowIndex() ?? null;
     }
-    props.onViewChange?.(v);
+    props.onViewChange?.(key);
     if (props.view === undefined) {
-      setUncontrolledView(v);
-      if (props.viewStorageKey) window.localStorage.setItem(props.viewStorageKey, v);
+      setUncontrolledView(key);
+      if (props.viewStorageKey) window.localStorage.setItem(props.viewStorageKey, key);
     }
   };
 
-  const cardVariant = view === "gallery" ? "gallery" : "cards";
-  const cardMinWidth = props.cardMinWidth ?? sizeWidthsForVariant(cardVariant)[cardSize];
+  // Everything below reads the resolved view's override first and the table's
+  // own prop second. That precedence is the whole feature: a shape is a set of
+  // these props, and the props a page passes directly are what every shape
+  // shares.
+  const base = activeView.base;
+  const renderCard = activeView.renderCard ?? props.renderCard;
+  const cellClassName = activeView.cellClassName ?? props.cellClassName;
+  const maxCellHeight = activeView.maxCellHeight ?? props.maxCellHeight;
+  const estimatedCardHeight = activeView.estimatedCardHeight ?? props.estimatedCardHeight;
+
+  const cardVariant = base === "gallery" ? "gallery" : "cards";
+  const cardMinWidth =
+    activeView.cardMinWidth ?? props.cardMinWidth ?? sizeWidthsForVariant(cardVariant)[cardSize];
 
   // Filtered rather than a bare Object.keys: TanStack deletes a deselected
   // key, but a controlled consumer merging maps by hand can easily leave an
@@ -298,10 +372,16 @@ export function DataTable<TData extends RowData>(
           bulk_delete_enabled={props.bulk_delete_enabled}
           onBulkEditSuccess={props.onBulkEditSuccess}
           view={view}
+          activeView={activeView}
           onViewChange={setView}
+          hideViewToggle={props.hideViewToggle}
           cardSize={cardSize}
           onCardSizeChange={setCardSize}
-          showCardSizeControl={props.cardMinWidth === undefined}
+          // A view pinning its own width has already answered the question the
+          // preset asks, same as a table-level `cardMinWidth` always did.
+          showCardSizeControl={
+            props.cardMinWidth === undefined && activeView.cardMinWidth === undefined
+          }
           availableViews={availableViews}
           board={props.board}
         />
@@ -314,7 +394,7 @@ export function DataTable<TData extends RowData>(
         ref={scrollRef}
         className={cn(
           "flex-1 min-h-0",
-          view === "detail" ? "overflow-hidden" : "overflow-auto"
+          base === "detail" ? "overflow-hidden" : "overflow-auto"
         )}
       >
         {/* mode="wait" so the two layouts never overlap in the scroll region —
@@ -323,13 +403,13 @@ export function DataTable<TData extends RowData>(
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={view}
-            className={view === "detail" ? "h-full" : undefined}
+            className={base === "detail" ? "h-full" : undefined}
             initial={animateViews ? { opacity: 0 } : false}
             animate={{ opacity: 1 }}
             exit={animateViews ? { opacity: 0 } : undefined}
             transition={{ duration: animateViews ? 0.12 : 0 }}
           >
-            {view === "detail" ? (
+            {base === "detail" ? (
               <DetailPaneView
                 table={tableInstance}
                 ModelData={props.ModelData}
@@ -339,41 +419,44 @@ export function DataTable<TData extends RowData>(
                 rowClickFunction={props.rowClickFunction}
                 renderSubComponent={renderSubComponent}
                 cardActions={cardActions}
+                cardSlots={activeView.cardSlots}
                 scrollHandleRef={viewScrollRef}
                 restoreRowIndex={restoreRowIndexRef}
               />
-            ) : view === "board" && props.board ? (
+            ) : base === "board" && props.board ? (
               <BoardView
                 table={tableInstance}
                 ModelData={props.ModelData}
                 scrollRef={scrollRef}
                 board={props.board}
                 laneWidth={cardMinWidth}
-                maxCellHeight={props.maxCellHeight}
+                maxCellHeight={maxCellHeight}
                 rowClickFunction={props.rowClickFunction}
                 expandOnRowClick={props.expandOnRowClick}
                 renderSubComponent={renderSubComponent}
-                renderCard={props.renderCard}
+                renderCard={renderCard}
                 cardActions={cardActions}
+                cardSlots={activeView.cardSlots}
                 scrollHandleRef={viewScrollRef}
                 restoreRowIndex={restoreRowIndexRef}
                 animate={props.animate}
               />
-            ) : view === "cards" || view === "gallery" ? (
+            ) : base === "cards" || base === "gallery" ? (
               <CardView
                 table={tableInstance}
                 ModelData={props.ModelData}
                 scrollRef={scrollRef}
                 variant={cardVariant}
                 virtualized={props.virtualized}
-                estimatedCardHeight={props.estimatedCardHeight}
+                estimatedCardHeight={estimatedCardHeight}
                 cardMinWidth={cardMinWidth}
-                maxCellHeight={props.maxCellHeight}
+                maxCellHeight={maxCellHeight}
                 rowClickFunction={props.rowClickFunction}
                 expandOnRowClick={props.expandOnRowClick}
                 renderSubComponent={renderSubComponent}
-                renderCard={props.renderCard}
+                renderCard={renderCard}
                 cardActions={cardActions}
+                cardSlots={activeView.cardSlots}
                 scrollHandleRef={viewScrollRef}
                 restoreRowIndex={restoreRowIndexRef}
                 animate={props.animate}
@@ -385,8 +468,8 @@ export function DataTable<TData extends RowData>(
                 scrollRef={scrollRef}
                 virtualized={props.virtualized}
                 estimatedRowHeight={props.estimatedRowHeight}
-                cellClassName={props.cellClassName}
-                maxCellHeight={props.maxCellHeight}
+                cellClassName={cellClassName}
+                maxCellHeight={maxCellHeight}
                 rowClickFunction={handleRowClick}
                 expandOnRowClick={props.expandOnRowClick}
                 renderSubComponent={renderSubComponent}

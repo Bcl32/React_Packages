@@ -19,6 +19,7 @@ import {
 } from "./ViewScroll";
 import type { ScrollRestoreRef, ViewScrollHandle } from "./ViewScroll";
 import type { ToolbarAction } from "./ToolbarAction";
+import type { CardSlotOverrides } from "./ColumnLabels";
 
 /** Width of the master list, in px. Wide enough for a two-line title beside a
  *  checkbox; anything wider is taken from the pane doing the actual work. */
@@ -37,6 +38,9 @@ export interface DetailPaneViewProps<TData extends RowData> {
   /** Toolbar actions that opted in with `card`, docked in the pane header for
    *  whichever row is showing. */
   cardActions?: ToolbarAction<TData>[];
+  /** Per-view slot remapping, so a declared view's arrangement reaches the list
+   *  items and the pane header — both of which read the same partition. */
+  cardSlots?: CardSlotOverrides;
   scrollHandleRef?: React.MutableRefObject<ViewScrollHandle | null>;
   restoreRowIndex?: ScrollRestoreRef;
 }
@@ -45,8 +49,9 @@ export interface DetailPaneViewProps<TData extends RowData> {
 function ListItem<TData extends RowData>(props: {
   row: Row<TData>;
   active: boolean;
+  cardSlots?: CardSlotOverrides;
 }): JSX.Element {
-  const cells = partitionCells(props.row);
+  const cells = partitionCells(props.row, props.cardSlots);
   return (
     <div className="flex items-start gap-2">
       {cells.select && (
@@ -296,7 +301,7 @@ export function DetailPaneView<TData extends RowData>(
           "focus-visible:outline-primary focus-visible:[outline-offset:-3px]"
         )}
       >
-        <ListItem row={row} active={index === activeIndex} />
+        <ListItem row={row} active={index === activeIndex} cardSlots={props.cardSlots} />
       </div>
     </div>
   );
@@ -352,7 +357,7 @@ export function DetailPaneView<TData extends RowData>(
     </div>
   );
 
-  const activeCells = activeRow ? partitionCells(activeRow) : null;
+  const activeCells = activeRow ? partitionCells(activeRow, props.cardSlots) : null;
   const detailPane = (
     <section className="flex min-h-0 min-w-0 flex-1 flex-col">
       {activeRow && activeCells ? (

@@ -2,6 +2,9 @@
 // own modules here: DataTable re-exports both already, and a second `export *`
 // of the same name is ambiguous.
 export * from "./DataTable";
+// The view-def normaliser. `DataTableViewDef` itself arrives via CardView,
+// which owns the view vocabulary; this module is the runtime half.
+export * from "./ViewDefs";
 export * from "./ViewScroll";
 export * from "./ColumnLabels";
 export * from "./SortControl";

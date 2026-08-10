@@ -1,5 +1,5 @@
 import React from "react";
-import type { Row } from "@tanstack/react-table";
+import type { Cell, Row } from "@tanstack/react-table";
 import { motion } from "framer-motion";
 
 import { cn } from "@bcl32/utils/cn";
@@ -7,6 +7,7 @@ import { Card } from "@bcl32/utils/Card";
 import type { ModelData, RowData } from "@bcl32/data-utils";
 
 import { columnCardLabel, getCardMeta } from "./ColumnLabels";
+import type { CardSlotOverrides } from "./ColumnLabels";
 import { partitionCells, renderCell } from "./CardCells";
 import { applicableCardActions, CardQuickActions } from "./CardActions";
 import { GalleryTile } from "./GalleryCard";
@@ -37,6 +38,12 @@ export const BOARD_POS_ATTR = "data-board-pos";
  *  and the grid both draw; `gallery` is the media-only tile. */
 export type CardViewVariant = "cards" | "gallery";
 
+// Re-exported here because the card *contract* is this module's surface: every
+// layout that draws a card takes its options from `CardRenderOptions` beside
+// it, and a consumer typing a `cardSlots` map should not have to know the slot
+// vocabulary lives one module further down in ColumnLabels.
+export type { CardSlot, CardSlotOverrides } from "./ColumnLabels";
+
 /**
  * What a card needs to know that isn't the row itself. Both CardView and
  * BoardView satisfy this, which is what lets them share `RowCard`.
@@ -64,6 +71,9 @@ export interface CardRenderOptions<TData extends RowData> {
   /** Toolbar actions that opted in with `card`, rendered per card in the
    *  default card's footer. */
   cardActions?: ToolbarAction<TData>[];
+  /** Per-view slot remapping, applied before the card is partitioned. Reaches
+   *  the bespoke card too, through `ctx.slots`. */
+  cardSlots?: CardSlotOverrides;
 }
 
 /**
@@ -80,6 +90,32 @@ export interface RenderCardContext {
   select: React.ReactNode;
   /** The row-actions (⋯) menu cell, or null when the table has none. */
   actions: React.ReactNode;
+  /**
+   * The row's content cells, already rendered and bucketed by card slot — the
+   * same partition the default card draws, in column order, after any per-view
+   * `cardSlots` remapping.
+   *
+   * The point is that a bespoke card no longer has to choose between the two
+   * ways of composing a card. It keeps full control of the *geometry* — which
+   * is the only reason to write one, since slots are a fixed vertical stack and
+   * cannot express a thumbnail beside a column of fields or a full-bleed bar —
+   * while the *content* stays declared once on the columns, formatted by the
+   * same cell renderers the table uses. Reading `row.original` directly still
+   * works and is still right for anything the columns don't carry.
+   *
+   * Each array is empty rather than absent when nothing claims that slot, so a
+   * card can `.length` a region without guarding.
+   */
+  slots: RenderCardSlots;
+}
+
+/** The rendered content of each card region. See `RenderCardContext.slots`. */
+export interface RenderCardSlots {
+  media: React.ReactNode[];
+  title: React.ReactNode[];
+  badge: React.ReactNode[];
+  body: React.ReactNode[];
+  footer: React.ReactNode[];
 }
 
 /** The stock card: control columns in fixed positions, everything else placed
@@ -90,7 +126,7 @@ function DefaultCard<TData extends RowData>(props: {
   clickable: boolean;
 }): JSX.Element {
   const { row, view } = props;
-  const cells = partitionCells(row);
+  const cells = partitionCells(row, view.cardSlots);
   const quickActions = applicableCardActions(row, view.cardActions);
 
   return (
@@ -199,11 +235,20 @@ export function buildRenderCardContext<TData extends RowData>(
   row: Row<TData>,
   view: CardRenderOptions<TData>
 ): RenderCardContext {
-  const cells = partitionCells(row);
+  const cells = partitionCells(row, view.cardSlots);
+  const slotNodes = (region: Cell<TData, unknown>[]): React.ReactNode[] =>
+    region.map((cell) => <React.Fragment key={cell.id}>{renderCell(cell)}</React.Fragment>);
   return {
     quickActions: (
       <CardQuickActions row={row} actions={applicableCardActions(row, view.cardActions)} />
     ),
+    slots: {
+      media: slotNodes(cells.media),
+      title: slotNodes(cells.title),
+      badge: slotNodes(cells.badge),
+      body: slotNodes(cells.body),
+      footer: slotNodes(cells.footer),
+    },
     // Flattened the same way the default card flattens them: both renderers
     // carry a hit-area bleed sized for a table cell.
     select: cells.select ? (

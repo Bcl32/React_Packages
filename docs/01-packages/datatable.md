@@ -10,9 +10,87 @@
 
 ## Purpose
 
-A full-featured data table library built on [TanStack Table v8](https://tanstack.com/table) that provides a toolbar-integrated table with built-in CRUD dialogs (add / edit / bulk-edit / delete), column visibility toggling, row selection, optional virtualization, expandable rows, and pagination. Rows render in one of five switchable layouts over the same table instance — the classic `<table>` (`TableView`), a responsive card grid (`CardView`, see [Card view](#card-view)), a dense media-tile [gallery](#gallery-view), a master/[detail pane](#detail-pane-view), or a group-lane [board](#board-view). Which of them the toolbar offers is derived from what the table declares. It also ships two simpler read-only table variants (`KeyValueTable`, `StatsTable`) and a set of unstyled HTML table primitives (`Table`, `TableHeader`, `TableBody`, etc.).
+A full-featured data table library built on [TanStack Table v8](https://tanstack.com/table) that provides a toolbar-integrated table with built-in CRUD dialogs (add / edit / bulk-edit / delete), column visibility toggling, row selection, optional virtualization, expandable rows, and pagination. Rows render in one of five switchable layouts over the same table instance — the classic `<table>` (`TableView`), a responsive card grid (`CardView`, see [Card view](#card-view)), a dense media-tile [gallery](#gallery-view), a master/[detail pane](#detail-pane-view), or a group-lane [board](#board-view). Which of them the toolbar offers is derived from what the table declares, and a consumer can go further and declare [views of its own](#view-catalogue) over those layouts. It also ships two simpler read-only table variants (`KeyValueTable`, `StatsTable`) and a set of unstyled HTML table primitives (`Table`, `TableHeader`, `TableBody`, etc.).
 
 As a **composite** tier package it sits on top of several other `@bcl32/*` packages and is meant to be consumed directly by application code, not by other library packages.
+
+## How it fits together
+
+Four layers, and the boundary that matters is between the third and the fourth: **one TanStack instance, several renderers over it.** Switching view never re-fetches, re-sorts, or loses a tick.
+
+```
+┌─ PAGE ───────────────────────────────────────────────────────────────┐
+│ data fetching · grouping into sections · view state + persistence    │
+│ toolbarActions · row selection (when the page owns it)               │
+└────────────────────────────┬─────────────────────────────────────────┘
+                             ▼
+┌─ TABLE-DATA (app-side convention, not this package) ─────────────────┐
+│ a hook returning { columns: ColumnGenerator({...}), columnVisibility, │
+│ defaultSort, renderCard, estimatedCardHeight, … }                    │
+└────────────────────────────┬─────────────────────────────────────────┘
+                             ▼
+┌─ DataTable ──────────────────────────────────────────────────────────┐
+│ ONE useReactTable: sorting · rowSelection · columnVisibility ·        │
+│ expansion · pagination.  Resolves the active view, then merges that  │
+│ view's overrides over its own props.                                 │
+└────────────────────────────┬─────────────────────────────────────────┘
+                             ▼
+   TableView │ CardView(cards) │ CardView(gallery) │ BoardView │ DetailPaneView
+                      └────────┬────────┘              │
+                            RowCard ◄──────────────────┘
+                               ├── DefaultCard   (slot-driven)
+                               └── renderCard    (bespoke, yours)
+```
+
+### The five renderers at a glance
+
+| | **table** | **cards** | **gallery** | **board** | **detail** |
+|---|---|---|---|---|---|
+| Offered when | always | always | a visible column is `slot:"media"` | `board` supplied | `renderSubComponent` supplied |
+| `renderCard` | — | **yes** | **ignored** by design | **yes** | — |
+| Card quick actions | **no** | yes (footer) | **no** | yes | yes (pane header) |
+| Virtualized | yes | yes (chunked) | yes | **no** | yes (list) |
+| Size knob | column `size` | `cardMinWidth` | `GALLERY_SIZE_WIDTHS` | `cardMinWidth` = lane width | `detailListWidth` |
+| Scrolls as | one block | one block | one block | sideways | **two panes** |
+
+### Row actions: three separate mechanisms
+
+They do not overlap, and knowing which one you are reaching for saves declaring the wrong one:
+
+| | table | cards / board | gallery | detail |
+|---|---|---|---|---|
+| **Display column** (`columnHelper.display`) | ✔ your cell | ✘ | ✘ | ✘ |
+| **`RowActions` ⋯ menu** (the `actions` column) | ✔ | ✔ top-right | ✔ overlay | ✔ pane header |
+| **`ToolbarAction`** bulk button | ✔ toolbar | ✔ toolbar | ✔ | ✔ |
+| **`ToolbarAction`** with `card` | ✘ | ✔ card footer | ✘ | ✔ pane header |
+
+An action that must exist in *both* the table and the card layouts is declared twice — once as a column, once as a `card` toolbar action. That is the design, not an oversight: a column is a cell renderer with a width, a card action is a button bound to a row.
+
+### Where each size comes from
+
+```
+TABLE      column.size          a RATIO, not pixels — width: size/totalSize %
+           minSize / maxSize    the only absolute constraints
+           maxCellHeight        per-cell scroll clamp (meta.noMaxHeight opts out)
+CARDS      cardMinWidth  ── overrides ──►  CARD_SIZE_WIDTHS {260, 320, 400}
+              └─ measured: cols = floor((width + 12) / (min + 12))
+                 …which drives BOTH the CSS grid and the virtualizer chunking
+GALLERY    GALLERY_SIZE_WIDTHS {104, 144, 208}   same preset NAMES, different px
+BOARD      cardMinWidth = lane width             not virtualized
+DETAIL     detailListWidth 300 · estimatedDetailRowHeight 68
+```
+
+Size every column you care about: an unsized one takes TanStack's 150 default and distorts every other column's share of the total.
+
+### "Grouping" means two different things
+
+1. **Board lanes** — `BoardConfig.lanes` + `laneOf`, fed from `@bcl32/filters`' `useEntityGroups`. See [Where the lanes come from](#where-the-lanes-come-from).
+2. **A page's own grouping into several tables** — nothing to do with this package. That is a consumer rendering one `DataTable` per group (Print-Tracker's project sections do exactly this).
+
+### Two things that are not what they look like
+
+- **`TableView`'s sticky header does not stick.** The classes are kept for the opaque ground and stacking order only. The nearest scroll container to the `<thead>` is the wrapper the `Table` primitive puts around every table (`overflow-x-auto`, which makes the block axis a scroll container too) and it never scrolls vertically; the region that does is three levels up in `DataTable`. This is why `SortControl` sits in the toolbar at all.
+- **Pagination is the exception.** `pageSize` defaults to 9999, so `getPageCount() > 1` is false unless a consumer opts in. Everything else loads whole and virtualizes.
 
 ## Installation & Import
 
@@ -57,7 +135,7 @@ Available subpaths: `./DataTable`, `./TableView`, `./CardView`, `./BoardView`, `
 | `CardView` | component | Card-grid layout of a DataTable's rows over the same table instance (sorting / selection / expansion / filtering all carry over). Card content derives from the visible column cells via `meta.card` slot hints. Rarely used directly — `DataTable` renders it when `view === "cards"`, and again with `variant="gallery"` when `view === "gallery"`. |
 | `GalleryTile` | component | The media-only tile `CardView` draws under `variant="gallery"`: the media cell at size, the title clamped to a two-line caption, select + row-actions overlaid on hover. See [Gallery view](#gallery-view). |
 | `DetailPaneView` | component | Master/detail layout — a compact card list beside a permanently docked `renderSubComponent`. Rarely used directly — `DataTable` renders it when `view === "detail"`. See [Detail pane view](#detail-pane-view). |
-| `partitionCells` / `renderCell` | util | Split a row's visible cells into card regions (`CardCells`). Shared by the card, gallery and detail layouts so all three agree on which cells are controls rather than content. |
+| `partitionCells` / `renderCell` | util | Split a row's visible cells into card regions (`CardCells`); `partitionCells(row, slotOverrides?)` takes an optional per-view remap. Shared by the card, gallery and detail layouts so all three agree on which cells are controls rather than content. |
 | `CardQuickActions` / `applicableCardActions` | component / util | Per-row rendering of the toolbar actions that opted in with `card` (`CardActions`). Used by the default card's footer and the detail pane's header. |
 | `CardSortControl` | component | Toolbar sort control (field `<select>` + direction button) shown by `DataTable` while the card view is active, since cards have no column headers to click. |
 | `CardSelectAllControl` | component | Toolbar select-all checkbox + row count, shown by `DataTable` in every non-table layout — the stand-in for the table's header checkbox. Renders `null` when the table has no visible `select` column. |
@@ -91,7 +169,11 @@ All primitives have the signature `React.ForwardRefExoticComponent<React.HTMLAtt
 | --- | --- | --- |
 | `ToolbarAction` | type (interface) | Describes a custom toolbar button injected via `DataTable`'s `toolbarActions` prop. |
 | `DataTableFilter` | type (interface) | Shape of the `filter` prop on `DataTable`. |
-| `DataTableView` | type (union) | `"table" \| "cards" \| "gallery" \| "detail" \| "board"` — the DataTable layouts. Also exported as the `DATA_TABLE_VIEWS` const array plus an `isDataTableView` guard, so a persisted preference can be validated against it. |
+| `DataTableView` | type (union) | `"table" \| "cards" \| "gallery" \| "detail" \| "board"` — the DataTable **layouts** (the renderers). Also exported as the `DATA_TABLE_VIEWS` const array plus an `isDataTableView` guard. |
+| `DataTableViewDef` / `DataTableViewOption` | type (interface / union) | A consumer-declared **view** over one of those layouts, and what `views` accepts (a layout name or a declaration). See [View catalogue](#view-catalogue). |
+| `resolveViewDefs` / `toViewDef` / `VIEW_TOGGLE_DEFAULTS` | util / const | Normalise `views` into complete defs, and the per-layout icon+label a declaration inherits (`ViewDefs`). Exported mainly so a consumer can reuse the built-in icons. |
+| `CardSlot` / `CardSlotOverrides` | type | The five card regions, and a column-id → region map for per-view remapping (`ColumnLabels`). |
+| `RenderCardSlots` | type (interface) | The shape of `ctx.slots` handed to a bespoke card. |
 | `CardViewVariant` | type (union) | `"cards" \| "gallery"` — which card `RowCard` draws in a grid slot. |
 | `CardMeta` | type (interface) | Shape of a column's `meta.card` slot hint (see [Card view](#card-view)). |
 | `DataTableToolbar` | component | The two-zone toolbar (see [Toolbar anatomy](#toolbar-anatomy)). Rendered by `DataTable`; rarely used directly. |
@@ -122,6 +204,7 @@ DataTable<TData extends RowData>(props: {
   query_invalidation?: string[];
   filter?: DataTableFilter;
   toolbarStyle?: "standard" | "compact" | "quiet" | "none";  // see Toolbar styles
+  hideViewToggle?: boolean;                      // the consumer draws the layout switch itself
   rowSelection?: RowSelectionState;                          // controlled selection, keyed by row id
   onRowSelectionChange?: (updater: Updater<RowSelectionState>) => void;
   rowClickFunction?: (data: TData) => void;
@@ -135,11 +218,11 @@ DataTable<TData extends RowData>(props: {
   onBulkEditSuccess?: (selectedIds: string[], enabledData: Record<string, unknown>) => void;
   toolbarActions?: (selectedIds: string[]) => ToolbarAction<TData>[];
   bulk_delete_enabled?: boolean;
-  view?: DataTableView;                          // controlled layout mode
-  defaultView?: DataTableView;                   // uncontrolled initial mode (default "table", "cards" under 768px)
-  onViewChange?: (view: DataTableView) => void;
+  view?: string;                                 // controlled view — a layout name or a declared view's key
+  defaultView?: string;                          // uncontrolled initial view (default "table", "cards" under 768px)
+  onViewChange?: (view: string) => void;
   viewStorageKey?: string;                       // opt-in localStorage persistence (uncontrolled only)
-  views?: DataTableView[];                       // override which layouts the toggle offers (default: derived)
+  views?: (DataTableView | DataTableViewDef<TData>)[];  // which views the toggle offers (default: derived)
   renderCard?: (row: Row<TData>, ctx: RenderCardContext) => ReactNode;  // card view: replace the default card
   estimatedCardHeight?: number;                  // card/gallery: virtualizer estimate per grid row (default 220 / tile width + 44)
   cardSize?: CardSize;                           // card view: controlled density preset
@@ -299,14 +382,22 @@ where to place those two nodes, so the zone split needs nothing from consumers.
 | `"quiet"` | **Nothing at rest.** Once rows are selected, one slim bar in the toolbar's place: `N selected` · `CardSelectAllControl` · the `toolbarActions` as buttons · `Clear`. No title, filters, sort, view toggle or card-size control. |
 | `"none"` | No toolbar at all. |
 
+Orthogonal to all four: **`hideViewToggle`** suppresses the layout toggle wherever the toolbar would have drawn it, for a consumer that renders the switch itself. The table still owns the shape through `view` / `onViewChange` — only the control moves. Print-Tracker's section headers do this, so a wall of section cards carries one folded-away trigger each instead of five permanent icon buttons.
+
 `"quiet"` and `"none"` exist for tables that are a **section of a page rather
-than the page** — a stack of them down one screen, where the title, filters and
-view toggle are either the page's job or meaningless per section, and eight
-permanent 2-zone headers read as chrome. What is genuinely per-section is what
-you do with the rows ticked *there*, which is all the quiet bar draws. Pick
+than the page** — a stack of them down one screen, where the title, filters,
+sort and view toggle are either the page's job or meaningless per section, and
+eight permanent 2-zone headers read as chrome. What is genuinely per-section is
+what you do with the rows ticked *there*, which is all the quiet bar draws. Pick
 `"none"` when even that belongs to the page (one bulk bar over the union of
 every section's selection); pair it with controlled `rowSelection` so the page
 can see what was ticked.
+
+Note that neither style takes the *shape* away with the chrome: a consumer that
+wants a switch draws its own and passes `hideViewToggle`, which is independent of
+`toolbarStyle`. Putting the toggle inside the toolbar instead ties it to how much
+toolbar there is, and `"none"` then removes it — which is a real trap, since
+"the page owns bulk actions" says nothing about who owns the shape.
 
 The quiet bar deliberately carries **no bulk edit or delete dialog** — those
 belong to the table that owns the entity, not to a section view of it. Anything
@@ -362,6 +453,64 @@ sort has no visible column — DataTable defaults to `time_created`, which many
 tables don't show — it is still listed, rather than leaving a blank control that
 misreports the order the rows are in.
 
+## View catalogue
+
+The five layouts are *renderers*. A page often wants more **shapes** than there are renderers — three card sizes over the same rows are three shapes drawn by one renderer, and a slim column preset and the full table are two more drawn by another. A `DataTableViewDef` is how a consumer declares one:
+
+```ts
+interface DataTableViewDef<TData extends RowData = RowData> {
+  key: string;                 // persisted, and what onViewChange reports
+  base: DataTableView;         // which of the five renderers draws it
+  label: string;               // toolbar tooltip / aria-label
+  icon?: React.ReactNode;      // defaults to the base layout's icon
+  // each overrides the DataTable prop of the same name, for this view only
+  renderCard?: (row, ctx) => React.ReactNode;
+  cardMinWidth?: number;
+  estimatedCardHeight?: number;
+  columnVisibility?: VisibilityState;
+  cellClassName?: string;
+  maxCellHeight?: number;
+  cardSlots?: CardSlotOverrides;   // see "Per-view slot remapping" below
+}
+```
+
+Pass them to `views`, mixed freely with built-in layout names:
+
+```jsx
+const ITEM_VIEWS = [
+  { key: "minimal", base: "cards", label: "Minimal", icon: <Grid2x2 size={16}/>,
+    renderCard: minimalCard, cardMinWidth: 100 },
+  { key: "compact", base: "cards", label: "Compact", icon: <LayoutGrid size={16}/>,
+    renderCard: miniCard, cardMinWidth: 176 },
+  { key: "list",    base: "table", label: "List", icon: <List size={16}/>,
+    columnVisibility: SLIM, cellClassName: "py-0.5" },
+  "table",
+];
+
+<DataTable views={ITEM_VIEWS} view={key} onViewChange={setKey} … />
+```
+
+What this buys beyond tidiness: **a view switch no longer remounts the table.** Before it existed a table held one `renderCard` and one column preset, so a page wanting four shapes mounted four tables and swapped between them — which threw away the sort, the scroll position and the row selection every time.
+
+- **Resolution.** `views` is normalised to defs (a bare string becomes `{key: v, base: v, …default icon/label}`), then `view ?? uncontrolled ?? width-default` is looked up by `key`. An unknown key falls back to the **first entry**, not to `"table"` — a page that declares its shapes has said, by ordering them, which one it opens on, and may not offer a plain table at all.
+- **Column presets re-seed on every switch into a view.** `columnVisibility` is table state seeded once, so without this a per-view preset would only apply on the mount that happened to start there. Adjusted during render, so the switch never paints a frame of the outgoing view's columns.
+- **Backwards compatible.** Omit `views`, or pass plain layout names, and nothing changes. The built-in keys keep their names, so a stored `layout: "cards"` still resolves.
+- **`showCardSizeControl`** is suppressed when the active view pins its own `cardMinWidth`, exactly as a table-level one always did.
+
+### Per-view slot remapping (`cardSlots`)
+
+A column's `meta.card.slot` is a property of the *column*, so a table gets one card shape out of it. A view supplying `cardSlots` gets its own — same columns, different arrangement — without either view needing a bespoke card:
+
+```jsx
+{ key: "compact", base: "cards", cardMinWidth: 176,
+  cardSlots: { thumbnail_url: "media", name: "title",
+               status: "badge", weight_g: "footer" } }
+```
+
+Merged over each column's own `meta.card` at partition time. Control columns (`select`, `actions`, `EditEntry`, `expander`) are matched by id first and cannot be remapped — a select checkbox pushed into the body would be a control the card no longer places.
+
+**What slots can express:** which region, order within it, presence (via `columnVisibility`), and whether a body field shows its label. **What they cannot:** geometry. The regions are a fixed vertical stack — no thumbnail beside a column of fields, no value overlaid on the image, no full-bleed bar, no nesting. Cards whose point is geometry stay bespoke; `ctx.slots` (below) is how they stop re-deriving their content.
+
 ## Card view
 
 Added in 2.9.0. Every DataTable gets a toolbar toggle (table / cards icons) that switches the row layout between the classic `<table>` and a responsive card grid. Both layouts consume the **same TanStack table instance**, so sorting, upstream filtering, row selection (bulk edit / delete), expansion, and row-click behaviour carry over unchanged — no consumer changes are required to enable it.
@@ -383,8 +532,8 @@ Reading media off the *visible* columns means hiding the thumbnail column withdr
 
 Two consequences worth knowing:
 
-- **A stored preference is validated on every render.** It outlives the conditions it was chosen under — the group-by attribute goes away, the thumbnail column gets hidden, the same storage key is reused by a page with no expansion panel — so a `view` naming an unavailable layout falls back to `"table"` instead of rendering an empty one.
-- **`views` overrides the derivation** when a page wants a fixed set (e.g. gallery only). The consumer is then responsible for the layout being buildable; nothing re-checks it.
+- **A stored preference is validated on every render.** It outlives the conditions it was chosen under — the group-by attribute goes away, the thumbnail column gets hidden, the same storage key is reused by a page with no expansion panel, a page reorganises the shapes it declares — so a `view` naming something unavailable falls back to the **first available view** instead of rendering an empty one. (For the derived list that is `"table"`, as it always was.)
+- **`views` overrides the derivation** when a page wants a fixed set (e.g. gallery only), and is also where a page declares [views of its own](#view-catalogue). The consumer is then responsible for the layout being buildable; nothing re-checks it.
 
 With only one available view the toggle disappears entirely.
 
@@ -446,10 +595,28 @@ interface RenderCardContext {
   quickActions: ReactNode;  // the row's `card` toolbar actions, rendered
   select: ReactNode;        // the select checkbox cell, or null
   actions: ReactNode;       // the RowActions (⋯) menu cell, or null
+  slots: {                  // the content cells, rendered and bucketed by slot
+    media: ReactNode[]; title: ReactNode[]; badge: ReactNode[];
+    body: ReactNode[]; footer: ReactNode[];
+  };
 }
 ```
 
 Everything else stays available on `row` itself (`row.original`, `row.getIsSelected()`, `row.toggleSelected()`). Reach for this when a card's shape is genuinely different from "one labelled row per field" — Print-Tracker's `ProjectItemCard` leads with a build-progress bar and gives print-job chips a full-width band, neither of which survives being flattened into body fields.
+
+`ctx.slots` is what stops the two composition routes being either/or. A bespoke card keeps full control of the **geometry** — the only reason to write one — while its **content** stays declared once on the columns, formatted by the same cell renderers the table uses, and respecting any per-view `cardSlots`:
+
+```jsx
+renderCard: (row, ctx) => (
+  <div className="flex gap-2">
+    {ctx.slots.media}
+    <div className="min-w-0 flex-1">{ctx.slots.title}{ctx.slots.badge}</div>
+    <div className="-mx-2 mt-auto">{ctx.slots.footer}</div>
+  </div>
+)
+```
+
+Each array is empty rather than absent when nothing claims that slot, so a card can `.length` a region without guarding. Reading `row.original` directly still works and is still right for anything the columns don't carry.
 
 ### Layout & virtualization
 

@@ -1,5 +1,9 @@
 import React from "react";
-import type { Row, Table as TanstackTable } from "@tanstack/react-table";
+import type {
+  Row,
+  Table as TanstackTable,
+  VisibilityState,
+} from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { AnimatePresence, useReducedMotion } from "framer-motion";
 
@@ -10,7 +14,12 @@ import type { RowData } from "@bcl32/data-utils";
 import { cn } from "@bcl32/utils/cn";
 
 import { RowCard } from "./RowCard";
-import type { CardRenderOptions, CardViewVariant, RenderCardContext } from "./RowCard";
+import type {
+  CardRenderOptions,
+  CardSlotOverrides,
+  CardViewVariant,
+  RenderCardContext,
+} from "./RowCard";
 import { GALLERY_SIZE_WIDTHS } from "./GalleryCard";
 import {
   ROW_INDEX_ATTR,
@@ -50,9 +59,66 @@ export function isDataTableView(value: unknown): value is DataTableView {
   );
 }
 
+/**
+ * A view a consumer declares for itself, rather than one of the five built in.
+ *
+ * The five layouts above are *renderers*; this is a **shape**, and a page can
+ * have more shapes than there are renderers. Three card sizes over the same
+ * rows are three shapes drawn by one renderer, and a slim column preset and the
+ * full table are two more drawn by another. Before this existed a table could
+ * hold exactly one `renderCard` and one column preset, so a page wanting four
+ * shapes had to mount four tables and remount on every switch — which is also
+ * what stopped row selection from surviving a switch.
+ *
+ * `key` is what gets stored and reported, `base` is which renderer draws it.
+ * The built-in five are normalised into this shape internally with `key === base`,
+ * so a stored `"cards"` still resolves and `views={["table","cards"]}` still
+ * means what it always meant.
+ *
+ * Every other field overrides the `DataTable` prop of the same name **for this
+ * view only**, which is the point: the props that differ between shapes are
+ * exactly these.
+ */
+export interface DataTableViewDef<TData extends RowData = RowData> {
+  /** Stable identity — persisted, and reported by `onViewChange`. */
+  key: string;
+  /** Which of the five renderers draws it. */
+  base: DataTableView;
+  /** Toolbar tooltip / aria-label. */
+  label: string;
+  /** Toolbar toggle icon. Falls back to the base layout's icon. */
+  icon?: React.ReactNode;
+  renderCard?: (row: Row<TData>, ctx: RenderCardContext) => React.ReactNode;
+  cardMinWidth?: number;
+  estimatedCardHeight?: number;
+  /**
+   * Column preset for this view. Re-applied on every switch *into* it — the
+   * table's own visibility state is seeded once, so without that a preset
+   * would only ever take on the mount that happened to start here.
+   */
+  columnVisibility?: VisibilityState;
+  cellClassName?: string;
+  maxCellHeight?: number;
+  /**
+   * Per-view card slot remapping, merged over each column's own `meta.card`.
+   * Lets two views place the same columns differently without either of them
+   * needing a bespoke card.
+   */
+  cardSlots?: CardSlotOverrides;
+}
+
+/** What a consumer may pass to `views` — built-in names, declarations, or both. */
+export type DataTableViewOption<TData extends RowData = RowData> =
+  | DataTableView
+  | DataTableViewDef<TData>;
+
 // The card contract lives in RowCard now (the board draws the same card, and
 // the gallery a stripped-back one), but it is still part of this module's
 // public surface — DataTable and every consumer import it from here.
+//
+// `CardSlotOverrides` is deliberately NOT re-exported: it originates in
+// ColumnLabels, which the barrel already `export *`s, and a second star-export
+// of the same name is ambiguous (see the note at the top of index.ts).
 export type { CardRenderOptions, CardViewVariant, RenderCardContext };
 
 /** Toolbar select-all shown while a card-based layout is active. Cards have no

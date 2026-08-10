@@ -25,12 +25,25 @@ export const CONTROL_COLUMN_IDS: ReadonlySet<string> = new Set([
 
 export interface CardMeta {
   /** Card region for this column's cell. Default: "body". */
-  slot?: "media" | "title" | "badge" | "body" | "footer";
+  slot?: CardSlot;
   /** Field label override (body slot). Also used by the sort dropdown. */
   label?: string;
   /** Body slot only: suppress the label when the value is self-describing. */
   hideLabel?: boolean;
 }
+
+/** The card regions a column's cell can land in. */
+export type CardSlot = "media" | "title" | "badge" | "body" | "footer";
+
+/**
+ * Column id → slot, overriding whatever that column declared for itself.
+ *
+ * A column's `meta.card.slot` is a property of the column, so a table gets one
+ * card shape out of it. A view supplying these gets its own — same columns,
+ * different arrangement — which is what lets a second card layout be declared
+ * rather than written.
+ */
+export type CardSlotOverrides = Record<string, CardSlot>;
 
 export function getCardMeta(column: { columnDef: { meta?: unknown } }): CardMeta | undefined {
   return (column.columnDef.meta as { card?: CardMeta } | undefined)?.card;
