@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.10.3
+
+### Patch Changes
+
+- e806049: feat: controlled row selection and quiet/none toolbars in DataTable
+- bb1226a: feat: views are declarations, not a closed enum, in DataTable
+
 ## 2.10.2
 
 ### Patch Changes
