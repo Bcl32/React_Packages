@@ -4,31 +4,51 @@ import { FilterContext } from "./FilterContext";
 import {
   BarChart,
   Bar,
-  CartesianGrid,
+  Cell,
   XAxis,
   YAxis,
   LabelList,
 } from "recharts";
 
-import { Button } from "@bcl32/utils/Button";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@bcl32/charts/Charts";
+import { FilterHeader } from "./FilterHeader";
 import type { FilterContextValue, ChartDataEntry, ChartClickEvent } from "./types";
-import { capitalize } from "./utils";
+import { humanizeFieldName, prettyOptionLabel } from "./utils";
 
 interface BarChartFilterProps {
   name: string;
   chart_data: ChartDataEntry[];
+  title?: string;
 }
 
-export function BarChartFilter({ name, chart_data }: BarChartFilterProps): JSX.Element {
+/** Row height in px — bars stay ≤ 24px thick with air around them. */
+const ROW_HEIGHT = 30;
+
+export function BarChartFilter({ name, chart_data, title }: BarChartFilterProps): JSX.Element {
   const context = React.useContext(FilterContext) as FilterContextValue | null;
 
+  const filter = context?.filters?.[name];
+  const selected: string[] = React.useMemo(() => {
+    if (!filter) return [];
+    if (JSON.stringify(filter.value) === JSON.stringify(filter.filter_empty)) return [];
+    return Array.isArray(filter.value) ? filter.value.map(String) : [String(filter.value)];
+  }, [filter]);
+
+  function reset() {
+    if (!filter) return;
+    context?.change_filters(name, "value", structuredClone(filter.filter_empty));
+  }
+
   function bar_click(value: string) {
-    if (context?.filters[name]["type"] === "options") {
+    if (selected.includes(value)) {
+      reset(); // clicking the active bar toggles the filter off
+      return;
+    }
+    if (filter?.type === "options") {
       context?.change_filters(name, "value", [value]);
     } else {
       context?.change_filters(name, "value", value);
@@ -38,56 +58,61 @@ export function BarChartFilter({ name, chart_data }: BarChartFilterProps): JSX.E
   const chartConfig = {
     length: {
       label: "Count",
-      color: "hsl(var(--chart-3))",
-    },
-    label: {
-      color: "white",
+      // single series → the theme accent, not an arbitrary categorical slot
+      color: "hsl(var(--chart-1))",
     },
   };
 
+  const dimmed = (entryName: string) =>
+    selected.length > 0 && !selected.includes(entryName);
+
   return (
     <div>
-      <div className="flex flex-row justify-between">
-        <div></div>
-        <h1 className="inline-block justify-center text-2xl text-blue-600 dark:text-blue-500">
-          {capitalize(name)}
-        </h1>
+      <FilterHeader
+        label={title ?? humanizeFieldName(name)}
+        actions={
+          selected.length > 0 ? (
+            <button
+              type="button"
+              onClick={reset}
+              className="rounded px-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              Reset
+            </button>
+          ) : undefined
+        }
+      />
 
-        <Button
-          onClick={() =>
-            context?.change_filters(name, "value", context.filters[name]["filter_empty"])
-          }
-          variant="default"
-          size="lg"
-        >
-          Reset
-        </Button>
-      </div>
-
-      <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+      <ChartContainer
+        config={chartConfig}
+        className="mt-1 aspect-auto w-full"
+        style={{ height: chart_data.length * ROW_HEIGHT + 8 }}
+      >
         <BarChart
           accessibilityLayer
           data={chart_data}
           layout="vertical"
-          margin={{
-            right: 30,
-          }}
+          margin={{ top: 0, right: 34, bottom: 0, left: 0 }}
           onClick={(data: ChartClickEvent) => {
             if (data && data.activePayload && data.activePayload.length > 0) {
               const value = data.activePayload[0]["payload"]["name"];
               bar_click(value);
             }
           }}
+          className="cursor-pointer"
         >
-          <CartesianGrid horizontal={false} />
           <YAxis
             dataKey="name"
             type="category"
+            width={96}
             tickLine={false}
-            tickMargin={10}
             axisLine={false}
-            tickFormatter={(value: string) => value.slice(0, 3)}
-            hide
+            tickMargin={6}
+            fontSize={12}
+            tickFormatter={(value: string) => {
+              const label = prettyOptionLabel(value);
+              return label.length > 13 ? label.slice(0, 12) + "…" : label;
+            }}
           />
           <XAxis dataKey="length" type="number" hide />
           <ChartTooltip
@@ -95,20 +120,21 @@ export function BarChartFilter({ name, chart_data }: BarChartFilterProps): JSX.E
             content={<ChartTooltipContent indicator="line" />}
           />
 
-          <Bar dataKey="length" fill="var(--color-length)" radius={4}>
-            <LabelList
-              dataKey="name"
-              position="insideLeft"
-              offset={1}
-              className="fill-[--color-label] font-bold"
-              fontSize={14}
-            />
+          <Bar dataKey="length" barSize={18} radius={[0, 4, 4, 0]}>
+            {chart_data.map((entry) => (
+              <Cell
+                key={entry.name}
+                fill="hsl(var(--chart-1))"
+                opacity={dimmed(entry.name) ? 0.3 : 1}
+              />
+            ))}
             <LabelList
               dataKey="length"
               position="right"
               offset={8}
-              className="fill-foreground font-bold"
-              fontSize={14}
+              className="fill-foreground tabular-nums"
+              fontSize={12}
+              formatter={(value: number) => value.toLocaleString()}
             />
           </Bar>
         </BarChart>

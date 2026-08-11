@@ -14,6 +14,7 @@ interface ChartFilterProps {
 export function ChartFilter({ chart_metadata, chart_data }: ChartFilterProps): JSX.Element {
   const name = chart_metadata["name"];
   const chart_type = chart_metadata["type"];
+  const title = chart_metadata["title"];
 
   switch (chart_type) {
     case "line":
@@ -22,11 +23,11 @@ export function ChartFilter({ chart_metadata, chart_data }: ChartFilterProps): J
       );
     case "pie":
       return (
-        <PieChartFilter name={name} chart_data={chart_data} />
+        <PieChartFilter name={name} chart_data={chart_data} title={title} />
       );
     case "bar":
       return (
-        <BarChartFilter name={name} chart_data={chart_data} />
+        <BarChartFilter name={name} chart_data={chart_data} title={title} />
       );
     case "bar-switcher":
       return (
@@ -49,6 +50,7 @@ export function ChartFilter({ chart_metadata, chart_data }: ChartFilterProps): J
         <Histogram
           name={name}
           chart_data={chart_data}
+          title={title}
         />
       );
     default:

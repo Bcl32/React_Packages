@@ -128,6 +128,9 @@ export interface ChartMetadata {
   type: string;
   subkey?: string;
   subkeys?: string[];
+  // Display label for the chart's header ("Failure reason"); components fall
+  // back to a humanized field name when absent.
+  title?: string;
 }
 
 export interface ChartDataEntry {
