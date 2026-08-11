@@ -406,16 +406,23 @@ export function DataTableToolbar<TData extends RowData>(
           </div>
         )}
 
-        {/* Only the board has lanes to relabel, and only when the consumer
-            offered a choice — one option is a caption, not a control. Sits
-            beside the sort control because both answer "how is this arranged". */}
-        {base === "board" && (props.board?.groupByOptions?.length ?? 0) > 1 && (
-          <GroupControl
-            value={props.board!.groupBy}
-            options={props.board!.groupByOptions!}
-            onChange={(name) => props.board!.onGroupByChange?.(name)}
-          />
-        )}
+        {/* Only the grouped layouts have groups to relabel, and only when the
+            consumer offered a choice — one option is a caption, not a control.
+            Sits beside the sort control because both answer "how is this
+            arranged". The "then by" half only shows where nesting can render:
+            the sections layout. The board's one axis is already spent. */}
+        {(base === "board" || base === "sections") &&
+          (props.board?.groupByOptions?.length ?? 0) > 1 && (
+            <GroupControl
+              value={props.board!.groupBy}
+              options={props.board!.groupByOptions!}
+              onChange={(name) => props.board!.onGroupByChange?.(name)}
+              subValue={base === "sections" ? props.board!.subGroupBy : undefined}
+              onSubChange={
+                base === "sections" ? props.board!.onSubGroupByChange : undefined
+              }
+            />
+          )}
 
         {/* Both layouts: cards have no headers to click, and the table's
             headers scroll out of view. */}

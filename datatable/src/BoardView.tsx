@@ -26,6 +26,28 @@ export interface BoardLane {
   visual?: React.ReactNode;
   /** The "no value" bucket. Rendered dashed and last, and hidden when empty. */
   isNone?: boolean;
+  /**
+   * Sections layout: a pinned width tier for this group, overriding the
+   * count-computed span — how a curated tree's hand-chosen section widths
+   * survive into the grouped rendering. Applies only while the section is
+   * expanded; a collapsed tile keeps the uniform small rung, matching the
+   * curated pages' own rule that collapse overrides pins. The board ignores
+   * it (lanes are equal-width by design).
+   */
+  span?: "xs" | "s" | "m" | "l";
+}
+
+/**
+ * One further level of grouping below the top lanes — what the sections layout
+ * nests by. The same shape as the top level (`lanes` + `laneOf`) because it is
+ * the same thing one level down; an array of these so a third level is a longer
+ * array, not a new API.
+ */
+export interface GroupingLevel<TData extends RowData> {
+  lanes: BoardLane[];
+  laneOf: (row: TData) => string[];
+  /** What this level groups by, e.g. "Material". */
+  groupLabel?: string;
 }
 
 export interface BoardConfig<TData extends RowData> {
@@ -38,6 +60,34 @@ export interface BoardConfig<TData extends RowData> {
   /** Which lane(s) a row belongs in. An array because a row can legitimately
    *  sit in several — a part in two systems shows up under both. */
   laneOf: (row: TData) => string[];
+  /**
+   * Deeper grouping levels, outermost first. The board ignores these — one axis
+   * is all its geometry has room for — but the sections layout nests: top-level
+   * sections by `lanes`, then each section groups its own rows by
+   * `subGroups[0]`, and so on down the array.
+   */
+  subGroups?: GroupingLevel<TData>[];
+  /**
+   * Optional roll-up shown in a group header beside the count — "2.4 kg",
+   * "14 h". Receives exactly the rows the group holds, so it agrees with the
+   * count by construction.
+   */
+  laneAggregate?: (rows: TData[]) => React.ReactNode;
+  /**
+   * Sections layout: start with every top-level section collapsed to its
+   * header tile. This is what turns the layout into a *landing* — a grid of
+   * group tiles that expand in place — instead of an opened-out browse.
+   * Deeper levels keep their normal expanded default, so one click on a tile
+   * shows its contents rather than another layer of chevrons. The board
+   * ignores it.
+   */
+  defaultCollapsed?: boolean;
+  /** The attribute feeding `subGroups[0]`, mirrored here for the toolbar's
+   *  "then by" picker the same way `groupBy` mirrors `lanes`. */
+  subGroupBy?: string;
+  /** Offering this is what puts the "then by" choice in the group picker.
+   *  Called with `null` to clear the nesting. */
+  onSubGroupByChange?: (attrName: string | null) => void;
   /** Clicking a lane header. The group-cards view uses this to pin the value as
    *  a filter and drop into the table; without it headers are inert. */
   onLaneClick?: (value: string, isNone: boolean) => void;
@@ -303,6 +353,7 @@ export function BoardView<TData extends RowData>(props: BoardViewProps<TData>): 
           <LaneHeader
             lane={bucket.lane}
             count={bucket.items.length}
+            aggregate={props.board.laneAggregate?.(bucket.items.map((i) => i.row.original))}
             onClick={onLaneClick}
           />
 
@@ -357,9 +408,10 @@ export function BoardView<TData extends RowData>(props: BoardViewProps<TData>): 
 function LaneHeader(props: {
   lane: BoardLane;
   count: number;
+  aggregate?: React.ReactNode;
   onClick?: (value: string, isNone: boolean) => void;
 }): JSX.Element {
-  const { lane, count, onClick } = props;
+  const { lane, count, aggregate, onClick } = props;
 
   const tile = (
     <Card
@@ -377,7 +429,10 @@ function LaneHeader(props: {
         >
           {lane.visual}
           <span className="truncate">{lane.label}</span>
-          <span className="ml-auto text-xs font-normal text-muted-foreground">({count})</span>
+          <span className="ml-auto flex items-center gap-2 text-xs font-normal text-muted-foreground">
+            {aggregate != null && <span>{aggregate}</span>}
+            <span>({count})</span>
+          </span>
         </CardTitle>
       </CardHeader>
     </Card>

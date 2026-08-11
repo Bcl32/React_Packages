@@ -15,6 +15,8 @@ export * from "./CardView";
 // DataTable, and CardRenderOptions/RenderCardContext via CardView, so these two
 // modules export only what has no other route out.
 export { BoardView } from "./BoardView";
+export { SectionsView } from "./SectionsView";
+export * from "./GroupSections";
 export { RowCard, BOARD_POS_ATTR } from "./RowCard";
 export * from "./DetailPaneView";
 export * from "./GalleryCard";

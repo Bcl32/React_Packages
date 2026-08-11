@@ -30,7 +30,8 @@ import type {
 } from "./CardView";
 import { resolveViewDefs } from "./ViewDefs";
 import { BoardView } from "./BoardView";
-import type { BoardConfig, BoardLane } from "./BoardView";
+import type { BoardConfig, BoardLane, GroupingLevel } from "./BoardView";
+import { SectionsView } from "./SectionsView";
 import { DetailPaneView } from "./DetailPaneView";
 import { getCardMeta } from "./ColumnLabels";
 import { DataTableToolbar } from "./DataTableToolbar";
@@ -45,15 +46,29 @@ import { cn } from "@bcl32/utils/cn";
 import { useIsMobile } from "@bcl32/utils/useIsMobile";
 import type { ModelData, RowData } from "@bcl32/data-utils";
 
-export type { ToolbarAction, DataTableFilter, BoardConfig, BoardLane };
+export type { ToolbarAction, DataTableFilter, BoardConfig, BoardLane, GroupingLevel };
 
 interface DataTableProps<TData extends RowData> {
   title: string;
   columns: ColumnDef<TData, unknown>[];
   tableData: TData[];
   ModelData: ModelData;
+  /**
+   * Column visibility. Without `onColumnVisibilityChange` this is the *initial
+   * seed* (and the per-view re-seed fallback), exactly as it always was. With
+   * the callback supplied it becomes CONTROLLED: this value is the visibility,
+   * every toggle reports through the callback, and the per-view re-seed is
+   * skipped — the owner persists the choice across view switches, so a view
+   * change is no longer a reason to discard it.
+   */
   columnVisibility?: VisibilityState;
+  onColumnVisibilityChange?: (visibility: VisibilityState) => void;
   defaultSort?: string;
+  /** Controlled sort state. Same shape as `view`/`cardSize`: the prop wins
+   *  when supplied, `onSortingChange` fires either way. Omit to keep the
+   *  table self-managed off `defaultSort`. */
+  sorting?: SortingState;
+  onSortingChange?: (sorting: SortingState) => void;
   create_enabled?: boolean;
   add_api_url?: string;
   query_invalidation?: string[];
@@ -164,9 +179,22 @@ export function DataTable<TData extends RowData>(
     if (props.rowSelection === undefined) setUncontrolledRowSelection(updater);
   };
 
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(
-    props.columnVisibility || {}
-  );
+  // Column visibility: controlled when the callback is supplied (see the prop
+  // doc), self-managed otherwise. The controlled test is the *callback*, not
+  // the value — `columnVisibility` alone has always meant "initial seed", and
+  // flipping its meaning on every consumer that passes a static preset would
+  // silently freeze their Columns dropdown.
+  const controlledColumns = props.onColumnVisibilityChange !== undefined;
+  const [uncontrolledColumnVisibility, setUncontrolledColumnVisibility] =
+    React.useState<VisibilityState>(props.columnVisibility || {});
+  const columnVisibility = controlledColumns
+    ? (props.columnVisibility ?? {})
+    : uncontrolledColumnVisibility;
+  const setColumnVisibility = (updater: Updater<VisibilityState>) => {
+    const next = typeof updater === "function" ? updater(columnVisibility) : updater;
+    props.onColumnVisibilityChange?.(next);
+    if (!controlledColumns) setUncontrolledColumnVisibility(next);
+  };
 
   const isMobile = useIsMobile();
   const reduceMotion = useReducedMotion();
@@ -202,12 +230,20 @@ export function DataTable<TData extends RowData>(
     if (props.cardSize === undefined) setUncontrolledCardSize(size);
   };
 
-  const [sorting, setSorting] = React.useState<SortingState>([
+  // Sorting follows the same controlled/uncontrolled shape as `view` and
+  // `cardSize`: the prop wins when supplied, the callback fires either way.
+  const [uncontrolledSorting, setUncontrolledSorting] = React.useState<SortingState>([
     {
       id: props.defaultSort || "time_created",
       desc: true,
     },
   ]);
+  const sorting = props.sorting ?? uncontrolledSorting;
+  const setSorting = (updater: Updater<SortingState>) => {
+    const next = typeof updater === "function" ? updater(sorting) : updater;
+    props.onSortingChange?.(next);
+    if (props.sorting === undefined) setUncontrolledSorting(next);
+  };
 
   const tableInstance = useReactTable({
     columns: props.columns,
@@ -253,7 +289,9 @@ export function DataTable<TData extends RowData>(
               "cards",
               ...(hasMediaColumn ? (["gallery"] as const) : []),
               ...(props.renderSubComponent ? (["detail"] as const) : []),
-              ...(props.board ? (["board"] as const) : []),
+              // One config, two geometries: lanes for scanning a process,
+              // packed sections for browsing the collection organised.
+              ...(props.board ? (["board", "sections"] as const) : []),
             ]
       ),
     [props.views, hasMediaColumn, props.renderSubComponent, props.board]
@@ -295,7 +333,15 @@ export function DataTable<TData extends RowData>(
   const [seededView, setSeededView] = React.useState<string | null>(null);
   if (seededView !== view) {
     setSeededView(view);
-    setColumnVisibility(activeView.columnVisibility ?? props.columnVisibility ?? {});
+    // Controlled columns skip the re-seed twice over: semantically the owner
+    // persists the choice across view switches, and mechanically this runs
+    // during render, where firing the owner's callback would be a
+    // setState-during-render of another component.
+    if (!controlledColumns) {
+      setUncontrolledColumnVisibility(
+        activeView.columnVisibility ?? props.columnVisibility ?? {}
+      );
+    }
   }
 
   const setView = (key: string) => {
@@ -430,6 +476,24 @@ export function DataTable<TData extends RowData>(
                 scrollRef={scrollRef}
                 board={props.board}
                 laneWidth={cardMinWidth}
+                maxCellHeight={maxCellHeight}
+                rowClickFunction={props.rowClickFunction}
+                expandOnRowClick={props.expandOnRowClick}
+                renderSubComponent={renderSubComponent}
+                renderCard={renderCard}
+                cardActions={cardActions}
+                cardSlots={activeView.cardSlots}
+                scrollHandleRef={viewScrollRef}
+                restoreRowIndex={restoreRowIndexRef}
+                animate={props.animate}
+              />
+            ) : base === "sections" && props.board ? (
+              <SectionsView
+                table={tableInstance}
+                ModelData={props.ModelData}
+                scrollRef={scrollRef}
+                board={props.board}
+                cardMinWidth={cardMinWidth}
                 maxCellHeight={maxCellHeight}
                 rowClickFunction={props.rowClickFunction}
                 expandOnRowClick={props.expandOnRowClick}

@@ -38,6 +38,7 @@ import type { ScrollRestoreRef, ViewScrollHandle } from "./ViewScroll";
  *   gallery   media-only tiles, dense — for rows whose thumbnail is the content
  *   detail    compact list on the left, the expansion panel docked on the right
  *   board     the cards again, dealt into lanes by a group-by attribute
+ *   sections  the cards again, packed into group sections sized by population
  *
  * Kept as a const array as well as a union so a persisted string can be
  * validated against it — the stored preference outlives the code that wrote it.
@@ -48,6 +49,7 @@ export const DATA_TABLE_VIEWS = [
   "gallery",
   "detail",
   "board",
+  "sections",
 ] as const;
 
 export type DataTableView = (typeof DATA_TABLE_VIEWS)[number];

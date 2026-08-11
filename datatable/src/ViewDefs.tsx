@@ -1,5 +1,12 @@
 import React from "react";
-import { Table2, LayoutGrid, Images, PanelRight, SquareKanban } from "lucide-react";
+import {
+  Table2,
+  LayoutGrid,
+  Images,
+  PanelRight,
+  SquareKanban,
+  LayoutDashboard,
+} from "lucide-react";
 
 import type { RowData } from "@bcl32/data-utils";
 
@@ -36,6 +43,7 @@ export const VIEW_TOGGLE_DEFAULTS: Record<
   gallery: { icon: <Images size={16} />, label: "Gallery view" },
   detail: { icon: <PanelRight size={16} />, label: "Detail pane view" },
   board: { icon: <SquareKanban size={16} />, label: "Board view" },
+  sections: { icon: <LayoutDashboard size={16} />, label: "Grouped sections view" },
 };
 
 function isBuiltInView(value: unknown): value is DataTableView {

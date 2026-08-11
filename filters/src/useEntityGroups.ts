@@ -13,6 +13,14 @@ export type GroupVisualResolver = (
   attr: ModelAttribute,
   value: string,
   sampleRow: Record<string, unknown> | undefined,
+  /**
+   * Every row in the group, in dataset order. For visuals that summarise the
+   * group's *contents* rather than pick a representative — a cluster of the
+   * actual colour swatches a family holds, say. Additive: a resolver written
+   * against the older three-argument shape stays assignable and just ignores
+   * it.
+   */
+  groupRows: Record<string, unknown>[],
 ) => ReactNode | undefined;
 
 interface UseEntityGroupsOptions {
@@ -112,6 +120,9 @@ interface GroupAccumulator {
   count: number;
   sampleRow?: Record<string, unknown>;
   label?: string;
+  /** References to the group's rows — cheap (one pointer per membership), and
+   *  what lets a visual resolver see the whole group. */
+  rows: Record<string, unknown>[];
 }
 
 function objectArrayValue(item: unknown, valueKey: string): string | undefined {
@@ -195,7 +206,7 @@ export function useEntityGroups(
 
     const buckets = new Map<string, GroupAccumulator>();
     const seed = (value: string, label?: string) => {
-      if (!buckets.has(value)) buckets.set(value, { count: 0, label });
+      if (!buckets.has(value)) buckets.set(value, { count: 0, label, rows: [] });
     };
 
     // Seed enum buckets up-front so zero-count options still appear.
@@ -207,9 +218,10 @@ export function useEntityGroups(
 
     for (const row of rows) {
       for (const { value, label } of rowGroupValues(row, attr)) {
-        const acc = buckets.get(value) ?? { count: 0 };
+        const acc = buckets.get(value) ?? { count: 0, rows: [] };
         acc.count += 1;
         acc.sampleRow ??= row;
+        acc.rows.push(row);
         // Only object-arrays carry a label on the row; everything else keeps
         // whatever the enum seeding put there.
         if (label !== undefined) acc.label = label;
@@ -221,7 +233,10 @@ export function useEntityGroups(
     for (const [value, acc] of buckets.entries()) {
       const isNone = value === NONE_VALUE;
       const label = isNone ? NONE_LABEL : (acc.label ?? value);
-      const visual = resolveVisual && !isNone ? resolveVisual(attr, value, acc.sampleRow) : undefined;
+      const visual =
+        resolveVisual && !isNone
+          ? resolveVisual(attr, value, acc.sampleRow, acc.rows)
+          : undefined;
       result.push({ value, label, count: acc.count, visual, isNone });
     }
 
