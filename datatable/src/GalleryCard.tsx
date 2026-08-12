@@ -5,6 +5,7 @@ import { cn } from "@bcl32/utils/cn";
 import type { RowData } from "@bcl32/data-utils";
 
 import { partitionCells, renderCell } from "./CardCells";
+import type { PartitionedCells } from "./CardCells";
 
 /**
  * Gallery tile: the media cell, at size, with the title as a caption underneath
@@ -37,8 +38,15 @@ export const DEFAULT_GALLERY_MIN_WIDTH = GALLERY_SIZE_WIDTHS.comfortable;
 export function GalleryTile<TData extends RowData>(props: {
   row: Row<TData>;
   clickable: boolean;
+  /** The row's edit button, already rendered (`rowEditNode`). Shares the
+   *  top-right overlay with the ⋯ menu — a tile has no footer to put it in, and
+   *  a permanent pencil on every tile would undo the point of the layout. */
+  edit?: React.ReactNode;
+  /** The caller's existing partition, to save a second walk of the row's cells
+   *  per tile. Partitioned here when absent. */
+  cells?: PartitionedCells<TData>;
 }): JSX.Element {
-  const cells = partitionCells(props.row);
+  const cells = props.cells ?? partitionCells(props.row);
   const selected = props.row.getIsSelected();
 
   return (
@@ -86,9 +94,10 @@ export function GalleryTile<TData extends RowData>(props: {
           </div>
         )}
 
-        {cells.actions && (
-          <div className="absolute right-1 top-1 rounded bg-background/85 opacity-0 shadow-sm transition-opacity focus-within:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100">
-            {renderCell(cells.actions)}
+        {(cells.actions || props.edit) && (
+          <div className="absolute right-1 top-1 flex items-center gap-0.5 rounded bg-background/85 opacity-0 shadow-sm transition-opacity focus-within:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100 [&_button]:h-7 [&_button]:w-7">
+            {props.edit}
+            {cells.actions && renderCell(cells.actions)}
           </div>
         )}
       </div>

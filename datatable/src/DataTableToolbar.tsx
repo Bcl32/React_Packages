@@ -146,6 +146,88 @@ function ToolbarActionButtons<TData extends RowData>(props: {
 }
 
 /**
+ * The bulk edit and bulk delete buttons, each owning its dialog.
+ *
+ * Extracted for the same reason `ToolbarActionButtons` was: both toolbars draw
+ * them and they differ only in button metrics. Each renders nothing when the
+ * table hasn't declared the write path it needs, so a caller can place them
+ * unconditionally.
+ */
+function BulkEditButton<TData extends RowData>(props: {
+  toolbar: DataTableToolbarProps<TData>;
+  className?: string;
+}): JSX.Element | null {
+  const [open, setOpen] = React.useState(false);
+  const { toolbar } = props;
+  if (!toolbar.ModelData.update_api_url) return null;
+
+  return (
+    <DialogButton
+      key={"dialog-bulk-edit"}
+      isModal={true}
+      size="large"
+      open={open}
+      onOpenChange={setOpen}
+      button={
+        <Button size="sm" className={props.className}>
+          <Pencil size={16} />
+          {`Edit (${toolbar.selectedIds.length})`}
+        </Button>
+      }
+      title={`Bulk Edit ${toolbar.ModelData.model_name || "Entries"}`}
+    >
+      <BulkEditModelForm
+        ModelData={toolbar.ModelData as ModelData & { update_api_url: string }}
+        query_invalidation={toolbar.query_invalidation || []}
+        rowSelection={toolbar.rowSelection}
+        setRowSelection={toolbar.setRowSelection}
+        onSuccess={toolbar.onBulkEditSuccess}
+        onClose={() => setOpen(false)}
+      />
+    </DialogButton>
+  );
+}
+
+function BulkDeleteButton<TData extends RowData>(props: {
+  toolbar: DataTableToolbarProps<TData>;
+  className?: string;
+}): JSX.Element | null {
+  const [open, setOpen] = React.useState(false);
+  const { toolbar } = props;
+  // The URL as well as the flag: a table with no `delete_api_url` would render
+  // a button that posts to "". The standard toolbar always had that hole; it
+  // only becomes reachable now that the quiet bar draws this too.
+  if (toolbar.bulk_delete_enabled === false || !toolbar.ModelData.delete_api_url) {
+    return null;
+  }
+
+  return (
+    <DialogButton
+      key={"dialog-delete-entry"}
+      isModal={true}
+      open={open}
+      onOpenChange={setOpen}
+      button={
+        <Button size="sm" variant="danger" className={props.className}>
+          <Trash2 size={16} />
+          {`Delete (${toolbar.selectedIds.length})`}
+        </Button>
+      }
+      title="Delete Entries"
+    >
+      <DeleteModelForm
+        key={"delete_entry_form"}
+        delete_api_url={toolbar.ModelData.delete_api_url || ""}
+        query_invalidation={toolbar.query_invalidation || []}
+        rowSelection={toolbar.rowSelection}
+        setRowSelection={toolbar.setRowSelection}
+        onClose={() => setOpen(false)}
+      />
+    </DialogButton>
+  );
+}
+
+/**
  * The whole of `toolbarStyle="quiet"`: nothing at rest, and one slim bar once
  * rows are selected.
  *
@@ -159,9 +241,14 @@ function ToolbarActionButtons<TData extends RowData>(props: {
  * A section that also wants a shape switch draws its own and passes
  * `hideViewToggle`; see that prop on DataTable.
  *
- * Deliberately no bulk edit / delete dialogs: those belong to the table that
- * owns the entity (the standard toolbar), not to a section view of it. Actions
- * a section does want it declares through `toolbarActions` like any other.
+ * This bar used to carry no bulk edit or delete, on the reasoning that they
+ * belong to the table that owns the entity rather than to a section view of it.
+ * That reasoning was wrong in practice: the quiet bar is what every layout
+ * below full width draws, so the effect was that ticking checkboxes anywhere
+ * but the Table shape gave you nothing to do with the selection — and the
+ * standard toolbar the argument pointed at is exactly the one those shapes hide.
+ * Both dialogs act on the section's own row selection, which is what the ticks
+ * meant.
  */
 function QuietBulkBar<TData extends RowData>(
   props: DataTableToolbarProps<TData>
@@ -181,11 +268,15 @@ function QuietBulkBar<TData extends RowData>(
 
       <CardSelectAllControl table={props.table} />
 
+      <BulkEditButton toolbar={props} className={control} />
+
       <ToolbarActionButtons
         actions={props.actions}
         selectedIds={props.selectedIds}
         className={control}
       />
+
+      <BulkDeleteButton toolbar={props} className={control} />
 
       {/* Last, and pushed to the far end: it is the one control here that
           undoes rather than does, and it must not sit under the pointer that
@@ -227,10 +318,9 @@ export function DataTableToolbar<TData extends RowData>(
   props: DataTableToolbarProps<TData>
 ): JSX.Element | null {
   // Dialog state lives here rather than in DataTable: nothing outside this
-  // toolbar opens or reads it.
+  // toolbar opens or reads it. (The bulk edit and delete dialogs own their own
+  // — see BulkEditButton / BulkDeleteButton, which both bars draw.)
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
-  const [bulkEditDialogOpen, setBulkEditDialogOpen] = React.useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
 
   const { selectedIds, table } = props;
   const hasFilters = Boolean(props.filter);
@@ -296,29 +386,7 @@ export function DataTableToolbar<TData extends RowData>(
         {/* Bulk Edit */}
         {props.ModelData.update_api_url && (
           selectedIds.length > 0 ? (
-            <DialogButton
-              key={"dialog-bulk-edit"}
-              isModal={true}
-              size="large"
-              open={bulkEditDialogOpen}
-              onOpenChange={setBulkEditDialogOpen}
-              button={
-                <Button size="sm">
-                  <Pencil size={16} />
-                  {`Edit (${selectedIds.length})`}
-                </Button>
-              }
-              title={`Bulk Edit ${props.ModelData.model_name || "Entries"}`}
-            >
-              <BulkEditModelForm
-                ModelData={props.ModelData as ModelData & { update_api_url: string }}
-                query_invalidation={props.query_invalidation || []}
-                rowSelection={props.rowSelection}
-                setRowSelection={props.setRowSelection}
-                onSuccess={props.onBulkEditSuccess}
-                onClose={() => setBulkEditDialogOpen(false)}
-              />
-            </DialogButton>
+            <BulkEditButton toolbar={props} />
           ) : props.toolbarStyle === "compact" ? (
             <CustomTooltip content="Select records to edit" delayDuration={300}>
               <span>
@@ -334,28 +402,7 @@ export function DataTableToolbar<TData extends RowData>(
 
         {/* Delete */}
         {props.bulk_delete_enabled === false ? null : selectedIds.length > 0 ? (
-          <DialogButton
-            key={"dialog-delete-entry"}
-            isModal={true}
-            open={deleteDialogOpen}
-            onOpenChange={setDeleteDialogOpen}
-            button={
-              <Button size="sm" variant="danger">
-                <Trash2 size={16} />
-                {`Delete (${selectedIds.length})`}
-              </Button>
-            }
-            title="Delete Entries"
-          >
-            <DeleteModelForm
-              key={"delete_entry_form"}
-              delete_api_url={props.ModelData.delete_api_url || ""}
-              query_invalidation={props.query_invalidation || []}
-              rowSelection={props.rowSelection}
-              setRowSelection={props.setRowSelection}
-              onClose={() => setDeleteDialogOpen(false)}
-            />
-          </DialogButton>
+          <BulkDeleteButton toolbar={props} />
         ) : props.toolbarStyle === "compact" ? (
           <CustomTooltip content="Select records to delete" delayDuration={300}>
             <span>

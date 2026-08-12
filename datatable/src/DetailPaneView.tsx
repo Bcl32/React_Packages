@@ -10,6 +10,7 @@ import type { ModelData, RowData } from "@bcl32/data-utils";
 
 import { partitionCells, renderCell } from "./CardCells";
 import { applicableCardActions, CardQuickActions } from "./CardActions";
+import { RowEditButton } from "./RowEditButton";
 import {
   ROW_INDEX_ATTR,
   ROW_SCOPE_ATTR,
@@ -41,6 +42,14 @@ export interface DetailPaneViewProps<TData extends RowData> {
   /** Per-view slot remapping, so a declared view's arrangement reaches the list
    *  items and the pane header — both of which read the same partition. */
   cardSlots?: CardSlotOverrides;
+  /** Draw an edit button in the pane header when the table has no `EditEntry`
+   *  column to draw instead. See `rowEditNode`. */
+  rowEditEnabled?: boolean;
+  query_invalidation?: string[];
+  onEditSuccess?: (
+    formData: Record<string, unknown>,
+    objData: Record<string, unknown>
+  ) => void;
   scrollHandleRef?: React.MutableRefObject<ViewScrollHandle | null>;
   restoreRowIndex?: ScrollRestoreRef;
 }
@@ -379,7 +388,23 @@ export function DetailPaneView<TData extends RowData>(
                 row={activeRow}
                 actions={applicableCardActions(activeRow, props.cardActions)}
               />
-              {activeCells.edit && renderCell(activeCells.edit)}
+              {/* The table's own edit cell when it has one, and otherwise the
+                  package's — the pane draws no columns, so without the
+                  fallback the docked row is the one thing on screen you can
+                  read in full and not change. */}
+              {activeCells.edit ? (
+                renderCell(activeCells.edit)
+              ) : props.rowEditEnabled && props.ModelData.update_api_url ? (
+                <RowEditButton
+                  obj_data={activeRow.original}
+                  ModelData={{
+                    ...props.ModelData,
+                    update_api_url: props.ModelData.update_api_url,
+                  }}
+                  query_invalidation={props.query_invalidation}
+                  onEditSuccess={props.onEditSuccess}
+                />
+              ) : null}
               {activeCells.actions && renderCell(activeCells.actions)}
             </div>
           </header>

@@ -9,7 +9,9 @@ import type { ModelData, RowData } from "@bcl32/data-utils";
 import { columnCardLabel, getCardMeta } from "./ColumnLabels";
 import type { CardSlotOverrides } from "./ColumnLabels";
 import { partitionCells, renderCell } from "./CardCells";
+import type { PartitionedCells } from "./CardCells";
 import { applicableCardActions, CardQuickActions } from "./CardActions";
+import { RowEditButton } from "./RowEditButton";
 import { GalleryTile } from "./GalleryCard";
 import { ROW_INDEX_ATTR } from "./ViewScroll";
 import type { ToolbarAction } from "./ToolbarAction";
@@ -74,6 +76,59 @@ export interface CardRenderOptions<TData extends RowData> {
   /** Per-view slot remapping, applied before the card is partitioned. Reaches
    *  the bespoke card too, through `ctx.slots`. */
   cardSlots?: CardSlotOverrides;
+  /**
+   * Draw a per-row edit button on cards that have no `EditEntry` column to draw
+   * instead. See `rowEditNode` — this is what makes a row editable from a
+   * layout that has no columns.
+   */
+  rowEditEnabled?: boolean;
+  /** Queries the row-edit dialog invalidates on save. */
+  query_invalidation?: string[];
+  onEditSuccess?: (
+    formData: Record<string, unknown>,
+    objData: Record<string, unknown>
+  ) => void;
+}
+
+/**
+ * This row's edit control, or null.
+ *
+ * Two sources, in order: the table's own `EditEntry` cell when it has one, and
+ * otherwise a synthesised `RowEditButton`. Preferring the cell is what stops a
+ * table that already shows a pencil column from growing a second pencil on
+ * every card — and it keeps a consumer's custom edit cell winning over the
+ * package's default, which is why the column exists at all.
+ *
+ * Synthesising is the common case in practice: a card, a gallery tile, a board
+ * lane and a docked detail pane draw no columns, so an edit *column* was never
+ * reachable from any of them.
+ */
+export function rowEditNode<TData extends RowData>(
+  row: Row<TData>,
+  view: CardRenderOptions<TData>,
+  options?: {
+    size?: "icon" | "sm";
+    variant?: "default" | "outline" | "ghost";
+    /** The caller's existing partition. Every card-drawing caller already has
+     *  one, and partitioning walks each row's visible cells — on a grid of
+     *  hundreds of cards a second walk per card is not free. */
+    cells?: PartitionedCells<TData>;
+  }
+): React.ReactNode {
+  const cells = options?.cells ?? partitionCells(row, view.cardSlots);
+  if (cells.edit) return renderCell(cells.edit);
+  const updateUrl = view.ModelData.update_api_url;
+  if (!view.rowEditEnabled || !updateUrl) return null;
+  return (
+    <RowEditButton
+      obj_data={row.original}
+      ModelData={{ ...view.ModelData, update_api_url: updateUrl }}
+      query_invalidation={view.query_invalidation}
+      onEditSuccess={view.onEditSuccess}
+      size={options?.size}
+      variant={options?.variant}
+    />
+  );
 }
 
 /**
@@ -90,6 +145,16 @@ export interface RenderCardContext {
   select: React.ReactNode;
   /** The row-actions (⋯) menu cell, or null when the table has none. */
   actions: React.ReactNode;
+  /**
+   * The row's edit button, or null when the table has no `update_api_url` and
+   * no `EditEntry` column. See `rowEditNode`.
+   *
+   * Given to bespoke cards for the same reason `select` and `actions` are:
+   * without it a `renderCard` consumer has to rebuild the edit dialog by hand,
+   * and in practice they simply didn't — which is how the whole card ladder
+   * ended up with no way to edit the thing you were looking at.
+   */
+  edit: React.ReactNode;
   /**
    * The row's content cells, already rendered and bucketed by card slot — the
    * same partition the default card draws, in column order, after any per-view
@@ -128,6 +193,8 @@ function DefaultCard<TData extends RowData>(props: {
   const { row, view } = props;
   const cells = partitionCells(row, view.cardSlots);
   const quickActions = applicableCardActions(row, view.cardActions);
+  // The full-size card has room for the word, unlike the gallery tile's overlay.
+  const edit = rowEditNode(row, view, { size: "sm", variant: "outline", cells });
 
   return (
     <Card
@@ -210,18 +277,15 @@ function DefaultCard<TData extends RowData>(props: {
         </div>
       )}
 
-      {(cells.footer.length > 0 ||
-        quickActions.length > 0 ||
-        cells.edit ||
-        cells.expander) && (
+      {(cells.footer.length > 0 || quickActions.length > 0 || edit || cells.expander) && (
         <div className="flex flex-wrap items-center gap-2 p-3 pt-0">
           {cells.footer.map((cell) => (
             <React.Fragment key={cell.id}>{renderCell(cell)}</React.Fragment>
           ))}
           <CardQuickActions row={row} actions={quickActions} />
-          {(cells.edit || cells.expander) && (
+          {(edit || cells.expander) && (
             <div className="ml-auto flex items-center gap-1">
-              {cells.edit && renderCell(cells.edit)}
+              {edit}
               {cells.expander && renderCell(cells.expander)}
             </div>
           )}
@@ -255,6 +319,11 @@ export function buildRenderCardContext<TData extends RowData>(
       <span className="[&_label]:!m-0 [&_label]:!p-0">{renderCell(cells.select)}</span>
     ) : null,
     actions: cells.actions ? renderCell(cells.actions) : null,
+    // Icon-sized: a bespoke card is written because the geometry is tight, and
+    // every one of them places its controls in a corner cluster rather than a
+    // footer row. A card with room for a word can still pass `size` by calling
+    // `rowEditNode` itself.
+    edit: rowEditNode(row, view, { cells }),
   };
 }
 
@@ -295,14 +364,28 @@ export function RowCard<TData extends RowData>(props: {
     view.rowClickFunction?.(row.original);
   };
 
-  const inner =
-    view.variant === "gallery" ? (
-      <GalleryTile row={row} clickable={clickable} />
-    ) : view.renderCard ? (
-      view.renderCard(row, buildRenderCardContext(row, view))
-    ) : (
-      <DefaultCard row={row} view={view} clickable={clickable} />
-    );
+  // Partitioned once here and handed to both the tile and its edit node — a
+  // gallery is the densest layout the table draws, so a second walk of every
+  // row's cells is the one worth not doing. Deliberately without `cardSlots`,
+  // which is what the tile has always partitioned by: a gallery places nothing
+  // by slot beyond media and title, and honouring the overrides here would
+  // quietly rearrange existing galleries. The edit lookup is by column id, so
+  // it reads the same either way.
+  const galleryCells =
+    view.variant === "gallery" ? partitionCells(row) : null;
+
+  const inner = galleryCells ? (
+    <GalleryTile
+      row={row}
+      clickable={clickable}
+      cells={galleryCells}
+      edit={rowEditNode(row, view, { cells: galleryCells })}
+    />
+  ) : view.renderCard ? (
+    view.renderCard(row, buildRenderCardContext(row, view))
+  ) : (
+    <DefaultCard row={row} view={view} clickable={clickable} />
+  );
 
   const common = {
     role: "gridcell",

@@ -1,54 +1,14 @@
-import * as React from "react";
 import { createColumnHelper, type ColumnDef, type Row } from "@tanstack/react-table";
-import { ChevronDown, ChevronUp, Pencil } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Checkbox } from "@bcl32/utils/Checkbox";
 
 import dayjs from "dayjs";
 
 import { RowActions } from "./RowActions";
-import { EditModelForm } from "@bcl32/forms/EditModelForm";
-import { DialogButton } from "@bcl32/utils/DialogButton";
-import { Button } from "@bcl32/utils/Button";
+import { RowEditButton } from "./RowEditButton";
 
 import { dayjs_sorter } from "@bcl32/data-utils/dayjs_sorter";
 import type { ModelData, RowData } from "@bcl32/data-utils";
-
-interface EditCellProps {
-  row: Row<RowData>;
-  ModelData: ModelData & { update_api_url: string };
-  query_invalidation: string[];
-  onEditSuccess?: (formData: Record<string, unknown>, objData: Record<string, unknown>) => void;
-}
-
-function EditCell({ row, ModelData, query_invalidation, onEditSuccess }: EditCellProps) {
-  const [open, setOpen] = React.useState(false);
-  return (
-    <div>
-      <DialogButton
-        key={"dialog-" + row.original.id}
-        size="large"
-        open={open}
-        onOpenChange={setOpen}
-        button={
-          <Button size="icon">
-            <Pencil size={18} />
-          </Button>
-        }
-        variant="default"
-        title="Edit Entry"
-      >
-        <EditModelForm
-          key={"entryform_edit_data_entry"}
-          ModelData={ModelData}
-          query_invalidation={query_invalidation}
-          obj_data={row.original}
-          onSuccess={onEditSuccess}
-          onClose={() => setOpen(false)}
-        />
-      </DialogButton>
-    </div>
-  );
-}
 
 interface ColumnGeneratorProps {
   custom_columns: ColumnDef<RowData, unknown>[];
@@ -74,8 +34,8 @@ export function ColumnGenerator({
     minSize: 56,
     maxSize: 56,
     cell: ({ row }) => (
-      <EditCell
-        row={row}
+      <RowEditButton
+        obj_data={row.original}
         ModelData={ModelData}
         query_invalidation={query_invalidation}
         onEditSuccess={onEditSuccess}

@@ -106,6 +106,26 @@ interface DataTableProps<TData extends RowData> {
   virtualized?: boolean;
   estimatedRowHeight?: number;
   onBulkEditSuccess?: (selectedIds: string[], enabledData: Record<string, unknown>) => void;
+  /** Notified after a single-row edit saves, from the package's own edit
+   *  button. (The `EditEntry` column and the ⋯ menu take their own callback
+   *  through `ColumnGenerator`.) */
+  onEditSuccess?: (
+    formData: Record<string, unknown>,
+    objData: Record<string, unknown>
+  ) => void;
+  /**
+   * Give every row its own edit button in the layouts that draw no columns —
+   * cards, gallery, board, sections and the detail pane. Defaults to on
+   * wherever `ModelData.update_api_url` is set.
+   *
+   * On by default because the alternative was the status quo: the package's
+   * edit dialog only ever existed as a *column* (`EditEntry`) or as an item in
+   * the ⋯ menu, both of which are table furniture, so a page that worked from
+   * cards had no way to change the thing it was showing. A table that already
+   * draws a visible `EditEntry` cell keeps drawing that one instead — see
+   * `rowEditNode` — so nothing doubles up.
+   */
+  rowEditEnabled?: boolean;
   toolbarActions?: (selectedIds: string[]) => ToolbarAction<TData>[];
   bulk_delete_enabled?: boolean;
   /** Controlled view. A built-in layout name, or the `key` of one of the
@@ -380,6 +400,14 @@ export function DataTable<TData extends RowData>(
   const toolbarActions = props.toolbarActions?.(selectedIds) ?? [];
   const cardActions = toolbarActions.filter((action) => action.card);
 
+  // The four card-shaped layouts take the same three edit props; collected here
+  // so adding a fifth layout is one spread rather than three more lines each.
+  const rowEdit = {
+    rowEditEnabled: props.rowEditEnabled ?? Boolean(props.ModelData.update_api_url),
+    query_invalidation: props.query_invalidation,
+    onEditSuccess: props.onEditSuccess,
+  };
+
   const handleRowClick = props.rowClickFunction || ((_data: TData) => {
     // no-op default
   });
@@ -466,6 +494,7 @@ export function DataTable<TData extends RowData>(
                 renderSubComponent={renderSubComponent}
                 cardActions={cardActions}
                 cardSlots={activeView.cardSlots}
+                {...rowEdit}
                 scrollHandleRef={viewScrollRef}
                 restoreRowIndex={restoreRowIndexRef}
               />
@@ -483,6 +512,7 @@ export function DataTable<TData extends RowData>(
                 renderCard={renderCard}
                 cardActions={cardActions}
                 cardSlots={activeView.cardSlots}
+                {...rowEdit}
                 scrollHandleRef={viewScrollRef}
                 restoreRowIndex={restoreRowIndexRef}
                 animate={props.animate}
@@ -501,6 +531,7 @@ export function DataTable<TData extends RowData>(
                 renderCard={renderCard}
                 cardActions={cardActions}
                 cardSlots={activeView.cardSlots}
+                {...rowEdit}
                 scrollHandleRef={viewScrollRef}
                 restoreRowIndex={restoreRowIndexRef}
                 animate={props.animate}
@@ -521,6 +552,7 @@ export function DataTable<TData extends RowData>(
                 renderCard={renderCard}
                 cardActions={cardActions}
                 cardSlots={activeView.cardSlots}
+                {...rowEdit}
                 scrollHandleRef={viewScrollRef}
                 restoreRowIndex={restoreRowIndexRef}
                 animate={props.animate}

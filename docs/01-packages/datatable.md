@@ -178,7 +178,9 @@ All primitives have the signature `React.ForwardRefExoticComponent<React.HTMLAtt
 | `CardMeta` | type (interface) | Shape of a column's `meta.card` slot hint (see [Card view](#card-view)). |
 | `DataTableToolbar` | component | The two-zone toolbar (see [Toolbar anatomy](#toolbar-anatomy)). Rendered by `DataTable`; rarely used directly. |
 | `SortControl` | component | Field + direction sort for **both** layouts. `CardSortControl` remains as a deprecated alias. |
-| `RenderCardContext` | type (interface) | What a bespoke `renderCard` receives besides the row — the quick actions, select cell, and row-actions menu (see [Bespoke cards](#bespoke-cards-rendercard)). |
+| `RenderCardContext` | type (interface) | What a bespoke `renderCard` receives besides the row — the quick actions, select cell, edit button, and row-actions menu (see [Bespoke cards](#bespoke-cards-rendercard)). |
+| `RowEditButton` | component | "Edit this one row", as a button owning its own dialog. Drawn by the `EditEntry` cell and by every card-shaped layout (see [Row editing](#row-editing)). |
+| `rowEditNode` | util | Resolves a row's edit control — the visible `EditEntry` cell, else a synthesised `RowEditButton`, else null. |
 | `ViewScrollHandle` | type (interface) | The scroll hand-off contract both layouts implement so a view toggle can keep its position. |
 | `ROW_INDEX_ATTR` / `ROW_SCOPE_ATTR` | const | DOM attribute names both layouts stamp for that hand-off. |
 | `CardViewProps` / `TableViewProps` | type (interface) | Props of the two view components. |
@@ -216,6 +218,8 @@ DataTable<TData extends RowData>(props: {
   virtualized?: boolean;
   estimatedRowHeight?: number;
   onBulkEditSuccess?: (selectedIds: string[], enabledData: Record<string, unknown>) => void;
+  onEditSuccess?: (formData, objData) => void;   // after a single-row save from the package's edit button
+  rowEditEnabled?: boolean;                      // per-row edit button in the column-less layouts; see Row editing
   toolbarActions?: (selectedIds: string[]) => ToolbarAction<TData>[];
   bulk_delete_enabled?: boolean;
   view?: string;                                 // controlled view — a layout name or a declared view's key
@@ -379,7 +383,7 @@ where to place those two nodes, so the zone split needs nothing from consumers.
 |---|---|
 | `"standard"` (default) | Both zones, as drawn above. Edit / delete appear only once something is selected. |
 | `"compact"` | As standard, but edit and delete stay visible as disabled ghost icon buttons at rest, so the actions advertise themselves. |
-| `"quiet"` | **Nothing at rest.** Once rows are selected, one slim bar in the toolbar's place: `N selected` · `CardSelectAllControl` · the `toolbarActions` as buttons · `Clear`. No title, filters, sort, view toggle or card-size control. |
+| `"quiet"` | **Nothing at rest.** Once rows are selected, one slim bar in the toolbar's place: `N selected` · `CardSelectAllControl` · `Edit (n)` · the `toolbarActions` as buttons · `Delete (n)` · `Clear`. No title, filters, sort, view toggle or card-size control. |
 | `"none"` | No toolbar at all. |
 
 Orthogonal to all four: **`hideViewToggle`** suppresses the layout toggle wherever the toolbar would have drawn it, for a consumer that renders the switch itself. The table still owns the shape through `view` / `onViewChange` — only the control moves. Print-Tracker's section headers do this, so a wall of section cards carries one folded-away trigger each instead of five permanent icon buttons.
@@ -399,11 +403,48 @@ wants a switch draws its own and passes `hideViewToggle`, which is independent o
 toolbar there is, and `"none"` then removes it — which is a real trap, since
 "the page owns bulk actions" says nothing about who owns the shape.
 
-The quiet bar deliberately carries **no bulk edit or delete dialog** — those
-belong to the table that owns the entity, not to a section view of it. Anything
-a section does want, it declares through `toolbarActions` as usual; both
-toolbars render those through the same code, so an action never has to be
-written twice.
+The quiet bar draws bulk **Edit** and **Delete** under the same gates the
+standard toolbar uses (`ModelData.update_api_url`, `bulk_delete_enabled`), and
+through the same `BulkEditButton` / `BulkDeleteButton` components — as it does
+the `toolbarActions`, so nothing has to be written twice. It carried neither
+until 2.12, on the reasoning that they belonged to the table that owns the
+entity rather than a section view of it; in practice the quiet bar is what
+*every* layout below full width draws, so the effect was that ticking a
+checkbox anywhere but the Table shape led nowhere, and the standard toolbar the
+argument pointed at is exactly the one those shapes hide.
+
+### Row editing
+
+Two independent routes, resolved per row by `rowEditNode(row, view)`:
+
+1. the table's own **`EditEntry` cell**, when `ColumnGenerator` was called with
+   `add_edit: true` and the column is visible;
+2. otherwise a synthesised **`RowEditButton`**, when `rowEditEnabled` is on and
+   `ModelData.update_api_url` is set.
+
+The column wins, so a table already drawing a pencil never grows a second one,
+and a consumer's custom edit cell keeps beating the package's default.
+
+`rowEditEnabled` defaults to `Boolean(ModelData.update_api_url)`. It is on by
+default because the edit dialog only ever existed as a *column* or as an item
+in the ⋯ menu — both table furniture — so cards, gallery tiles, board lanes,
+grouped sections and the docked detail pane, none of which draw columns, had no
+edit route at all. Pass `rowEditEnabled={false}` for a table whose rows are
+edited somewhere else entirely.
+
+Where each layout puts it:
+
+| Layout | Placement |
+|---|---|
+| `table` | the `EditEntry` column, or the ⋯ menu's Edit item — unchanged |
+| `cards` / `board` / `sections` | the card footer, right-aligned beside the expander |
+| `gallery` | the top-right hover overlay, beside the ⋯ menu |
+| `detail` | the pane header, beside the docked card actions |
+| bespoke `renderCard` | wherever the card puts `ctx.edit` |
+
+`onEditSuccess` is notified after a save from the package's own button. (The
+`EditEntry` column and the ⋯ menu take their own callback through
+`ColumnGenerator`, which is where those two are built.)
 
 ### Row selection
 
@@ -548,7 +589,7 @@ With only one available view the toggle disappears entirely.
 
 Cards derive their content from the **visible** column cells (the column-visibility dropdown therefore controls which fields appear on cards):
 
-- Control columns (by id — `CONTROL_COLUMN_IDS`) get fixed positions: `select` checkbox top-left, `actions` (RowActions) top-right, `EditEntry` + `expander` in the card footer. Their existing cell renderers are reused verbatim via `flexRender`.
+- Control columns (by id — `CONTROL_COLUMN_IDS`) get fixed positions: `select` checkbox top-left, `actions` (RowActions) top-right, the edit control + `expander` in the card footer. Their existing cell renderers are reused verbatim via `flexRender`. The footer's edit control is `rowEditNode`, so it is the `EditEntry` cell on a table that has one and a synthesised button otherwise — see [Row editing](#row-editing).
 - Every other cell places itself via `meta: { card: CardMeta }` on its `ColumnDef`:
 
 ```ts
@@ -595,6 +636,7 @@ interface RenderCardContext {
   quickActions: ReactNode;  // the row's `card` toolbar actions, rendered
   select: ReactNode;        // the select checkbox cell, or null
   actions: ReactNode;       // the RowActions (⋯) menu cell, or null
+  edit: ReactNode;          // the row's edit button, or null — see below
   slots: {                  // the content cells, rendered and bucketed by slot
     media: ReactNode[]; title: ReactNode[]; badge: ReactNode[];
     body: ReactNode[]; footer: ReactNode[];
