@@ -1,6 +1,6 @@
 # @bcl32/themes
 
-> Reference doc · package `@bcl32/themes` · version `2.2.0` · tier **mid**
+> Reference doc · package `@bcl32/themes` · version `5.0.0` · tier **mid**
 >
 > Back to [packages overview](../00-OVERVIEW.md)
 
@@ -172,7 +172,14 @@ processing (e.g. building a theme-editor UI from the token descriptions).
 - **Live edits are runtime CSS-variable overrides.** Both `Theming` and
   `ThemeGenerator` write directly to
   `document.documentElement.style.setProperty('--<var-name>', …)`. These inline
-  overrides sit on top of the `data-theme` stylesheet and are not persisted.
+  overrides sit on top of the `data-theme` stylesheet. Slider edits are transient
+  until **Save**, which persists the diff-against-base to
+  `localStorage['bcl32-theme-overrides']` (`themeOverrides.ts`); `ImportTheme`
+  applies *and* saves immediately. `applyResolvedTheme()` clears every known
+  token before re-applying, so switching themes cannot leave a stale inline pin.
+- **`dark:` follows the selected theme, not the OS.** As of 5.0.0 the preset sets
+  `darkMode`, binding Tailwind's `dark:` variant to `data-theme`. Do not assume
+  `prefers-color-scheme` — see [Dark variant](#dark-variant-new-in-500).
 - **`themes.json` stores `hsl()` function strings**, e.g. `"hsl(229 57% 100%)"` — not
   raw `h s% l%` space-separated values. The editor flow relies on `hslToObject` to
   parse this specific format.
@@ -211,6 +218,41 @@ The preset:
 - Adds the `shine` keyframes/animation Tailwind theme extension that backs
   `@bcl32/utils` `Button`'s `shine` CVA variant, so consumer apps get it without
   hand-copying it.
+- Sets `darkMode` so the `dark:` variant tracks `data-theme` — see below.
+
+### Dark variant (new in 5.0.0)
+
+Before 5.0.0 the preset set no `darkMode`, so Tailwind fell back to its stock
+`darkMode: "media"` and compiled every `dark:` utility into
+`@media (prefers-color-scheme: dark)`. That gated `dark:` on the viewer's
+**operating system**, with no connection to the `data-theme` attribute
+`ThemeProvider` writes — two systems sharing a word and nothing else.
+
+Six of the nine themes are dark-background (`dark`, `green`, `yellow`, `red`,
+`purple`, `dark-blue`), so the mismatch was the normal case: selecting any of the
+five *not* named `dark` on an OS set to light left every `dark:` class inert,
+painting light-mode colours over a dark background.
+
+The preset now derives the dark-theme list from `themes.json` by the same
+background-lightness rule as `isLightTheme` — so it cannot drift as themes are
+added or retuned — and emits a single variant:
+
+```js
+darkMode: ["variant", `&:where(${darkRoots}, ${darkRoots} *)`]
+// darkRoots = :is([data-theme="dark"],[data-theme="green"],…)
+```
+
+All six themes collapse into one `:is()` selector deliberately: a selector list
+would emit a separate copy of every `dark:` rule per theme. `:where()` adds no
+specificity, so utility ordering is unchanged.
+
+OS preference is not discarded — it enters at exactly one point. The `system`
+theme still resolves to `light`/`dark` via `matchMedia` in `ThemeProvider`, and
+everything downstream reads `data-theme`.
+
+A consumer that genuinely wants OS-following behaviour can set
+`darkMode: "media"` in its own `tailwind.config.js`; a consumer-level key
+overrides the preset.
 
 This makes `themes.json` the **single source of truth** for the palette: apps no
 longer hand-copy a `createThemes({...})` block with every HSL value into their own
@@ -233,11 +275,32 @@ those two names, so neither can be renamed or removed without editing that
 resolver. The rest are free to add, rename or drop — `theme_options` is derived
 from `Object.keys(themes.json)`, so the picker follows the file automatically.
 
-Every theme now also defines a `warning` / `warning-foreground` token pair (new in
+Every theme also defines a `warning` / `warning-foreground` token pair (new in
 2.2.0 — added to every theme and to `style_metadata.json`'s field descriptions:
 *"Used for warning states such as caution badges and partial-success statuses"*).
 Consumer apps with hardcoded `bg-amber-*`/`bg-yellow-*` warning-badge colours can now
-migrate to the semantic `bg-warning`/`text-warning-foreground` tokens.
+migrate to the semantic `bg-warning`/`text-warning`/`text-warning-foreground` tokens.
+
+**`warning` is tuned per theme as of 5.0.0.** From 2.2.0 to 4.1.0 it was the one
+token `themes.json` never varied — `hsl(38 92% 50%)` in all nine themes, while
+`primary`, `destructive` and `success` were all theme-specific. That fixed
+mid-amber only contrasted against dark surfaces, so on the light themes
+`text-warning` measured **1.97:1** and the token was unusable for text; consumers
+worked around it with hardcoded `text-amber-700 dark:text-amber-300` pairs.
+
+It now follows the same shape as `success`: the light themes take a dark amber
+(~32–34% lightness) with a near-white foreground, and the six dark themes take a
+50%-lightness amber with a dark foreground. Hue shifts per theme where the default
+amber would collide with that theme's own palette — `yellow` and `light-gold` move
+toward orange to clear their amber/gold `primary`, `red` moves yellower to clear
+both its `primary` and `destructive`.
+
+Every theme clears WCAG AA (4.5:1) on all three of: `text-warning` on
+`background`, `text-warning` on a `bg-warning/10` tint, and `warning-foreground`
+on solid `warning` — worst case 4.53:1 (`yellow`, on tint). Perceptual separation
+from each theme's `primary`, `destructive` and `success` is ΔE ≥ 25.7. Keep those
+two properties in mind when retuning: a warning colour that fails on a tint is the
+failure mode that reintroduces the hardcoded-amber workaround.
 
 ## Known Smells & Caveats
 
