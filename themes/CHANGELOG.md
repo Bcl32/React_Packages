@@ -1,5 +1,70 @@
 # @bcl32/themes
 
+## 5.0.0
+
+### Major Changes
+
+- 6834040: Bind Tailwind's `dark:` variant to `data-theme` instead of the OS colour scheme.
+
+  The preset now sets `darkMode`. Previously it set nothing, so Tailwind fell back
+  to its stock `darkMode: "media"` and compiled every `dark:` utility into
+  `@media (prefers-color-scheme: dark)` — gated on the viewer's **operating system**
+  and completely independent of the `data-theme` attribute `ThemeProvider` writes.
+  The two systems shared the word "dark" and nothing else.
+
+  Because six of the nine themes are dark-background (`dark`, `green`, `yellow`,
+  `red`, `purple`, `dark-blue`), the mismatch was the normal case rather than an
+  edge case: selecting any of the five not named `dark` on an OS set to light left
+  every `dark:` class inert, painting light-mode colours over a dark background;
+  the light themes inverted the same way on an OS set to dark.
+
+  `darkMode` is now a `variant` keyed off the dark themes, derived from
+  `themes.json` by the same background-lightness rule as `isLightTheme` so the two
+  cannot drift as themes are added or retuned. All six collapse into one `:is()`
+  selector — a selector list would emit a separate copy of every `dark:` rule per
+  theme. `:where()` contributes no specificity, so utility ordering is unchanged.
+
+  OS preference is not lost, it just enters at one point: the `system` theme still
+  resolves to `light`/`dark` in `ThemeProvider`, and everything downstream follows
+  `data-theme`.
+
+  **Breaking for consumers.** Every existing `dark:` utility changes what it
+  responds to. Apps whose `dark:` pairs were authored and eyeballed under an
+  OS-matched theme will look the same; apps relying on OS-following behaviour, or
+  carrying `dark:` pairs never checked against the non-`dark` dark themes, will
+  render differently. This is a major bump specifically so the change cannot arrive
+  through a `^4` caret — each app opts in and gets a visual pass. A consumer that
+  genuinely wants the old behaviour can set `darkMode: "media"` in its own
+  `tailwind.config.js`, which overrides the preset.
+
+### Minor Changes
+
+- 6834040: Tune `warning` / `warning-foreground` per theme.
+
+  `warning` was the one token `themes.json` never varied — `hsl(38 92% 50%)` in all
+  nine themes, with the same `warning-foreground` beneath it, while `primary`,
+  `destructive` and `success` were all tuned per theme. That fixed mid-amber only
+  ever contrasted against dark surfaces: on the light themes `text-warning`
+  measured **1.97:1**, so the token could not be used for text and consumers fell
+  back to hardcoded `text-amber-700 dark:text-amber-300` pairs.
+
+  Each theme now gets its own value, following the same shape as `success`: the
+  light themes (`light`, `light-blue`, `light-gold`) take a dark amber around 32-34%
+  lightness with a near-white foreground, and the six dark themes take a 50%
+  lightness amber with a dark foreground. Hue is shifted per theme where the
+  default amber would have collided with that theme's own palette — `yellow` and
+  `light-gold` move toward orange to clear their amber/gold `primary`, and `red`
+  moves yellower to stay clear of both its `primary` and `destructive`.
+
+  Every theme now clears WCAG AA (4.5:1) on all three of: `text-warning` on
+  `background`, `text-warning` on a `bg-warning/10` tint, and `warning-foreground`
+  on solid `warning`. Worst case is 4.53:1 (`yellow`, on tint). Perceptual
+  separation from each theme's `primary`, `destructive` and `success` is ΔE ≥ 25.7
+  (worst: `yellow` vs `destructive`).
+
+  Consumers currently working around the old value with hardcoded amber pairs can
+  switch to `text-warning` / `bg-warning` and drop the `dark:` variant.
+
 ## 4.1.0
 
 ### Minor Changes

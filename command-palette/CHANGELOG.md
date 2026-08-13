@@ -1,5 +1,13 @@
 # @bcl32/command-palette
 
+## 1.1.1
+
+### Patch Changes
+
+- Updated dependencies [6834040]
+- Updated dependencies [6834040]
+  - @bcl32/themes@5.0.0
+
 ## 1.1.0
 
 ### Minor Changes

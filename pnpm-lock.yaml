@@ -52,7 +52,7 @@ importers:
         specifier: workspace:^4.0.0
         version: link:../hooks
       '@bcl32/themes':
-        specifier: workspace:^4.0.0
+        specifier: workspace:^5.0.0
         version: link:../themes
       '@bcl32/utils':
         specifier: workspace:^2.7.1
