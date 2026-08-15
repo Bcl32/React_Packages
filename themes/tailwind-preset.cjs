@@ -35,14 +35,49 @@ module.exports = {
     extend: {
       // Backs @bcl32/utils Button's `shine` variant (animate-shine); lives in
       // the preset so every consumer app gets it without hand-copying.
+      //
+      // The dialog-* pairs back @bcl32/utils DialogButton, and are here for a
+      // sharper reason than convenience. They used to be written at the call
+      // site as arbitrary values (`animate-[dialog-content-hide_200ms]`), which
+      // emit the `animation` shorthand but never consult `keyframes` — so every
+      // consumer app had to hand-copy the four @keyframes blocks into its own
+      // index.css, and an app that didn't got a dialog that opens and cannot
+      // close: Radix's Presence reads the computed animation-name on
+      // data-state="closed" and waits for an `animationend` that never fires
+      // when the keyframes are undefined, leaving the dialog mounted at full
+      // opacity with Escape and the X button both apparently dead. Naming the
+      // animations here makes Tailwind emit the @keyframes wherever the utility
+      // is used, so the contract travels with the component.
       keyframes: {
         shine: {
           from: { backgroundPosition: "200% 0" },
           to: { backgroundPosition: "-200% 0" },
         },
+        "dialog-overlay-show": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "dialog-overlay-hide": {
+          from: { opacity: "1" },
+          to: { opacity: "0" },
+        },
+        "dialog-content-show": {
+          from: { opacity: "0", transform: "translate(-50%, -50%) scale(0.95)" },
+          to: { opacity: "1", transform: "translate(-50%, -50%) scale(1)" },
+        },
+        "dialog-content-hide": {
+          from: { opacity: "1", transform: "translate(-50%, -50%) scale(1)" },
+          to: { opacity: "0", transform: "translate(-50%, -50%) scale(0.95)" },
+        },
       },
       animation: {
         shine: "shine 8s ease-in-out infinite",
+        // Durations live here rather than at the call site, which is where the
+        // arbitrary-value form had to restate 200ms four times.
+        "dialog-overlay-show": "dialog-overlay-show 200ms",
+        "dialog-overlay-hide": "dialog-overlay-hide 200ms",
+        "dialog-content-show": "dialog-content-show 200ms",
+        "dialog-content-hide": "dialog-content-hide 200ms",
       },
     },
   },

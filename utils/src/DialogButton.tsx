@@ -4,8 +4,17 @@ import { X } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "./cn";
 
+// The animate-dialog-* utilities below are NAMED animations defined in
+// @bcl32/themes' tailwind-preset, not arbitrary values — and that distinction is
+// load-bearing. An arbitrary `animate-[dialog-content-hide_200ms]` emits the
+// animation shorthand without ever emitting @keyframes, so it only worked in
+// apps that had hand-copied the keyframes into their own index.css; an app that
+// hadn't got a dialog that opens and then cannot close, because Radix's Presence
+// waits for an `animationend` that a nonexistent animation never fires. Keeping
+// them named means Tailwind emits the keyframes from the preset wherever this
+// component is used. See the matching comment in tailwind-preset.cjs.
 const contentVariants = cva(
-  "-translate-x-1/2 -translate-y-1/2 z-50 rounded-md p-8 text-gray-900 shadow max-h-[calc(100vh-4rem)] overflow-y-auto data-[state=closed]:animate-[dialog-content-hide_200ms] data-[state=open]:animate-[dialog-content-show_200ms]",
+  "-translate-x-1/2 -translate-y-1/2 z-50 rounded-md p-8 text-gray-900 shadow max-h-[calc(100vh-4rem)] overflow-y-auto data-[state=closed]:animate-dialog-content-hide data-[state=open]:animate-dialog-content-show",
   {
     variants: {
       variant: {
@@ -47,7 +56,7 @@ function ModalContent({
 }: ModalContentProps) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=closed]:animate-[dialog-overlay-hide_200ms] data-[state=open]:animate-[dialog-overlay-show_200ms]" />
+      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=closed]:animate-dialog-overlay-hide data-[state=open]:animate-dialog-overlay-show" />
       <DialogPrimitive.Content
         className={cn(contentVariants({ variant, size }), className)}
         {...props}
