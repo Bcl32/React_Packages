@@ -1,5 +1,11 @@
 # @bcl32/hooks
 
+## 4.2.0
+
+### Minor Changes
+
+- 7e8ce97: `useApiMutation` accepts hook-level `onError` / `onSuccess` / `meta`. Caller `onSuccess` runs after `invalidateKeys` invalidation; hook-level `onError` doubles as the opt-out signal for an app-wide `MutationCache.onError` default toast (global handlers can't see mutate-time callbacks), with `meta: { silenceErrorToast: true }` as the handler-less opt-out.
+
 ## 4.1.0
 
 ### Minor Changes
