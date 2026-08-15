@@ -17,8 +17,20 @@ function formatValidationDetail(detail: unknown): string | null {
   return path ? `${path}: ${msg}` : msg;
 }
 
+export interface ApiFetchOptions extends RequestInit {
+  /**
+   * Abort the request after this many milliseconds and throw
+   * `ApiError{status: 0, code: "request_timeout"}`. Composes with a
+   * caller-supplied `signal` when `AbortSignal.any` is available.
+   * Default: no timeout — long-running mutations (slicing, uploads) must not
+   * be cut off silently. `useGetRequest` applies a 30s default for GETs.
+   */
+  timeoutMs?: number | null;
+}
+
 /**
- * `fetch` wrapper that throws an {@link ApiError} on any non-OK response.
+ * `fetch` wrapper that throws an {@link ApiError} on any non-OK response
+ * — and on any failure that never produced a response at all.
  *
  * The plain `fetch` API doesn't throw on 4xx/5xx — it returns the response
  * with `res.ok === false` and lets the caller deal with it. Every consumer
@@ -35,12 +47,52 @@ function formatValidationDetail(detail: unknown): string | null {
  * usable `ApiError` — they just won't have a meaningful `code` (it falls
  * back to "unknown_error"), and validation-array messages get formatted
  * into a friendly "field: reason" form.
+ *
+ * Failures with no HTTP response are normalised so `error.status` is always
+ * a number (`0` = the request never reached the server):
+ *   - offline / DNS / TLS (`fetch` rejects with `TypeError`)
+ *       → `ApiError{status: 0, code: "network_error"}`
+ *   - `timeoutMs` elapsed → `ApiError{status: 0, code: "request_timeout"}`
+ *   - caller-initiated aborts (including TanStack Query cancelling an
+ *     unmounted query) are re-thrown untouched so they keep their
+ *     cancellation semantics.
  */
 export async function apiFetch(
   input: RequestInfo | URL,
-  opts?: RequestInit,
+  opts?: ApiFetchOptions,
 ): Promise<Response> {
-  const res = await fetch(input, opts);
+  const { timeoutMs, ...init } = opts ?? {};
+  let signal = init.signal ?? undefined;
+  if (timeoutMs && timeoutMs > 0 && typeof AbortSignal.timeout === "function") {
+    const timer = AbortSignal.timeout(timeoutMs);
+    signal =
+      signal && typeof AbortSignal.any === "function"
+        ? AbortSignal.any([signal, timer])
+        : (signal ?? timer);
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(input, { ...init, signal });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "TimeoutError") {
+      throw new ApiError({
+        code: "request_timeout",
+        status: 0,
+        message: `No response after ${Math.round((timeoutMs ?? 0) / 1000)}s`,
+      });
+    }
+    if (err instanceof DOMException && err.name === "AbortError") throw err;
+    if (err instanceof TypeError) {
+      throw new ApiError({
+        code: "network_error",
+        status: 0,
+        message: "Network error — the request never reached the server",
+        details: { cause: String(err.message ?? err) },
+      });
+    }
+    throw err;
+  }
   if (res.ok) return res;
 
   let body: any = null;

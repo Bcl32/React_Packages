@@ -21,6 +21,10 @@
       "types": "./dist/apiFetch.d.ts",
       "import": "./dist/apiFetch.js"
     },
+    "./queryDefaults": {
+      "types": "./dist/queryDefaults.d.ts",
+      "import": "./dist/queryDefaults.js"
+    },
     "./useDatabaseMutation": {
       "types": "./dist/useDatabaseMutation.d.ts",
       "import": "./dist/useDatabaseMutation.js"
