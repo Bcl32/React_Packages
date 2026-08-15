@@ -56,7 +56,7 @@ import { Button, buttonVariants } from "@bcl32/utils/Button";
 `Alert`, `AnimatedTabs`, `AnimatedFileSystem`, `ShowHierarchy`, `ToggleGroup`,
 `DateTimePicker`, `Dialog`, `DialogButton`, `Sidebar`, `Select`, `Button`, `Input`, `Label`,
 `Card`, `Separator`, `Skeleton`, `Sheet`, `Checkbox`, `Dropdown`, `Tooltip`,
-`RadioButton`, `Slider`, `Breadcrumb`, `Stepper`, `useIsMobile`, `FileSystem`,
+`RadioButton`, `Slider`, `Breadcrumb`, `Stepper`, `useIsMobile`,
 `StatusBanner`, `ColourPickerPopover`, `Combobox`, `cn`.
 
 ## Dependencies
@@ -92,7 +92,6 @@ These must be provided by the consuming app:
 | --- | --- |
 | `framer-motion` | `^11.0.0` |
 | `@headlessui/react` | `^2.1.1` |
-| `@heroicons/react` | `^2.1.0` |
 | `clsx` | `^2.1.0` |
 | `lucide-react` | `^0.447.0` |
 | `react-day-picker` | `^9.4.0` (new in 2.5.0 — powers `DateTimePicker`'s calendar) |
@@ -107,7 +106,6 @@ These must be provided by the consuming app:
 - **Tailwind CSS** — all styling
 - **framer-motion** — `AnimatedTabs`, `AnimatedFileSystem`
 - **lucide-react** — icons throughout
-- **@heroicons/react** — `FileSystem.tsx` only
 - **react-day-picker** — `DateTimePicker`'s calendar grid (new in 2.5.0)
 
 ## Public Exports
@@ -298,8 +296,6 @@ These must be provided by the consuming app:
 | `AnimatedFileSystem` | component | `({ node: AnimatedFileNode }) => JSX` | Recursive **animated** tree node (framer-motion height animation, lucide icons). |
 | `AnimatedFileNode` | type | `{ name: string; value?: string \| number; nodes?: AnimatedFileNode[] }` | Node interface for `AnimatedFileSystem`. |
 | `ShowHierarchy` | component | `({ json_data: Record<string, unknown> }) => JSX` | Converts a plain JSON object to an `AnimatedFileSystem` tree; renders all top-level keys as expandable nodes. |
-| `FilesystemItem` | component | `({ node: FileSystemNode }) => JSX` | **Non-animated** recursive file-tree node using heroicons; no framer-motion dependency. |
-| `FileSystemNode` | type | `{ name: string; nodes?: FileSystemNode[] }` | Node interface for `FilesystemItem`. |
 
 ### Colour picker
 
@@ -351,10 +347,6 @@ These must be provided by the consuming app:
   wrapper (`Select.tsx`). The peer dep is misleading.
 - **`StatusBanner` is Vite-bound.** It reads `import.meta.env.DEV` directly, so it
   will throw at runtime in non-Vite bundlers (webpack, standalone esbuild, etc.).
-- **Duplicate file-tree implementations.** `FileSystem.tsx` (heroicons, no
-  animation) and `AnimatedFileSystem.tsx` (lucide, framer-motion) serve the same
-  purpose with different icon sets and no shared abstraction. `ShowHierarchy`
-  wraps `AnimatedFileSystem` only.
 - **`RadioButton` has an idiosyncratic API** (`interval_name`, `value: unknown`,
   `timeChange: unknown`) inconsistent with the library's `forwardRef` +
   `HTMLAttributes` conventions; `timeChange` is typed `unknown` and undocumented.

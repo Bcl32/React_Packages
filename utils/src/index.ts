@@ -24,7 +24,6 @@ export * from "./Slider";
 export * from "./Breadcrumb";
 export * from "./Stepper";
 export * from "./useIsMobile";
-export * from "./FileSystem";
 
 export * from "./StatusBanner";
 export * from "./ColourPickerPopover";

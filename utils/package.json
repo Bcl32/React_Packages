@@ -113,10 +113,6 @@
       "types": "./dist/useIsMobile.d.ts",
       "import": "./dist/useIsMobile.js"
     },
-    "./FileSystem": {
-      "types": "./dist/FileSystem.d.ts",
-      "import": "./dist/FileSystem.js"
-    },
     "./StatusBanner": {
       "types": "./dist/StatusBanner.d.ts",
       "import": "./dist/StatusBanner.js"
@@ -169,7 +165,6 @@
   "dependencies": {
     "framer-motion": "^11.0.0",
     "@headlessui/react": "^2.1.1",
-    "@heroicons/react": "^2.1.0",
     "clsx": "^2.1.0",
     "lucide-react": "^0.447.0",
     "react-day-picker": "^9.4.0",

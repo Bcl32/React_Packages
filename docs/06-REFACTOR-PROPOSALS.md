@@ -185,7 +185,7 @@ Duplicated theme source of truth:
 
 **Problem.** Beyond the app layer, the packages themselves carry copy-paste that should be a shared internal module.
 
-- `@bcl32/utils`: `SheetOverlay` and `DialogOverlay` are identical (`fixed inset-0 z-50 bg-black/80` + identical animation classes). Two file-tree implementations — `FileSystem.tsx` (heroicons, no animation) and `AnimatedFileSystem.tsx` (lucide, framer-motion) — serve the same purpose with no shared abstraction; only `AnimatedFileSystem` is wrapped by `ShowHierarchy`.
+- `@bcl32/utils`: `SheetOverlay` and `DialogOverlay` are identical (`fixed inset-0 z-50 bg-black/80` + identical animation classes).
 - `@bcl32/forms`: `LabelWithHelp` is duplicated verbatim across `FormElement.tsx`, `ColourField.tsx`, and `ColourArrayField.tsx`. `dayjs.extend(utc)/extend(timezone)` is called at module scope in three form files (`AddModelForm`, `EditModelForm`, `BulkEditModelForm`).
 - `@bcl32/hooks`: `useDatabaseMutation` and `useApiMutation` are near-duplicate wrappers over the same `buildRequestBody`+`apiFetch`+`res.json()`; they differ only in payload-binding time and `invalidateKeys` shape.
 - `@bcl32/datatable`: `RowActions` and the private `EditCell` inside `ColumnGenerator` both open the same `EditModelForm` in a `DialogButton` — copy-paste with no shared abstraction.
