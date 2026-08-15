@@ -1,5 +1,11 @@
 # @bcl32/utils
 
+## 2.10.1
+
+### Patch Changes
+
+- 25838eb: fix(utils,themes): move dialog keyframes into the preset as named animations
+
 ## 2.10.0
 
 ### Minor Changes
