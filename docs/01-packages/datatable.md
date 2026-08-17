@@ -230,7 +230,8 @@ DataTable<TData extends RowData>(props: {
   renderCard?: (row: Row<TData>, ctx: RenderCardContext) => ReactNode;  // card view: replace the default card
   renderCardWrapper?: (row, wrapperProps, children) => ReactNode;  // card-shaped views: take over the outer wrapper — the drag seam
   renderSectionWrapper?: (section, sectionProps, children) => ReactNode;  // sections view: take over each section's grid element — the section drag seam
-  sectionHeaderActions?: (section) => ReactNode; // sections view: trailing header furniture (drag grip, ⋯ menu)
+  sectionHeaderActions?: (section) => ReactNode; // sections view: trailing header furniture (⋯ menu, edit affordances)
+  sectionHeaderLeading?: (section) => ReactNode; // sections view: leading header furniture, before the chevron (drag grip)
   estimatedCardHeight?: number;                  // card/gallery: virtualizer estimate per grid row (default 220 / tile width + 44)
   cardSize?: CardSize;                           // card view: controlled density preset
   defaultCardSize?: CardSize;                    // card view: uncontrolled initial preset (default "comfortable")
@@ -511,7 +512,8 @@ interface DataTableViewDef<TData extends RowData = RowData> {
   renderCard?: (row, ctx) => React.ReactNode;
   renderCardWrapper?: (row, wrapperProps, children) => React.ReactNode; // drag seam — see below
   renderSectionWrapper?: (section, sectionProps, children) => React.ReactNode; // section drag seam (sections base) — see below
-  sectionHeaderActions?: (section) => React.ReactNode; // section header furniture (sections base)
+  sectionHeaderActions?: (section) => React.ReactNode; // trailing section header furniture (sections base)
+  sectionHeaderLeading?: (section) => React.ReactNode; // leading section header furniture (sections base)
   variant?: CardViewVariant;   // pin the tile independent of base (2.13+) — see below
   cardMinWidth?: number;
   estimatedCardHeight?: number;
@@ -729,7 +731,9 @@ renderSectionWrapper={(section, sectionProps, children) => (
 
 `section` is a `SectionWrapperInfo`: `{ value, label, path, depth, parentValue, isNone, collapsed, count }` — `parentValue` is the enclosing section's lane value (`null` at top level), which is exactly what a section-drag payload needs. The contract mirrors the card seam's: render **one outermost element**, spread `sectionProps` onto it (its `className` is the span-tier grid geometry — append, never replace), keep any drop ring `ring-inset` (a ring that grows the element invalidates the rects a drop is resolved against under `MeasuringStrategy.Always`), and return a component instance so it can own `useSortable`/`useDroppable`.
 
-`sectionHeaderActions(section)` is the companion slot: trailing furniture in each section header (after the count) — the natural home for a drag grip (`data-drag-grip`) and a per-section ⋯ menu. Both props are per-view overridable via the view def, like every other shape prop.
+A lane can also pin its own **tile size** with `cardSize` (`"compact" | "comfortable" | "large"`), beside `span`. Sizes resolve against the active variant's preset table, so the same name means a gallery tile in a photo view and a card in a record view, and the pinned size feeds the auto span too — a section's width is an answer about how many of *its own* tiles fit. `buildTreeBoard` carries `cardSize` from a `TreeBoardNode`, validating it exactly as it validates `span`: both arrive from persisted per-section config, where a retired value outlives the code that wrote it, and an unknown size would index the preset table to `undefined` and emit a broken grid template.
+
+`sectionHeaderActions(section)` and `sectionHeaderLeading(section)` are the companion slots — the two ends of the section header row. `actions` is trailing furniture, after the count: a per-section ⋯ menu, rename/delete affordances. `leading` renders **before the collapse chevron**, at the head of the row, and is where a drag grip (`data-drag-grip`) belongs: a handle for the whole section should sit at the head of the row it drags, and in the trailing cluster it shifts sideways whenever the count or aggregate changes width. Every prop here is per-view overridable via the view def, like every other shape prop.
 
 ### Layout & virtualization
 

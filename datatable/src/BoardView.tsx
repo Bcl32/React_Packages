@@ -16,6 +16,7 @@ import {
 } from "./ViewScroll";
 import type { ScrollRestoreRef, ViewScrollHandle } from "./ViewScroll";
 import { CARD_SIZE_WIDTHS, DEFAULT_CARD_SIZE } from "./CardView";
+import type { CardSize } from "./CardView";
 
 /** One board column. Deliberately the same shape as the filters package's
  *  `EntityGroup` minus its count, so a group tile and a lane header are the
@@ -35,6 +36,21 @@ export interface BoardLane {
    * it (lanes are equal-width by design).
    */
   span?: "xs" | "s" | "m" | "l";
+  /**
+   * Sections layout: a pinned tile size for this group alone, overriding the
+   * table-wide `cardMinWidth`. Size names resolve against the active variant's
+   * preset table, so "large" means a large *gallery* tile in a photo view and
+   * a large *card* in a record view.
+   *
+   * Per-section rather than per-table because a curated tree's sections hold
+   * different things: the one photo of the front of a house wants a big tile,
+   * and twenty bathroom shots want small ones. It also feeds the auto span —
+   * how wide a section gets is a question about how many of ITS tiles fit, so
+   * pinning the size without it would make the width answer for a tile the
+   * section is no longer drawing. The board ignores it (lanes are equal-width
+   * by design).
+   */
+  cardSize?: CardSize;
   /**
    * Sections nesting: the parent lane this lane was declared under. Inner
    * levels normally drop empty lanes — every child lane is declared once,

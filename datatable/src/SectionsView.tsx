@@ -22,7 +22,7 @@ import {
   scrollRenderedRowToTop,
 } from "./ViewScroll";
 import type { ScrollRestoreRef, ViewScrollHandle } from "./ViewScroll";
-import { CARD_SIZE_WIDTHS, DEFAULT_CARD_SIZE } from "./CardView";
+import { CARD_SIZE_WIDTHS, DEFAULT_CARD_SIZE, sizeWidthsForVariant } from "./CardView";
 
 export interface SectionsViewProps<TData extends RowData> extends CardRenderOptions<TData> {
   table: TanstackTable<TData>;
@@ -38,9 +38,12 @@ export interface SectionsViewProps<TData extends RowData> extends CardRenderOpti
   animate?: boolean;
   /** Section-level drag seam — see `RenderSectionWrapper` for the contract. */
   renderSectionWrapper?: RenderSectionWrapper;
-  /** Trailing header furniture per section — a drag grip, a ⋯ menu. Rides in
-   *  `GroupSectionHeader`'s `actions` slot, after the count. */
+  /** Trailing header furniture per section — a ⋯ menu, edit affordances.
+   *  Rides in `GroupSectionHeader`'s `actions` slot, after the count. */
   sectionHeaderActions?: (section: SectionWrapperInfo) => React.ReactNode;
+  /** Leading header furniture per section — the reorder grip. Rides in
+   *  `GroupSectionHeader`'s `leading` slot, ahead of the collapse chevron. */
+  sectionHeaderLeading?: (section: SectionWrapperInfo) => React.ReactNode;
 }
 
 interface SectionItem<TData extends RowData> {
@@ -108,6 +111,16 @@ export function SectionsView<TData extends RowData>(
   const rows = props.table.getRowModel().rows;
   const { lanes, laneOf, subGroups, onLaneClick } = props.board;
   const cardWidth = props.cardMinWidth ?? CARD_SIZE_WIDTHS[DEFAULT_CARD_SIZE];
+  // A lane may pin its own tile size. Resolved against the ACTIVE VARIANT's
+  // preset table, so "large" is a large gallery tile in a photo view and a
+  // large card in a record view — the size names are shared, the pixels are
+  // not. One function, used for both the grid template and the auto span,
+  // because a section's width is an answer about how many of its own tiles
+  // fit: resolving them separately is how a section ends up sized for a tile
+  // it is not drawing.
+  const sizeWidths = sizeWidthsForVariant(props.variant ?? "cards");
+  const widthOf = (lane: BoardLane): number =>
+    lane.cardSize ? sizeWidths[lane.cardSize] : cardWidth;
 
   const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -373,11 +386,12 @@ export function SectionsView<TData extends RowData>(
         </React.Fragment>
       );
     });
+    const tileWidth = widthOf(leaf.node.lane);
     return (
       <div
         className="grid gap-3"
         style={{
-          gridTemplateColumns: `repeat(auto-fill, minmax(min(${cardWidth}px, 100%), 1fr))`,
+          gridTemplateColumns: `repeat(auto-fill, minmax(min(${tileWidth}px, 100%), 1fr))`,
         }}
       >
         {animated ? <AnimatePresence initial={false}>{cards}</AnimatePresence> : cards}
@@ -416,6 +430,7 @@ export function SectionsView<TData extends RowData>(
           onLaneClick ? () => onLaneClick(node.lane.value, !!node.lane.isNone) : undefined
         }
         labelTitle={onLaneClick ? `Filter to ${node.lane.label}` : undefined}
+        leading={props.sectionHeaderLeading?.(info)}
         actions={props.sectionHeaderActions?.(info)}
       />
     );
@@ -441,12 +456,13 @@ export function SectionsView<TData extends RowData>(
     // drops to the smallest rung, deliberately ahead of the lane's pinned
     // span — pins describe the expanded body); nested sections divide their
     // parent's two tracks by the narrow ladder.
+    const tileWidth = widthOf(node.lane);
     const spanClass = isTop
       ? SPAN_TIER_CLASS[
-          nodeCollapsed ? "s" : (node.lane.span ?? spanTierForCards(node.items.length, cardWidth))
+          nodeCollapsed ? "s" : (node.lane.span ?? spanTierForCards(node.items.length, tileWidth))
         ]
       : NARROW_SPAN_TIER_CLASS[
-          node.lane.span ?? spanTierForCards(node.items.length, cardWidth)
+          node.lane.span ?? spanTierForCards(node.items.length, tileWidth)
         ];
 
     const inner = (

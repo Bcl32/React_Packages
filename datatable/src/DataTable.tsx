@@ -176,9 +176,12 @@ interface DataTableProps<TData extends RowData> {
    * tiles themselves draggable. See `RenderSectionWrapper` for the contract.
    */
   renderSectionWrapper?: RenderSectionWrapper;
-  /** Sections view: trailing header furniture per section — a drag grip, a
-   *  ⋯ menu. Renders after the count in the section header. */
+  /** Sections view: trailing header furniture per section — a ⋯ menu, edit
+   *  affordances. Renders after the count in the section header. */
   sectionHeaderActions?: (section: SectionWrapperInfo) => React.ReactNode;
+  /** Sections view: leading header furniture per section — the reorder grip.
+   *  Renders ahead of the collapse chevron, at the head of the header row. */
+  sectionHeaderLeading?: (section: SectionWrapperInfo) => React.ReactNode;
   /** Card view: virtualizer size estimate per card row. Default 220. */
   estimatedCardHeight?: number;
   /** Card view: controlled card size preset. Omit to let the toolbar control
@@ -407,6 +410,7 @@ export function DataTable<TData extends RowData>(
   const renderCardWrapper = activeView.renderCardWrapper ?? props.renderCardWrapper;
   const renderSectionWrapper = activeView.renderSectionWrapper ?? props.renderSectionWrapper;
   const sectionHeaderActions = activeView.sectionHeaderActions ?? props.sectionHeaderActions;
+  const sectionHeaderLeading = activeView.sectionHeaderLeading ?? props.sectionHeaderLeading;
   const cellClassName = activeView.cellClassName ?? props.cellClassName;
   const maxCellHeight = activeView.maxCellHeight ?? props.maxCellHeight;
   const estimatedCardHeight = activeView.estimatedCardHeight ?? props.estimatedCardHeight;
@@ -565,6 +569,7 @@ export function DataTable<TData extends RowData>(
                 renderCardWrapper={renderCardWrapper}
                 renderSectionWrapper={renderSectionWrapper}
                 sectionHeaderActions={sectionHeaderActions}
+                sectionHeaderLeading={sectionHeaderLeading}
                 cardActions={cardActions}
                 cardSlots={activeView.cardSlots}
                 {...rowEdit}

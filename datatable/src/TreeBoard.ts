@@ -3,6 +3,7 @@ import type React from "react";
 import type { RowData } from "@bcl32/data-utils";
 
 import type { BoardConfig, BoardLane, GroupingLevel } from "./BoardView";
+import type { CardSize } from "./CardView";
 import type { SpanTier } from "./GroupSections";
 
 /**
@@ -67,6 +68,12 @@ export interface TreeBoardNode {
   /** A hand-pinned width tier. Validated — values that aren't a tier (stale
    *  persisted config) are dropped rather than passed through. */
   span?: string | null;
+  /** A hand-pinned tile size for this node's own cards. Validated the same
+   *  way and for the same reason: both arrive from a consumer's persisted
+   *  per-section config, where a retired value outlives the code that wrote
+   *  it, and an unknown size would index the preset table to `undefined` and
+   *  put `minmax(min(undefinedpx …))` in a grid template. */
+  cardSize?: string | null;
 }
 
 export interface TreeBoardOptions<TData extends RowData> {
@@ -90,6 +97,11 @@ export interface TreeBoardOptions<TData extends RowData> {
 const SPAN_TIERS: ReadonlySet<string> = new Set(["xs", "s", "m", "l"]);
 function pinnedSpan(span: string | null | undefined): SpanTier | undefined {
   return span != null && SPAN_TIERS.has(span) ? (span as SpanTier) : undefined;
+}
+
+const CARD_SIZES: ReadonlySet<string> = new Set(["compact", "comfortable", "large"]);
+function pinnedCardSize(size: string | null | undefined): CardSize | undefined {
+  return size != null && CARD_SIZES.has(size) ? (size as CardSize) : undefined;
 }
 
 /**
@@ -133,6 +145,7 @@ export function buildTreeBoard<TData extends RowData>(
     // Hand-pinned widths carry over; SectionsView applies them only while the
     // tile is expanded.
     span: pinnedSpan(node.span),
+    cardSize: pinnedCardSize(node.cardSize),
   }));
   lanes.push({ value: TREE_UNGROUPED, label: ungroupedLabel, isNone: true });
 
@@ -155,6 +168,7 @@ export function buildTreeBoard<TData extends RowData>(
         label: child.label,
         visual: child.visual,
         span: pinnedSpan(child.span),
+        cardSize: pinnedCardSize(child.cardSize),
         // Scopes the empty-lane rescue: every child lane is declared once,
         // globally, and appears under the right parent only because it is
         // empty everywhere else — so "keep empties" has to name the parent.

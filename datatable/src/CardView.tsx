@@ -102,8 +102,10 @@ export interface DataTableViewDef<TData extends RowData = RowData> {
   /** Per-view section-level drag seam (sections base only). See
    *  `RenderSectionWrapper` for the contract. */
   renderSectionWrapper?: RenderSectionWrapper;
-  /** Per-view section header furniture (sections base only). */
+  /** Per-view trailing section header furniture (sections base only). */
   sectionHeaderActions?: (section: SectionWrapperInfo) => React.ReactNode;
+  /** Per-view leading section header furniture — the grip (sections base only). */
+  sectionHeaderLeading?: (section: SectionWrapperInfo) => React.ReactNode;
   /**
    * Which tile the card-shaped renderers draw, independent of `base`. Until
    * this existed the tile was welded to the layout — `base: "gallery"` was the

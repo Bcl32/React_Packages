@@ -121,6 +121,12 @@ export type RenderSectionWrapper = (
  * something (`onLabelClick`), inert text otherwise, and everything to the right
  * of the label rides in `aggregate`/`count` so a consumer with extra header
  * furniture can pass `actions`.
+ *
+ * `leading` is the mirror slot, and it exists for one thing in particular: a
+ * reorder grip belongs at the head of the row it drags, ahead of the collapse
+ * chevron — where the curated section cards have always put it — not filed
+ * among the trailing menus, where the thing you grab to move a section moves
+ * itself every time the aggregate's width changes.
  */
 export function GroupSectionHeader(props: {
   label: string;
@@ -135,6 +141,8 @@ export function GroupSectionHeader(props: {
   /** Clicking the label itself — the grouped layouts drill into a filter. */
   onLabelClick?: () => void;
   labelTitle?: string;
+  /** Leading extras, before the collapse chevron — a drag grip. */
+  leading?: React.ReactNode;
   /** Trailing extras after the count — menus, edit affordances. */
   actions?: React.ReactNode;
 }): JSX.Element {
@@ -147,6 +155,7 @@ export function GroupSectionHeader(props: {
         props.isNone && "text-muted-foreground"
       )}
     >
+      {props.leading}
       {onToggleCollapse && (
         <button
           type="button"
