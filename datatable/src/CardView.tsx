@@ -22,6 +22,7 @@ import type {
   RenderCardContext,
 } from "./RowCard";
 import { GALLERY_SIZE_WIDTHS } from "./GalleryCard";
+import type { RenderSectionWrapper, SectionWrapperInfo } from "./GroupSections";
 import {
   ROW_INDEX_ATTR,
   ROW_SCOPE_ATTR,
@@ -98,6 +99,11 @@ export interface DataTableViewDef<TData extends RowData = RowData> {
     wrapperProps: CardWrapperProps,
     children: React.ReactNode
   ) => React.ReactNode;
+  /** Per-view section-level drag seam (sections base only). See
+   *  `RenderSectionWrapper` for the contract. */
+  renderSectionWrapper?: RenderSectionWrapper;
+  /** Per-view section header furniture (sections base only). */
+  sectionHeaderActions?: (section: SectionWrapperInfo) => React.ReactNode;
   /**
    * Which tile the card-shaped renderers draw, independent of `base`. Until
    * this existed the tile was welded to the layout — `base: "gallery"` was the

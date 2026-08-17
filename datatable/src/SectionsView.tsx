@@ -14,6 +14,7 @@ import {
   SPAN_TIER_CLASS,
   spanTierForCards,
 } from "./GroupSections";
+import type { RenderSectionWrapper, SectionWrapperInfo } from "./GroupSections";
 import {
   ROW_SCOPE_ATTR,
   ensureVisibleWithin,
@@ -35,6 +36,11 @@ export interface SectionsViewProps<TData extends RowData> extends CardRenderOpti
   restoreRowIndex?: ScrollRestoreRef;
   /** Enter/exit + reflow animation on the cards. */
   animate?: boolean;
+  /** Section-level drag seam — see `RenderSectionWrapper` for the contract. */
+  renderSectionWrapper?: RenderSectionWrapper;
+  /** Trailing header furniture per section — a drag grip, a ⋯ menu. Rides in
+   *  `GroupSectionHeader`'s `actions` slot, after the count. */
+  sectionHeaderActions?: (section: SectionWrapperInfo) => React.ReactNode;
 }
 
 interface SectionItem<TData extends RowData> {
@@ -112,7 +118,8 @@ export function SectionsView<TData extends RowData>(
       source: SectionItem<TData>[],
       parentPath: string,
       depth: number,
-      dropEmpty: boolean
+      dropEmpty: boolean,
+      parentValue: string | null
     ): SectionNode<TData>[] => {
       const byValue = new Map<string, SectionItem<TData>[]>();
       for (const lane of level.lanes) byValue.set(lane.value, []);
@@ -126,19 +133,36 @@ export function SectionsView<TData extends RowData>(
         const items = byValue.get(lane.value) ?? [];
         // Top level keeps the board's rule: declared enum values show at zero,
         // "Untagged" only when occupied. Inner levels drop every empty — a
-        // zero row repeated inside each parent says nothing new.
-        if (items.length === 0 && (dropEmpty || lane.isNone)) continue;
+        // zero row repeated inside each parent says nothing new — unless the
+        // lane names this parent as its own (`parentValue`): a curated empty
+        // sub-section renders inside its declaring parent, and only there,
+        // because an empty section that never renders can never be a drop
+        // target.
+        if (items.length === 0 && (dropEmpty || lane.isNone)) {
+          if (lane.parentValue === undefined || lane.parentValue !== parentValue) continue;
+        }
         const path = parentPath ? `${parentPath}∕${lane.value}` : lane.value;
         const node: SectionNode<TData> = { lane, path, depth, items };
         const nextLevel = subGroups?.[depth];
-        if (nextLevel && items.length > 0) {
-          node.children = bucket(nextLevel, items, path, depth + 1, true);
+        // Recurse even when empty: a parent with no rows can still declare
+        // empty child sections that should render (the rescue above). With no
+        // rescued lanes the recursion returns [] and the body falls through
+        // to the same render as before.
+        if (nextLevel) {
+          node.children = bucket(nextLevel, items, path, depth + 1, true, lane.value);
         }
         nodes.push(node);
       }
       return nodes;
     };
-    return bucket({ lanes, laneOf }, rows.map((row, index) => ({ row, index })), "", 0, false);
+    return bucket(
+      { lanes, laneOf },
+      rows.map((row, index) => ({ row, index })),
+      "",
+      0,
+      false,
+      null
+    );
   }, [rows, lanes, laneOf, subGroups]);
 
   // ---- Collapse ------------------------------------------------------------
@@ -361,11 +385,22 @@ export function SectionsView<TData extends RowData>(
     );
   };
 
-  const renderNode = (node: SectionNode<TData>): React.ReactNode => {
+  const renderNode = (node: SectionNode<TData>, parentValue: string | null): React.ReactNode => {
     const nodeCollapsed = isCollapsed(node.path, node.depth);
     const isTop = node.depth === 0;
     const aggregate = props.board.laneAggregate?.(node.items.map((i) => i.row.original));
     const leafIndex = leafIndexByPath.get(node.path);
+
+    const info: SectionWrapperInfo = {
+      value: node.lane.value,
+      label: node.lane.label,
+      path: node.path,
+      depth: node.depth,
+      parentValue,
+      isNone: !!node.lane.isNone,
+      collapsed: nodeCollapsed,
+      count: node.items.length,
+    };
 
     const header = (
       <GroupSectionHeader
@@ -381,6 +416,7 @@ export function SectionsView<TData extends RowData>(
           onLaneClick ? () => onLaneClick(node.lane.value, !!node.lane.isNone) : undefined
         }
         labelTitle={onLaneClick ? `Filter to ${node.lane.label}` : undefined}
+        actions={props.sectionHeaderActions?.(info)}
       />
     );
 
@@ -391,18 +427,7 @@ export function SectionsView<TData extends RowData>(
       // as the outer grid: a full-width child after a half-width one would
       // otherwise strand the second track.
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:[grid-auto-flow:dense]">
-        {node.children.map((child) => (
-          <div
-            key={child.path}
-            className={
-              NARROW_SPAN_TIER_CLASS[
-                child.lane.span ?? spanTierForCards(child.items.length, cardWidth)
-              ]
-            }
-          >
-            {renderNode(child)}
-          </div>
-        ))}
+        {node.children.map((child) => renderNode(child, node.lane.value))}
       </div>
     ) : node.items.length > 0 && leafIndex !== undefined ? (
       renderCards({ node, items: node.items }, leafIndex)
@@ -412,7 +437,19 @@ export function SectionsView<TData extends RowData>(
       </div>
     );
 
-    return (
+    // The grid-item geometry. Top level packs the six-track ladder (collapse
+    // drops to the smallest rung, deliberately ahead of the lane's pinned
+    // span — pins describe the expanded body); nested sections divide their
+    // parent's two tracks by the narrow ladder.
+    const spanClass = isTop
+      ? SPAN_TIER_CLASS[
+          nodeCollapsed ? "s" : (node.lane.span ?? spanTierForCards(node.items.length, cardWidth))
+        ]
+      : NARROW_SPAN_TIER_CLASS[
+          node.lane.span ?? spanTierForCards(node.items.length, cardWidth)
+        ];
+
+    const inner = (
       <section
         aria-label={node.lane.label}
         className={cn(
@@ -424,6 +461,22 @@ export function SectionsView<TData extends RowData>(
         {header}
         {!nodeCollapsed && body}
       </section>
+    );
+
+    // The seam takes over the outermost grid element — a dnd transform there
+    // moves the whole grid item, where one on an inner div would slide the
+    // content around inside a stationary cell.
+    if (props.renderSectionWrapper) {
+      return (
+        <React.Fragment key={node.path}>
+          {props.renderSectionWrapper(info, { className: spanClass }, inner)}
+        </React.Fragment>
+      );
+    }
+    return (
+      <div key={node.path} className={spanClass}>
+        {inner}
+      </div>
     );
   };
 
@@ -444,24 +497,7 @@ export function SectionsView<TData extends RowData>(
       className="grid grid-cols-1 items-start gap-3 pb-3 md:grid-cols-6 md:[grid-auto-flow:dense]"
       {...{ [ROW_SCOPE_ATTR]: "" }}
     >
-      {sections.map((node) => (
-        <div
-          key={node.path}
-          className={
-            SPAN_TIER_CLASS[
-              // A collapsed section is just its header bar — it drops to the
-              // smallest packed rung instead of holding its expanded width.
-              // Deliberately ahead of the lane's pinned span: pins describe
-              // the expanded body, and the curated pages apply the same rule.
-              isCollapsed(node.path, node.depth)
-                ? "s"
-                : (node.lane.span ?? spanTierForCards(node.items.length, cardWidth))
-            ]
-          }
-        >
-          {renderNode(node)}
-        </div>
-      ))}
+      {sections.map((node) => renderNode(node, null))}
     </div>
   );
 }

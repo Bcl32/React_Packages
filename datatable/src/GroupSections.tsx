@@ -64,6 +64,54 @@ export function spanTierForCards(count: number, cardWidth: number): SpanTier {
   return "l";
 }
 
+/** What a section wrapper (or header-actions renderer) learns about the
+ *  section it decorates. `value` is the lane value — a tree board's node id
+ *  or one of its sentinels; `path` is unique per rendered section and stable
+ *  across re-bucketing (collapse state keys off it). */
+export interface SectionWrapperInfo {
+  value: string;
+  label: string;
+  path: string;
+  /** 0 = top-level, 1 = nested sub-section. */
+  depth: number;
+  /** The enclosing section's lane value, `null` at the top level. A drag
+   *  payload wants this — it is the dragged section's parent. */
+  parentValue: string | null;
+  isNone: boolean;
+  collapsed: boolean;
+  count: number;
+}
+
+/** The geometry the sections grid computed for a wrapped section. `className`
+ *  is the span-tier grid class — the wrapper must carry it or the packing
+ *  collapses. */
+export interface SectionWrapperProps {
+  className: string;
+}
+
+/**
+ * The section-level drag seam — `renderCardWrapper`'s sibling one rung up.
+ * Takes over the outermost grid element of each rendered section so a
+ * consumer can make sections droppable (a destination ring) and sortable
+ * (drag the section tile itself). The inner `<section>` chrome — border,
+ * header, body — stays package-rendered as `children`.
+ *
+ * The contract, mirroring the card seam:
+ * - Render exactly ONE outermost element and spread `sectionProps` onto it —
+ *   its `className` is the grid item's span geometry, so append to it, never
+ *   replace it.
+ * - A drop ring must be inset (`ring-inset`): under `MeasuringStrategy.Always`
+ *   a ring that grows the element invalidates the rects the drop is being
+ *   resolved against, mid-drag.
+ * - Callbacks can't call hooks — return a component instance (e.g. a
+ *   `<SortableSection>`) and let it own `useSortable`/`useDroppable`.
+ */
+export type RenderSectionWrapper = (
+  section: SectionWrapperInfo,
+  sectionProps: SectionWrapperProps,
+  children: React.ReactNode
+) => React.ReactNode;
+
 /**
  * The header row of a packed section — collapse chevron, visual, label,
  * count, optional aggregate. One anatomy for every depth: `size="sm"` is the

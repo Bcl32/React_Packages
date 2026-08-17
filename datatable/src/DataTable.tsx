@@ -33,6 +33,7 @@ import { resolveViewDefs } from "./ViewDefs";
 import { BoardView } from "./BoardView";
 import type { BoardConfig, BoardLane, GroupingLevel } from "./BoardView";
 import { SectionsView } from "./SectionsView";
+import type { RenderSectionWrapper, SectionWrapperInfo } from "./GroupSections";
 import { DetailPaneView } from "./DetailPaneView";
 import { getCardMeta } from "./ColumnLabels";
 import { DataTableToolbar } from "./DataTableToolbar";
@@ -169,6 +170,15 @@ interface DataTableProps<TData extends RowData> {
     wrapperProps: CardWrapperProps,
     children: React.ReactNode
   ) => React.ReactNode;
+  /**
+   * Sections view: take over each section's outermost grid element — the
+   * card seam one rung up, for making sections droppable and the section
+   * tiles themselves draggable. See `RenderSectionWrapper` for the contract.
+   */
+  renderSectionWrapper?: RenderSectionWrapper;
+  /** Sections view: trailing header furniture per section — a drag grip, a
+   *  ⋯ menu. Renders after the count in the section header. */
+  sectionHeaderActions?: (section: SectionWrapperInfo) => React.ReactNode;
   /** Card view: virtualizer size estimate per card row. Default 220. */
   estimatedCardHeight?: number;
   /** Card view: controlled card size preset. Omit to let the toolbar control
@@ -395,6 +405,8 @@ export function DataTable<TData extends RowData>(
   const base = activeView.base;
   const renderCard = activeView.renderCard ?? props.renderCard;
   const renderCardWrapper = activeView.renderCardWrapper ?? props.renderCardWrapper;
+  const renderSectionWrapper = activeView.renderSectionWrapper ?? props.renderSectionWrapper;
+  const sectionHeaderActions = activeView.sectionHeaderActions ?? props.sectionHeaderActions;
   const cellClassName = activeView.cellClassName ?? props.cellClassName;
   const maxCellHeight = activeView.maxCellHeight ?? props.maxCellHeight;
   const estimatedCardHeight = activeView.estimatedCardHeight ?? props.estimatedCardHeight;
@@ -551,6 +563,8 @@ export function DataTable<TData extends RowData>(
                 renderSubComponent={renderSubComponent}
                 renderCard={renderCard}
                 renderCardWrapper={renderCardWrapper}
+                renderSectionWrapper={renderSectionWrapper}
+                sectionHeaderActions={sectionHeaderActions}
                 cardActions={cardActions}
                 cardSlots={activeView.cardSlots}
                 {...rowEdit}

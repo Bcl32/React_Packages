@@ -35,6 +35,16 @@ export interface BoardLane {
    * it (lanes are equal-width by design).
    */
   span?: "xs" | "s" | "m" | "l";
+  /**
+   * Sections nesting: the parent lane this lane was declared under. Inner
+   * levels normally drop empty lanes — every child lane is declared once,
+   * globally, and appears under the right parent only because it is empty
+   * everywhere else. Naming the parent here rescues the *empty* lane inside
+   * that one parent, which is what lets an empty curated sub-section render
+   * (and so be a drop target) without leaking into its siblings. Membership
+   * of occupied lanes is still `laneOf`'s call; the board ignores this.
+   */
+  parentValue?: string;
 }
 
 /**

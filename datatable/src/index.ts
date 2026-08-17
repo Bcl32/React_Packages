@@ -17,6 +17,8 @@ export * from "./CardView";
 export { BoardView } from "./BoardView";
 export { SectionsView } from "./SectionsView";
 export * from "./GroupSections";
+export * from "./TreeBoard";
+export * from "./SectionNesting";
 export { RowCard, BOARD_POS_ATTR, rowEditNode } from "./RowCard";
 export * from "./RowEditButton";
 export * from "./DetailPaneView";

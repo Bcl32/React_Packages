@@ -229,6 +229,8 @@ DataTable<TData extends RowData>(props: {
   views?: (DataTableView | DataTableViewDef<TData>)[];  // which views the toggle offers (default: derived)
   renderCard?: (row: Row<TData>, ctx: RenderCardContext) => ReactNode;  // card view: replace the default card
   renderCardWrapper?: (row, wrapperProps, children) => ReactNode;  // card-shaped views: take over the outer wrapper — the drag seam
+  renderSectionWrapper?: (section, sectionProps, children) => ReactNode;  // sections view: take over each section's grid element — the section drag seam
+  sectionHeaderActions?: (section) => ReactNode; // sections view: trailing header furniture (drag grip, ⋯ menu)
   estimatedCardHeight?: number;                  // card/gallery: virtualizer estimate per grid row (default 220 / tile width + 44)
   cardSize?: CardSize;                           // card view: controlled density preset
   defaultCardSize?: CardSize;                    // card view: uncontrolled initial preset (default "comfortable")
@@ -508,6 +510,8 @@ interface DataTableViewDef<TData extends RowData = RowData> {
   // each overrides the DataTable prop of the same name, for this view only
   renderCard?: (row, ctx) => React.ReactNode;
   renderCardWrapper?: (row, wrapperProps, children) => React.ReactNode; // drag seam — see below
+  renderSectionWrapper?: (section, sectionProps, children) => React.ReactNode; // section drag seam (sections base) — see below
+  sectionHeaderActions?: (section) => React.ReactNode; // section header furniture (sections base)
   variant?: CardViewVariant;   // pin the tile independent of base (2.13+) — see below
   cardMinWidth?: number;
   estimatedCardHeight?: number;
@@ -693,6 +697,39 @@ The contract, all of it load-bearing:
 ### Pinning the tile (`variant`)
 
 A view def may set `variant: "gallery"` to draw the media-only `GalleryTile` under any card-shaped base (2.13+). Until this existed the tile was welded to the layout — `base: "gallery"` was the only route to the tile, so a *sections* view could never pack photo tiles into its groups. A photo wall grouped by category is `{ base: "sections", variant: "gallery" }`; the variant also selects the size-preset table (`GALLERY_SIZE_WIDTHS`), so such a view gets gallery densities without carrying its own `cardMinWidth`.
+
+### Tree boards (`buildTreeBoard`)
+
+`buildTreeBoard(nodes, options)` (2.13+) maps a **curated tree** — user-created sections with parent/child nesting and rows assigned by id — onto a `BoardConfig`, so hand-arranged hierarchies render through the same sections view that draws attribute grouping. The consumer maps its rows into `TreeBoardNode` (`{ id, label, children?, visual?, span? }`) and says how a data row names its node:
+
+```ts
+const board = {
+  ...buildTreeBoard(nodes, { nodeIdOf: (r) => r.section_id, groupLabel: "Sections" }),
+  laneAggregate, onLaneClick, // BoardConfig extras compose on top
+};
+```
+
+Mechanics, ported from Print-Tracker's curated pages: depth beyond two rolls rows up into their level-1 ancestor; a parent holding direct rows *and* children gets a per-parent dashed "loose" lane so its count agrees with its visible cards; the ungrouped lane is synthesized last (`isNone`), and `laneOf` sends **unknown** ids there too — a row pointing at a deleted node lands in Ungrouped instead of vanishing. Drop handlers translate lane values back with `parseTreeLane(value)` → `{kind: "ungrouped" | "loose" | "node", …}` rather than string-matching the sentinels.
+
+`keepEmptyChildren: true` renders a parent's empty child sections instead of dropping them — required for drag-and-drop, where an empty section that never renders can never be a drop target. It works through `BoardLane.parentValue`: inner levels normally drop empty lanes (that is what scopes each child lane to its own parent), so an empty lane is rescued only inside the parent that declared it.
+
+The nesting *rules* for such trees — what a section drag may do, why a nest is refused — live beside it in `SectionNesting`: `resolveSectionDrop`, `nestingBlockedReason`, `moveTargets`, `mergeBlockedReason`/`mergeTargets`, the `acceptsItemDrag`/`acceptsSectionDrag` drop-target predicates, and the shared `DROP_RING` class. All pure functions over ids — the package still has no dnd-kit dependency; the predicates read the drag payload structurally.
+
+### The section wrapper seam (`renderSectionWrapper`)
+
+`renderCardWrapper`'s sibling one rung up (2.13+, sections base only): takes over each rendered section's **outermost grid element**, so a consumer can make sections droppable (destination ring) and the section tiles themselves draggable. The inner `<section>` chrome — border, header, body — stays package-rendered and arrives as `children`.
+
+```tsx
+renderSectionWrapper={(section, sectionProps, children) => (
+  <SortableSection key={section.path} section={section} sectionProps={sectionProps}>
+    {children}
+  </SortableSection>
+)}
+```
+
+`section` is a `SectionWrapperInfo`: `{ value, label, path, depth, parentValue, isNone, collapsed, count }` — `parentValue` is the enclosing section's lane value (`null` at top level), which is exactly what a section-drag payload needs. The contract mirrors the card seam's: render **one outermost element**, spread `sectionProps` onto it (its `className` is the span-tier grid geometry — append, never replace), keep any drop ring `ring-inset` (a ring that grows the element invalidates the rects a drop is resolved against under `MeasuringStrategy.Always`), and return a component instance so it can own `useSortable`/`useDroppable`.
+
+`sectionHeaderActions(section)` is the companion slot: trailing furniture in each section header (after the count) — the natural home for a drag grip (`data-drag-grip`) and a per-section ⋯ menu. Both props are per-view overridable via the view def, like every other shape prop.
 
 ### Layout & virtualization
 
