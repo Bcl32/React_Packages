@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.1.0
+
+### Minor Changes
+
+- c5b1d68: New EditableStringList component: inline click-to-edit bullet list for
+  array-of-strings fields (ModelData type "list"). Click a row to edit in
+  place, ghost row appends, Enter chains into the next item, committing empty
+  deletes the row; commits PATCH the whole array via onSave({ field: string[] }).
+
 ## 3.0.2
 
 ### Patch Changes
