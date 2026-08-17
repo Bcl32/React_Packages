@@ -18,6 +18,7 @@ import type {
   CardRenderOptions,
   CardSlotOverrides,
   CardViewVariant,
+  CardWrapperProps,
   RenderCardContext,
 } from "./RowCard";
 import { GALLERY_SIZE_WIDTHS } from "./GalleryCard";
@@ -91,6 +92,21 @@ export interface DataTableViewDef<TData extends RowData = RowData> {
   /** Toolbar toggle icon. Falls back to the base layout's icon. */
   icon?: React.ReactNode;
   renderCard?: (row: Row<TData>, ctx: RenderCardContext) => React.ReactNode;
+  /** Per-view drag seam. See `CardRenderOptions.renderCardWrapper`. */
+  renderCardWrapper?: (
+    row: Row<TData>,
+    wrapperProps: CardWrapperProps,
+    children: React.ReactNode
+  ) => React.ReactNode;
+  /**
+   * Which tile the card-shaped renderers draw, independent of `base`. Until
+   * this existed the tile was welded to the layout — `base: "gallery"` was the
+   * only way to get the media-only tile, so a *sections* view could never pack
+   * photo tiles into its groups. A photo wall grouped by category is
+   * `{ base: "sections", variant: "gallery" }`. Defaults to the base's own
+   * tile: gallery for `gallery`, the full card for everything else.
+   */
+  variant?: CardViewVariant;
   cardMinWidth?: number;
   estimatedCardHeight?: number;
   /**
@@ -121,7 +137,7 @@ export type DataTableViewOption<TData extends RowData = RowData> =
 // `CardSlotOverrides` is deliberately NOT re-exported: it originates in
 // ColumnLabels, which the barrel already `export *`s, and a second star-export
 // of the same name is ambiguous (see the note at the top of index.ts).
-export type { CardRenderOptions, CardViewVariant, RenderCardContext };
+export type { CardRenderOptions, CardViewVariant, CardWrapperProps, RenderCardContext };
 
 /** Toolbar select-all shown while a card-based layout is active. Cards have no
  *  header row, so without this the header checkbox — the only select-all in the

@@ -228,6 +228,7 @@ DataTable<TData extends RowData>(props: {
   viewStorageKey?: string;                       // opt-in localStorage persistence (uncontrolled only)
   views?: (DataTableView | DataTableViewDef<TData>)[];  // which views the toggle offers (default: derived)
   renderCard?: (row: Row<TData>, ctx: RenderCardContext) => ReactNode;  // card view: replace the default card
+  renderCardWrapper?: (row, wrapperProps, children) => ReactNode;  // card-shaped views: take over the outer wrapper — the drag seam
   estimatedCardHeight?: number;                  // card/gallery: virtualizer estimate per grid row (default 220 / tile width + 44)
   cardSize?: CardSize;                           // card view: controlled density preset
   defaultCardSize?: CardSize;                    // card view: uncontrolled initial preset (default "comfortable")
@@ -506,6 +507,8 @@ interface DataTableViewDef<TData extends RowData = RowData> {
   icon?: React.ReactNode;      // defaults to the base layout's icon
   // each overrides the DataTable prop of the same name, for this view only
   renderCard?: (row, ctx) => React.ReactNode;
+  renderCardWrapper?: (row, wrapperProps, children) => React.ReactNode; // drag seam — see below
+  variant?: CardViewVariant;   // pin the tile independent of base (2.13+) — see below
   cardMinWidth?: number;
   estimatedCardHeight?: number;
   columnVisibility?: VisibilityState;
@@ -659,6 +662,37 @@ renderCard: (row, ctx) => (
 ```
 
 Each array is empty rather than absent when nothing claims that slot, so a card can `.length` a region without guarding. Reading `row.original` directly still works and is still right for anything the columns don't carry.
+
+### The card wrapper seam (`renderCardWrapper`)
+
+Where `renderCard` replaces a card's *content*, `renderCardWrapper` (2.13+) takes over its **outer wrapper** — the element the layout's CSS grid actually positions. This is the drag-and-drop seam: `useSortable`/`useDraggable` need their ref, transform and listeners on the *positioned* element, and before this existed that element was closed, so a sortable ref could only reach a div inside the grid cell and transforms slid content around a stationary cell.
+
+```tsx
+function SortableWrapper({ row, wrapperProps, children }) {
+  const { setNodeRef, transform, transition, listeners } = useSortable({ id: row.id });
+  return (
+    <div ref={setNodeRef} {...wrapperProps} {...listeners}
+         style={{ transform: CSS.Translate.toString(transform), transition }}>
+      {children}
+    </div>
+  );
+}
+
+<DataTable renderCardWrapper={(row, wrapperProps, children) => (
+  <SortableWrapper key={row.id} row={row} wrapperProps={wrapperProps}>{children}</SortableWrapper>
+)} … />
+```
+
+The contract, all of it load-bearing:
+
+- **Render one outermost element and spread `wrapperProps` onto it.** It carries `role`/`tabIndex`/`onFocus`/`onClick` (roving focus + row click-through) and the `data-row-index` / `data-board-pos` attributes keyboard navigation and the cross-view scroll hand-off find cards by. Drop them and those features silently break.
+- **You return a component, so hooks are legal inside it** — that is why the seam is shaped this way rather than handing you a ref.
+- **Wrapped cards render without framer-motion.** `CARD_MOTION` sets `layout: true`, and framer's layout projection fights a drag library's transform for the same CSS property. Views with a wrapper trade the enter/exit animation for drags that track true — deliberate.
+- Applies in every card-shaped view (cards, gallery, board, sections), is honoured under `variant="gallery"` (unlike `renderCard`), and is per-view overridable via the view def.
+
+### Pinning the tile (`variant`)
+
+A view def may set `variant: "gallery"` to draw the media-only `GalleryTile` under any card-shaped base (2.13+). Until this existed the tile was welded to the layout — `base: "gallery"` was the only route to the tile, so a *sections* view could never pack photo tiles into its groups. A photo wall grouped by category is `{ base: "sections", variant: "gallery" }`; the variant also selects the size-preset table (`GALLERY_SIZE_WIDTHS`), so such a view gets gallery densities without carrying its own `cardMinWidth`.
 
 ### Layout & virtualization
 

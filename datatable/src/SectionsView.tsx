@@ -387,8 +387,10 @@ export function SectionsView<TData extends RowData>(
     const body = node.children && node.children.length > 0 ? (
       // Sub-sections pack into a two-track grid of their own — the narrow
       // ladder: below full width everything pairs up, and only a large
-      // sub-section takes the parent's full width.
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      // sub-section takes the parent's full width. Dense for the same reason
+      // as the outer grid: a full-width child after a half-width one would
+      // otherwise strand the second track.
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:[grid-auto-flow:dense]">
         {node.children.map((child) => (
           <div
             key={child.path}
@@ -432,7 +434,14 @@ export function SectionsView<TData extends RowData>(
       // items-start so a tile keeps its natural height instead of stretching
       // to its row's tallest neighbour — a collapsed section is just its
       // header bar, not a blank box.
-      className="grid grid-cols-1 items-start gap-3 pb-3 md:grid-cols-6"
+      //
+      // grid-auto-flow dense so a later section back-fills a hole an earlier
+      // row left (an s(2) beside an m(3) otherwise strands a dead track until
+      // the row wraps) — the same choice the app pages' hand-curated packed
+      // grids made, and the "packed" in packed sections. The cost is that
+      // visual order can deviate from DOM order, which keyboard navigation
+      // walks; the curated pages accepted that trade first.
+      className="grid grid-cols-1 items-start gap-3 pb-3 md:grid-cols-6 md:[grid-auto-flow:dense]"
       {...{ [ROW_SCOPE_ATTR]: "" }}
     >
       {sections.map((node) => (

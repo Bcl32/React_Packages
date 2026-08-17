@@ -47,6 +47,19 @@ export type CardViewVariant = "cards" | "gallery";
 export type { CardSlot, CardSlotOverrides } from "./ColumnLabels";
 
 /**
+ * The props `RowCard` would have put on its own wrapper element, handed to a
+ * `renderCardWrapper` consumer to spread onto the element it renders instead.
+ *
+ * The index signature carries the data attributes (`ROW_INDEX_ATTR`,
+ * `BOARD_POS_ATTR`) whose names are runtime constants. Everything in here is
+ * load-bearing: `role`/`tabIndex`/`onFocus` are the roving-focus contract,
+ * `onClick` is row click-through, and the data attributes are how keyboard
+ * navigation and the cross-view scroll hand-off find a card in the DOM.
+ */
+export type CardWrapperProps = React.ComponentPropsWithoutRef<"div"> &
+  Record<string, unknown>;
+
+/**
  * What a card needs to know that isn't the row itself. Both CardView and
  * BoardView satisfy this, which is what lets them share `RowCard`.
  */
@@ -70,6 +83,33 @@ export interface CardRenderOptions<TData extends RowData> {
    * card layout at tile widths.
    */
   renderCard?: (row: Row<TData>, ctx: RenderCardContext) => React.ReactNode;
+  /**
+   * Take over the card's outer wrapper — the element the layout's grid
+   * positions. This is the drag seam: a sortable's ref, transform and
+   * listeners must land on the *positioned* element, and before this existed
+   * that element was closed, so `useSortable` could only reach a div *inside*
+   * the grid cell and transforms slid content around a stationary cell.
+   *
+   * The contract: return a component that renders ONE outermost element and
+   * spreads `wrapperProps` onto it (every key is load-bearing — see
+   * `CardWrapperProps`), with `children` inside. Returning a component of your
+   * own — rather than being handed a ref to attach — is what lets you call
+   * `useSortable`/`useDraggable` legally, per row, inside it.
+   *
+   * Wrapped cards render WITHOUT framer-motion: `CARD_MOTION` sets
+   * `layout: true`, and framer's layout projection and a drag library's item
+   * transform fight over the same `transform` property mid-drag. Forfeiting
+   * the enter/exit animation on wrapped views is the price of drags that
+   * track true; it is deliberate, not an omission.
+   *
+   * Orthogonal to `renderCard`, and honoured under `variant="gallery"` too:
+   * this wraps whatever tile the view draws, it never replaces it.
+   */
+  renderCardWrapper?: (
+    row: Row<TData>,
+    wrapperProps: CardWrapperProps,
+    children: React.ReactNode
+  ) => React.ReactNode;
   /** Toolbar actions that opted in with `card`, rendered per card in the
    *  default card's footer. */
   cardActions?: ToolbarAction<TData>[];
@@ -416,6 +456,14 @@ export function RowCard<TData extends RowData>(props: {
     ),
   };
 
+  // The wrapper seam wins over both branches below — including the animated
+  // one, deliberately, whatever `animated` says: the layout-motion conflict is
+  // with the *capability* of dragging, not with a drag in flight. Suppressing
+  // only during an active drag would leave `layout: true` re-projecting every
+  // card on the drop's reorder, fighting the drop animation it just won.
+  if (view.renderCardWrapper) {
+    return <>{view.renderCardWrapper(row, common as CardWrapperProps, inner)}</>;
+  }
   if (props.animated) {
     return (
       <motion.div {...common} {...CARD_MOTION}>

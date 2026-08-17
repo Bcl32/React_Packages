@@ -24,6 +24,7 @@ import {
 } from "./CardView";
 import type {
   CardSize,
+  CardWrapperProps,
   DataTableViewDef,
   DataTableViewOption,
   RenderCardContext,
@@ -156,6 +157,18 @@ interface DataTableProps<TData extends RowData> {
   /** Card view: replace the default card entirely. Receives the row's
    *  ready-rendered quick actions so a bespoke card can still place them. */
   renderCard?: (row: Row<TData>, ctx: RenderCardContext) => React.ReactNode;
+  /**
+   * Card-shaped views (cards, gallery, board, sections): take over each card's
+   * outer wrapper — the drag seam. See `CardRenderOptions.renderCardWrapper`
+   * for the full contract; the short version is: render one outermost element,
+   * spread `wrapperProps` onto it, and know that wrapped cards trade the
+   * enter/exit animation for transforms a drag library can own.
+   */
+  renderCardWrapper?: (
+    row: Row<TData>,
+    wrapperProps: CardWrapperProps,
+    children: React.ReactNode
+  ) => React.ReactNode;
   /** Card view: virtualizer size estimate per card row. Default 220. */
   estimatedCardHeight?: number;
   /** Card view: controlled card size preset. Omit to let the toolbar control
@@ -381,11 +394,16 @@ export function DataTable<TData extends RowData>(
   // shares.
   const base = activeView.base;
   const renderCard = activeView.renderCard ?? props.renderCard;
+  const renderCardWrapper = activeView.renderCardWrapper ?? props.renderCardWrapper;
   const cellClassName = activeView.cellClassName ?? props.cellClassName;
   const maxCellHeight = activeView.maxCellHeight ?? props.maxCellHeight;
   const estimatedCardHeight = activeView.estimatedCardHeight ?? props.estimatedCardHeight;
 
-  const cardVariant = base === "gallery" ? "gallery" : "cards";
+  // A view may pin its tile independent of its base — `{ base: "sections",
+  // variant: "gallery" }` packs media-only tiles into group sections. The
+  // variant also picks the size-preset table, so a photo-shaped view gets
+  // gallery densities without carrying its own cardMinWidth.
+  const cardVariant = activeView.variant ?? (base === "gallery" ? "gallery" : "cards");
   const cardMinWidth =
     activeView.cardMinWidth ?? props.cardMinWidth ?? sizeWidthsForVariant(cardVariant)[cardSize];
 
@@ -505,11 +523,13 @@ export function DataTable<TData extends RowData>(
                 scrollRef={scrollRef}
                 board={props.board}
                 laneWidth={cardMinWidth}
+                variant={cardVariant}
                 maxCellHeight={maxCellHeight}
                 rowClickFunction={props.rowClickFunction}
                 expandOnRowClick={props.expandOnRowClick}
                 renderSubComponent={renderSubComponent}
                 renderCard={renderCard}
+                renderCardWrapper={renderCardWrapper}
                 cardActions={cardActions}
                 cardSlots={activeView.cardSlots}
                 {...rowEdit}
@@ -524,11 +544,13 @@ export function DataTable<TData extends RowData>(
                 scrollRef={scrollRef}
                 board={props.board}
                 cardMinWidth={cardMinWidth}
+                variant={cardVariant}
                 maxCellHeight={maxCellHeight}
                 rowClickFunction={props.rowClickFunction}
                 expandOnRowClick={props.expandOnRowClick}
                 renderSubComponent={renderSubComponent}
                 renderCard={renderCard}
+                renderCardWrapper={renderCardWrapper}
                 cardActions={cardActions}
                 cardSlots={activeView.cardSlots}
                 {...rowEdit}
@@ -550,6 +572,7 @@ export function DataTable<TData extends RowData>(
                 expandOnRowClick={props.expandOnRowClick}
                 renderSubComponent={renderSubComponent}
                 renderCard={renderCard}
+                renderCardWrapper={renderCardWrapper}
                 cardActions={cardActions}
                 cardSlots={activeView.cardSlots}
                 {...rowEdit}
