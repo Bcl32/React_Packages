@@ -11,6 +11,7 @@ export default defineConfig({
     "src/ColourField.tsx",
     "src/ColourArrayField.tsx",
     "src/AutoGrowTextarea.tsx",
+    "src/EditableStringList.tsx",
     "src/RelationCollectionField.tsx",
     "src/useDebouncedCallback.ts",
     "src/index.ts"

@@ -49,6 +49,10 @@
       "types": "./dist/AutoGrowTextarea.d.ts",
       "import": "./dist/AutoGrowTextarea.js"
     },
+    "./EditableStringList": {
+      "types": "./dist/EditableStringList.d.ts",
+      "import": "./dist/EditableStringList.js"
+    },
     "./RelationCollectionField": {
       "types": "./dist/RelationCollectionField.d.ts",
       "import": "./dist/RelationCollectionField.js"
