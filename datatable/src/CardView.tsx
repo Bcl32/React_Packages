@@ -22,7 +22,12 @@ import type {
   RenderCardContext,
 } from "./RowCard";
 import { GALLERY_SIZE_WIDTHS } from "./GalleryCard";
-import type { RenderSectionWrapper, SectionTone, SectionWrapperInfo } from "./GroupSections";
+import type {
+  RenderSectionWrapper,
+  SectionTone,
+  SectionWrapperInfo,
+  SectionsPacking,
+} from "./GroupSections";
 import {
   ROW_INDEX_ATTR,
   ROW_SCOPE_ATTR,
@@ -108,6 +113,8 @@ export interface DataTableViewDef<TData extends RowData = RowData> {
   sectionHeaderLeading?: (section: SectionWrapperInfo) => React.ReactNode;
   /** Per-view section backdrop palette (sections base only). See `SectionTone`. */
   sectionTone?: SectionTone;
+  /** Per-view packing strategy (sections base only). See `SectionsPacking`. */
+  sectionsPacking?: SectionsPacking;
   /**
    * Which tile the card-shaped renderers draw, independent of `base`. Until
    * this existed the tile was welded to the layout — `base: "gallery"` was the

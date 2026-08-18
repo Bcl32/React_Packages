@@ -233,6 +233,7 @@ DataTable<TData extends RowData>(props: {
   sectionHeaderActions?: (section) => ReactNode; // sections view: trailing header furniture (⋯ menu, edit affordances)
   sectionHeaderLeading?: (section) => ReactNode; // sections view: leading header furniture, before the chevron (drag grip)
   sectionTone?: SectionTone;                     // sections view: per-group backdrop from the theme card palette (default "none")
+  sectionsPacking?: SectionsPacking;             // sections view: how sections fill the page (default "fit-narrow")
   estimatedCardHeight?: number;                  // card/gallery: virtualizer estimate per grid row (default 220 / tile width + 44)
   cardSize?: CardSize;                           // card view: controlled density preset
   defaultCardSize?: CardSize;                    // card view: uncontrolled initial preset (default "comfortable")
@@ -516,6 +517,7 @@ interface DataTableViewDef<TData extends RowData = RowData> {
   sectionHeaderActions?: (section) => React.ReactNode; // trailing section header furniture (sections base)
   sectionHeaderLeading?: (section) => React.ReactNode; // leading section header furniture (sections base)
   sectionTone?: SectionTone;   // per-group backdrop palette (sections base) — see below
+  sectionsPacking?: SectionsPacking; // section packing strategy (sections base) — see below
   variant?: CardViewVariant;   // pin the tile independent of base (2.13+) — see below
   cardMinWidth?: number;
   estimatedCardHeight?: number;
@@ -731,7 +733,7 @@ renderSectionWrapper={(section, sectionProps, children) => (
 )}
 ```
 
-`section` is a `SectionWrapperInfo`: `{ value, label, path, depth, rootIndex, parentValue, isNone, collapsed, count }` — `parentValue` is the enclosing section's lane value (`null` at top level), which is exactly what a section-drag payload needs, and `rootIndex` (2.14+) is the render position of the section's *top-level ancestor*, which is what `sectionTone` keys off. The contract mirrors the card seam's: render **one outermost element**, spread `sectionProps` onto it (its `className` is the span-tier grid geometry — append, never replace), keep any drop ring `ring-inset` (a ring that grows the element invalidates the rects a drop is resolved against under `MeasuringStrategy.Always`), and return a component instance so it can own `useSortable`/`useDroppable`.
+`section` is a `SectionWrapperInfo`: `{ value, label, path, depth, rootIndex, parentValue, isNone, collapsed, count }` — `parentValue` is the enclosing section's lane value (`null` at top level), which is exactly what a section-drag payload needs, and `rootIndex` (2.14+) is the render position of the section's *top-level ancestor*, which is what `sectionTone` keys off. The contract mirrors the card seam's: render **one outermost element**, spread `sectionProps` onto it — its `className` is the span-tier grid geometry and its `style` (2.15+) is the measured row span and track width, so **both must be merged, never replaced**; a wrapper that forwards only `className` compiles fine and silently packs nothing — keep any drop ring `ring-inset` (a ring that grows the element invalidates the rects a drop is resolved against under `MeasuringStrategy.Always`), and return a component instance so it can own `useSortable`/`useDroppable`.
 
 A lane can also pin its own **tile size** with `cardSize` (`"compact" | "comfortable" | "large"`), beside `span`. Sizes resolve against the active variant's preset table, so the same name means a gallery tile in a photo view and a card in a record view, and the pinned size feeds the auto span too — a section's width is an answer about how many of *its own* tiles fit. `buildTreeBoard` carries `cardSize` from a `TreeBoardNode`, validating it exactly as it validates `span`: both arrive from persisted per-section config, where a retired value outlives the code that wrote it, and an unknown size would index the preset table to `undefined` and emit a broken grid template.
 
@@ -766,6 +768,35 @@ It also degrades honestly. An app on an @bcl32/themes without the palette measur
 Cost is one `getComputedStyle` per sections render (never per section), memoized per `data-theme`, and skipped entirely while `sectionTone` is `"none"`. The memo is keyed rather than global because nothing guarantees two themes define the same number — themes.json is hand-editable, which is exactly why @bcl32/themes reports the minimum — and a stale count yields a `var()` with no definition, which is invalid at computed-value time and paints **transparent** (measured), so the section would silently lose its backdrop on a theme switch.
 
 `themeSurfaceCount()` and `sectionToneStyle(tone, depth, count?)` are exported for consumers doing their own tinting — a board's lanes, a set of cards.
+
+### Section packing (`sectionsPacking`)
+
+`sectionsPacking` (2.15+, sections base only) decides how sections fill the page. CSS grid's dense auto-placement only back-fills **horizontally**, so a short section beside a tall one left a hole nothing could reach — a gallery of a dozen groups was mostly whitespace. Sections now measure their own height and take a `grid-row: span N` in coarse row modules, which gives the flow something to pack against on both axes.
+
+```tsx
+<DataTable … sectionsPacking="tight" />
+```
+
+| mode | what it trades |
+|---|---|
+| `rows` | no packing at all — the pre-2.15 layout, byte for byte |
+| `packed` | fills gaps, sub-sections stay equal-width |
+| `fit-wide` | content-sized sub-sections, single-row bias |
+| `fit-narrow` (default) | content-sized sub-sections, stacks vertically |
+| `uniform` | every tile the same size (shrink tolerance 0), pins still win |
+| `tight` | 8px row module — masonry-close |
+
+Tile sizes become **targets rather than auto-fill minimums**. A section computes an integer column count from its measured content width and admits one extra column when the resulting shrink is within 12% — the measured gap between "still the size you picked" and "visibly smaller" (largest accepted 9.9%, smallest rejected 14.8%). Rows then fill exactly instead of stranding a chrome-induced empty track. Width comes from `getBoundingClientRect()`, never `clientWidth`: the latter's rounding flips column counts at the boundary.
+
+Sub-sections are content-sized — a nested grid mirrors its parent's track count, pinned children map proportionally through `spanTierTracks`, and an auto child takes `clamp(ceil(sqrt(n)), 1, cap)` tracks. That is a deliberate **narrow bias**: trading a row for width reads better in a gallery than one long line.
+
+Three things are load-bearing and easy to undo by accident:
+
+- **The 48px row module.** A collapsed header measures 46px; a 44px module would ceil it to 2 and leave a dead sliver under every collapsed section.
+- **The observer stores raw pixels**, and `sectionRowSpan(h, modulePx)` derives the span at render. Quantizing at measurement time freezes the geometry on the old module across a mode switch, because a `ResizeObserver` does not re-fire when nothing resized — the bug surfaces on the *second* interaction, not the first.
+- **Track counts ride CSS custom properties** (`--sec-tracks`, `--sec-col-span`) consumed through `md:[…:var(…)]` classes. An inline style would beat the below-`md` single-column media query and break small screens.
+
+Measuring every section on every render deadlocks against framer-motion's commit-phase reflows (Maximum update depth). The layout effect measures only span-less sections; the `ResizeObserver` owns every update after that, and fires on `observe()` so nothing is missed.
 
 ### Layout & virtualization
 

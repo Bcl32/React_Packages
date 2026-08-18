@@ -33,7 +33,12 @@ import { resolveViewDefs } from "./ViewDefs";
 import { BoardView } from "./BoardView";
 import type { BoardConfig, BoardLane, GroupingLevel } from "./BoardView";
 import { SectionsView } from "./SectionsView";
-import type { RenderSectionWrapper, SectionTone, SectionWrapperInfo } from "./GroupSections";
+import type {
+  RenderSectionWrapper,
+  SectionTone,
+  SectionWrapperInfo,
+  SectionsPacking,
+} from "./GroupSections";
 import { DetailPaneView } from "./DetailPaneView";
 import { getCardMeta } from "./ColumnLabels";
 import { DataTableToolbar } from "./DataTableToolbar";
@@ -193,6 +198,9 @@ interface DataTableProps<TData extends RowData> {
    * declared here — see `themeSurfaceCount`.
    */
   sectionTone?: SectionTone;
+  /** Sections view: which packing strategy lays the sections out. See
+   *  `SectionsPacking` for what each one trades. Default `"fit-narrow"`. */
+  sectionsPacking?: SectionsPacking;
   /** Card view: virtualizer size estimate per card row. Default 220. */
   estimatedCardHeight?: number;
   /** Card view: controlled card size preset. Omit to let the toolbar control
@@ -423,6 +431,7 @@ export function DataTable<TData extends RowData>(
   const sectionHeaderActions = activeView.sectionHeaderActions ?? props.sectionHeaderActions;
   const sectionHeaderLeading = activeView.sectionHeaderLeading ?? props.sectionHeaderLeading;
   const sectionTone = activeView.sectionTone ?? props.sectionTone;
+  const sectionsPacking = activeView.sectionsPacking ?? props.sectionsPacking;
   const cellClassName = activeView.cellClassName ?? props.cellClassName;
   const maxCellHeight = activeView.maxCellHeight ?? props.maxCellHeight;
   const estimatedCardHeight = activeView.estimatedCardHeight ?? props.estimatedCardHeight;
@@ -583,6 +592,7 @@ export function DataTable<TData extends RowData>(
                 sectionHeaderActions={sectionHeaderActions}
                 sectionHeaderLeading={sectionHeaderLeading}
                 sectionTone={sectionTone}
+                sectionsPacking={sectionsPacking}
                 cardActions={cardActions}
                 cardSlots={activeView.cardSlots}
                 {...rowEdit}
