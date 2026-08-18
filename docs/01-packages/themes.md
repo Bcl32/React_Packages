@@ -321,15 +321,41 @@ Four rules, all enforced by the generator:
 | rule | why |
 |---|---|
 | one **lightness** for the whole family | unequal lightness reads as rank; it is also what lets `card-foreground` stay the single text colour for all eight, so there are no `surface-N-foreground` tokens to keep in step |
-| one **saturation**, from the theme's own `accent`/`card` | a fixed constant washes out `green`/`red`/`purple`/`dark-blue` (cards 45–70% saturated) and blows out `light` (card pure grey) |
+| one **saturation**, from the theme's own `accent`/`card` (light themes ×2.2 — see below) | a fixed constant washes out `green`/`red`/`purple`/`dark-blue` (cards 45–70% saturated) and blows out `light` (card pure grey) |
 | **hue is the only variable**, anchored on `primary` | the family belongs to the theme; the ladder is perceptually corrected rather than an even 45°, because even HSL steps cluster four of the eight in the green–cyan band |
 | values are **opaque** | sections nest, and two alpha tints multiply. A nested surface applies its own `/60` at the call site, compositing against its parent's own hue so it reads as an inset |
 
 Lightness sits one small step from `card` — down on light themes, up on dark
 ones, and dark themes take the larger step because below ~L12 a hue is barely a
-hue. Measured against `card`, the step is a 1.08–1.40 contrast ratio: present,
+hue. Measured against `card`, the step is a 1.01–1.40 contrast ratio: present,
 but well short of a new elevation. Measured against `card-foreground`, the worst
-of all 72 values is **8.8:1** (`purple`, `surface-5`), comfortably past AA.
+of all 72 values is **8.7:1** (`purple`, `surface-5`), comfortably past AA.
+
+#### Why light themes carry a ×2.2 saturation gain
+
+HSL saturation is **not perceptually uniform across lightness**. Near white the
+gamut narrows to a point, so the same nominal `S` buys far less actual colour.
+The first cut used each light theme's own 28–35% unchanged, which measured:
+
+| | mean chroma | ΔE between adjacent backdrops |
+|---|---|---|
+| light themes, no gain | 5.5 | **1.5** |
+| `dark` (the *weakest* dark theme, S20) | 9.6 | 4.2 |
+| `dark-blue` (S72) | 29.3 | 10.4 |
+
+ΔE 1.5 is **below the ~2.3 just-noticeable-difference threshold** — those
+backdrops were not reliably distinguishable, which is exactly how they looked in
+an app. The gain lifts 28/35/35 to 62/77/77, for mean chroma 12.1 and ΔE 3.3.
+
+Raising the *floor* instead was the obvious fix and the wrong one: it flattens
+all three light themes onto one number and discards the "saturation comes from
+the theme's own accent" rule. A multiplier lifts them while keeping them
+distinct.
+
+Note this is close to the ceiling of what the colour space offers near white —
+sweeping `S` all the way to 100 only reaches chroma 16.5. The remaining lever is
+lightness (deepening `card.l - 4`), which buys separation from `card` but trades
+against the "mostly subtle" brief, so it is deliberately left alone.
 
 Generate them with:
 

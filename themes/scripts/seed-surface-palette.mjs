@@ -132,7 +132,28 @@ function surfacesFor(name, theme) {
   // Rule 2. The floor is what keeps the deliberately monochrome themes
   // (`dark` at 4%, `yellow` at 18%) from producing eight indistinguishable
   // greys; the ceiling keeps `dark-blue` at 78% from producing eight neons.
-  const saturation = clamp(Math.max(accent.s, card.s), isLight ? 24 : 20, 72);
+  //
+  // Light themes take a GAIN on top, because HSL saturation is not
+  // perceptually uniform across lightness. Near white the gamut narrows to a
+  // point, so the same nominal S buys far less actual colour: at L95 the
+  // light themes' own 28–35% produced a mean chroma of 5.5 and a difference
+  // between adjacent backdrops of ΔE 1.5 — *below* the ~2.3 just-noticeable
+  // threshold, i.e. not reliably distinguishable at all, which is exactly how
+  // it looked on the page. The dark themes clear that on nominal values alone
+  // (the weakest, `dark` at S20, still lands at chroma 9.6 / ΔE 4.2).
+  //
+  // Raising the floor was the obvious fix and the wrong one: it flattens all
+  // three light themes onto one number and throws away the "saturation comes
+  // from the theme's own accent" rule. A multiplier lifts them while keeping
+  // them distinct — 28/35/35 becomes 62/77/77, mean chroma 12.1, ΔE 3.3.
+  //
+  // Sweeping S alone to 100 only reaches chroma 16.5, so this is close to what
+  // the colour space has near white; the remaining lever is lightness, and
+  // that trades against the "mostly subtle" brief.
+  const LIGHT_SATURATION_GAIN = 2.2;
+  const saturation = isLight
+    ? clamp(Math.max(accent.s, card.s) * LIGHT_SATURATION_GAIN, 24, 92)
+    : clamp(Math.max(accent.s, card.s), 20, 72);
 
   // Rule 1. Offset from `card`, not from `background`: the surface has to read
   // as "the card, tinted", so it sits one small step further from the page
