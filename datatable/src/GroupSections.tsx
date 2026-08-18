@@ -74,12 +74,137 @@ export interface SectionWrapperInfo {
   path: string;
   /** 0 = top-level, 1 = nested sub-section. */
   depth: number;
+  /** Position of this section's TOP-LEVEL ancestor in render order — its own
+   *  position when `depth === 0`. What the default backdrop resolver keys off,
+   *  so a sub-section wears its parent's hue rather than a hue of its own:
+   *  a group is a top-level section *and everything under it*. */
+  rootIndex: number;
   /** The enclosing section's lane value, `null` at the top level. A drag
    *  payload wants this — it is the dragged section's parent. */
   parentValue: string | null;
   isNone: boolean;
   collapsed: boolean;
   count: number;
+}
+
+/** Upper bound on the probe below. Not a palette size — just a stop condition,
+ *  set far above any plausible number of backdrops. */
+const MAX_SURFACE_PROBE = 32;
+
+/** Memo keyed by the theme it was measured under — see `themeSurfaceCount`. */
+let cachedSurfaceCount = 0;
+let cachedSurfaceTheme: string | null = null;
+
+/**
+ * How many card backdrops the running theme actually defines — `surface-1 …
+ * surface-N` from @bcl32/themes.
+ *
+ * **Read off the live CSS rather than declared here, and that is the whole
+ * point.** A constant in this file would be a second copy of a number that
+ * lives in themes.json, and the two would drift the first time the palette
+ * grew: sections would keep cycling through eight while the theme shipped ten.
+ * Probing the same custom properties the backdrop is about to *use* means the
+ * count cannot disagree with reality by construction — including when it is
+ * zero, in an app on an older @bcl32/themes, where it degrades to the neutral
+ * frame instead of painting sections with a token that doesn't exist.
+ *
+ * Cost is one `getComputedStyle` on `<html>` plus N property reads, memoized
+ * per theme. Called once per sections render, never per section.
+ *
+ * Two things the memo has to get right:
+ *
+ * - It is keyed on `data-theme`, not global. Nothing *guarantees* every theme
+ *   defines the same number — the seeder writes them uniformly, but themes.json
+ *   is hand-editable, which is the whole reason @bcl32/themes reports the
+ *   minimum. A global memo would carry one theme's count into another and hand
+ *   back an index whose variable doesn't exist there — and a `var()` with no
+ *   definition is invalid at computed-value time, so the background resolves to
+ *   transparent (measured) rather than falling back to anything. The section
+ *   would simply lose its backdrop on a theme switch.
+ * - Only a positive result is cached. Zero can also mean the stylesheet has not
+ *   landed yet on the very first paint, and caching that would leave the page
+ *   permanently untinted.
+ */
+export function themeSurfaceCount(): number {
+  if (typeof document === "undefined") return 0;
+
+  const theme = document.documentElement.getAttribute("data-theme");
+  if (cachedSurfaceCount > 0 && cachedSurfaceTheme === theme) return cachedSurfaceCount;
+
+  const style = getComputedStyle(document.documentElement);
+  let n = 0;
+  // Stops at the first gap, so a partially defined palette reports what it can
+  // actually deliver rather than the highest number present.
+  while (n < MAX_SURFACE_PROBE && style.getPropertyValue(`--surface-${n + 1}`).trim() !== "") {
+    n++;
+  }
+
+  if (n > 0) {
+    cachedSurfaceCount = n;
+    cachedSurfaceTheme = theme;
+  }
+  return n;
+}
+
+/**
+ * Backdrop for a tone index at a depth, as an inline style.
+ *
+ * A style rather than a Tailwind class because a class would have to be a
+ * literal (the scanner sees nothing else), and a literal map is exactly the
+ * hard-coded palette size this avoids. `hsl(var(--surface-N))` needs no build
+ * step and works for whatever N the theme defines.
+ *
+ * The nested rung is the same hue at 60%, not a different token: it composites
+ * against its *parent's own* backdrop, so a sub-section reads as an inset of
+ * its group rather than as a new colour. That is also why the palette is stored
+ * opaque — two nested alpha tints would multiply.
+ *
+ * Cycles, so a resolver may hand back any integer — a hash, a category ordinal
+ * — without knowing the palette size.
+ */
+export function sectionToneStyle(
+  tone: number,
+  depth: number,
+  count: number = themeSurfaceCount()
+): React.CSSProperties | undefined {
+  if (count <= 0) return undefined;
+  const i = (((Math.trunc(tone) % count) + count) % count) + 1;
+  return {
+    background: depth === 0 ? `hsl(var(--surface-${i}))` : `hsl(var(--surface-${i}) / 0.6)`,
+  };
+}
+
+/**
+ * Which backdrop a section wears.
+ *
+ *   "none"   every section keeps the neutral card/background frame (default —
+ *            an existing consumer sees no change until it opts in)
+ *   "index"  by top-level position, sub-sections inheriting their parent's hue
+ *   fn       a caller-owned mapping, for when the *value* should pick the
+ *            colour rather than the position — so "Kitchen" is the same hue on
+ *            every listing, and reordering sections doesn't reshuffle the page.
+ *            Return `null` for "no backdrop"; any integer otherwise, cycled.
+ */
+export type SectionTone = "none" | "index" | ((section: SectionWrapperInfo) => number | null);
+
+/**
+ * The backdrop for one section, or `undefined` to keep the neutral frame.
+ *
+ * Takes `count` so a caller can probe once per render and pass it down, rather
+ * than paying a `getComputedStyle` per section on the first paint.
+ *
+ * The "no value" bucket is never tinted, whatever the resolver says: it already
+ * signals itself with muted text and a dashed border, and giving it a colour of
+ * its own would make absence look like just another group.
+ */
+export function resolveSectionTone(
+  tone: SectionTone | undefined,
+  section: SectionWrapperInfo,
+  count: number = themeSurfaceCount()
+): React.CSSProperties | undefined {
+  if (!tone || tone === "none" || section.isNone) return undefined;
+  const index = tone === "index" ? section.rootIndex : tone(section);
+  return index == null ? undefined : sectionToneStyle(index, section.depth, count);
 }
 
 /** The geometry the sections grid computed for a wrapped section. `className`

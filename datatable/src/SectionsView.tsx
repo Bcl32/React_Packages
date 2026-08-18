@@ -12,9 +12,11 @@ import {
   GroupSectionHeader,
   NARROW_SPAN_TIER_CLASS,
   SPAN_TIER_CLASS,
+  resolveSectionTone,
   spanTierForCards,
+  themeSurfaceCount,
 } from "./GroupSections";
-import type { RenderSectionWrapper, SectionWrapperInfo } from "./GroupSections";
+import type { RenderSectionWrapper, SectionTone, SectionWrapperInfo } from "./GroupSections";
 import {
   ROW_SCOPE_ATTR,
   ensureVisibleWithin,
@@ -44,6 +46,10 @@ export interface SectionsViewProps<TData extends RowData> extends CardRenderOpti
   /** Leading header furniture per section — the reorder grip. Rides in
    *  `GroupSectionHeader`'s `leading` slot, ahead of the collapse chevron. */
   sectionHeaderLeading?: (section: SectionWrapperInfo) => React.ReactNode;
+  /** Backdrop colour per section, from the theme's card palette. Defaults to
+   *  `"none"` — the neutral card/background frame every sections view has
+   *  drawn until now. See `SectionTone`. */
+  sectionTone?: SectionTone;
 }
 
 interface SectionItem<TData extends RowData> {
@@ -399,7 +405,18 @@ export function SectionsView<TData extends RowData>(
     );
   };
 
-  const renderNode = (node: SectionNode<TData>, parentValue: string | null): React.ReactNode => {
+  // Probed once per render, not per section, and skipped entirely when nothing
+  // is tinted. Read during render rather than from an effect on purpose: the
+  // count decides what the *first* paint looks like, and deferring it would
+  // flash a page of neutral sections before they took their colours.
+  const surfaceCount =
+    props.sectionTone && props.sectionTone !== "none" ? themeSurfaceCount() : 0;
+
+  const renderNode = (
+    node: SectionNode<TData>,
+    parentValue: string | null,
+    rootIndex: number
+  ): React.ReactNode => {
     const nodeCollapsed = isCollapsed(node.path, node.depth);
     const isTop = node.depth === 0;
     const aggregate = props.board.laneAggregate?.(node.items.map((i) => i.row.original));
@@ -410,6 +427,7 @@ export function SectionsView<TData extends RowData>(
       label: node.lane.label,
       path: node.path,
       depth: node.depth,
+      rootIndex,
       parentValue,
       isNone: !!node.lane.isNone,
       collapsed: nodeCollapsed,
@@ -442,7 +460,9 @@ export function SectionsView<TData extends RowData>(
       // as the outer grid: a full-width child after a half-width one would
       // otherwise strand the second track.
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:[grid-auto-flow:dense]">
-        {node.children.map((child) => renderNode(child, node.lane.value))}
+        {/* `rootIndex` carries down unchanged — a sub-section belongs to its
+            group's colour, it does not start a new one. */}
+        {node.children.map((child) => renderNode(child, node.lane.value, rootIndex))}
       </div>
     ) : node.items.length > 0 && leafIndex !== undefined ? (
       renderCards({ node, items: node.items }, leafIndex)
@@ -465,14 +485,20 @@ export function SectionsView<TData extends RowData>(
           node.lane.span ?? spanTierForCards(node.items.length, tileWidth)
         ];
 
+    // A tinted section replaces the neutral frame rather than layering over it:
+    // the palette is seeded one step from `card`, so painting it on top of
+    // `bg-card/50` would land it a step further out than it was tuned for.
+    const toneStyle = resolveSectionTone(props.sectionTone, info, surfaceCount);
+
     const inner = (
       <section
         aria-label={node.lane.label}
         className={cn(
           "flex flex-col gap-3 rounded-lg border p-3",
-          isTop ? "bg-card/50" : "bg-background/40",
+          !toneStyle && (isTop ? "bg-card/50" : "bg-background/40"),
           node.lane.isNone && "border-dashed"
         )}
+        style={toneStyle}
       >
         {header}
         {!nodeCollapsed && body}
@@ -513,7 +539,7 @@ export function SectionsView<TData extends RowData>(
       className="grid grid-cols-1 items-start gap-3 pb-3 md:grid-cols-6 md:[grid-auto-flow:dense]"
       {...{ [ROW_SCOPE_ATTR]: "" }}
     >
-      {sections.map((node) => renderNode(node, null))}
+      {sections.map((node, index) => renderNode(node, null, index))}
     </div>
   );
 }

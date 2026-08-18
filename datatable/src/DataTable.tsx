@@ -33,7 +33,7 @@ import { resolveViewDefs } from "./ViewDefs";
 import { BoardView } from "./BoardView";
 import type { BoardConfig, BoardLane, GroupingLevel } from "./BoardView";
 import { SectionsView } from "./SectionsView";
-import type { RenderSectionWrapper, SectionWrapperInfo } from "./GroupSections";
+import type { RenderSectionWrapper, SectionTone, SectionWrapperInfo } from "./GroupSections";
 import { DetailPaneView } from "./DetailPaneView";
 import { getCardMeta } from "./ColumnLabels";
 import { DataTableToolbar } from "./DataTableToolbar";
@@ -182,6 +182,17 @@ interface DataTableProps<TData extends RowData> {
   /** Sections view: leading header furniture per section — the reorder grip.
    *  Renders ahead of the collapse chevron, at the head of the header row. */
   sectionHeaderLeading?: (section: SectionWrapperInfo) => React.ReactNode;
+  /**
+   * Sections view: give each group its own backdrop from the theme's card
+   * palette (`surface-N`, @bcl32/themes), so sections read as groups rather
+   * than as one long wall of identical frames. `"index"` colours by top-level
+   * position with sub-sections inheriting their parent's hue; pass a function
+   * to map the section's own value instead. Defaults to `"none"`.
+   *
+   * How many backdrops exist is measured from the running theme, never
+   * declared here — see `themeSurfaceCount`.
+   */
+  sectionTone?: SectionTone;
   /** Card view: virtualizer size estimate per card row. Default 220. */
   estimatedCardHeight?: number;
   /** Card view: controlled card size preset. Omit to let the toolbar control
@@ -411,6 +422,7 @@ export function DataTable<TData extends RowData>(
   const renderSectionWrapper = activeView.renderSectionWrapper ?? props.renderSectionWrapper;
   const sectionHeaderActions = activeView.sectionHeaderActions ?? props.sectionHeaderActions;
   const sectionHeaderLeading = activeView.sectionHeaderLeading ?? props.sectionHeaderLeading;
+  const sectionTone = activeView.sectionTone ?? props.sectionTone;
   const cellClassName = activeView.cellClassName ?? props.cellClassName;
   const maxCellHeight = activeView.maxCellHeight ?? props.maxCellHeight;
   const estimatedCardHeight = activeView.estimatedCardHeight ?? props.estimatedCardHeight;
@@ -570,6 +582,7 @@ export function DataTable<TData extends RowData>(
                 renderSectionWrapper={renderSectionWrapper}
                 sectionHeaderActions={sectionHeaderActions}
                 sectionHeaderLeading={sectionHeaderLeading}
+                sectionTone={sectionTone}
                 cardActions={cardActions}
                 cardSlots={activeView.cardSlots}
                 {...rowEdit}

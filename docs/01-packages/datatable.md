@@ -232,6 +232,7 @@ DataTable<TData extends RowData>(props: {
   renderSectionWrapper?: (section, sectionProps, children) => ReactNode;  // sections view: take over each section's grid element — the section drag seam
   sectionHeaderActions?: (section) => ReactNode; // sections view: trailing header furniture (⋯ menu, edit affordances)
   sectionHeaderLeading?: (section) => ReactNode; // sections view: leading header furniture, before the chevron (drag grip)
+  sectionTone?: SectionTone;                     // sections view: per-group backdrop from the theme card palette (default "none")
   estimatedCardHeight?: number;                  // card/gallery: virtualizer estimate per grid row (default 220 / tile width + 44)
   cardSize?: CardSize;                           // card view: controlled density preset
   defaultCardSize?: CardSize;                    // card view: uncontrolled initial preset (default "comfortable")
@@ -514,6 +515,7 @@ interface DataTableViewDef<TData extends RowData = RowData> {
   renderSectionWrapper?: (section, sectionProps, children) => React.ReactNode; // section drag seam (sections base) — see below
   sectionHeaderActions?: (section) => React.ReactNode; // trailing section header furniture (sections base)
   sectionHeaderLeading?: (section) => React.ReactNode; // leading section header furniture (sections base)
+  sectionTone?: SectionTone;   // per-group backdrop palette (sections base) — see below
   variant?: CardViewVariant;   // pin the tile independent of base (2.13+) — see below
   cardMinWidth?: number;
   estimatedCardHeight?: number;
@@ -729,11 +731,41 @@ renderSectionWrapper={(section, sectionProps, children) => (
 )}
 ```
 
-`section` is a `SectionWrapperInfo`: `{ value, label, path, depth, parentValue, isNone, collapsed, count }` — `parentValue` is the enclosing section's lane value (`null` at top level), which is exactly what a section-drag payload needs. The contract mirrors the card seam's: render **one outermost element**, spread `sectionProps` onto it (its `className` is the span-tier grid geometry — append, never replace), keep any drop ring `ring-inset` (a ring that grows the element invalidates the rects a drop is resolved against under `MeasuringStrategy.Always`), and return a component instance so it can own `useSortable`/`useDroppable`.
+`section` is a `SectionWrapperInfo`: `{ value, label, path, depth, rootIndex, parentValue, isNone, collapsed, count }` — `parentValue` is the enclosing section's lane value (`null` at top level), which is exactly what a section-drag payload needs, and `rootIndex` (2.14+) is the render position of the section's *top-level ancestor*, which is what `sectionTone` keys off. The contract mirrors the card seam's: render **one outermost element**, spread `sectionProps` onto it (its `className` is the span-tier grid geometry — append, never replace), keep any drop ring `ring-inset` (a ring that grows the element invalidates the rects a drop is resolved against under `MeasuringStrategy.Always`), and return a component instance so it can own `useSortable`/`useDroppable`.
 
 A lane can also pin its own **tile size** with `cardSize` (`"compact" | "comfortable" | "large"`), beside `span`. Sizes resolve against the active variant's preset table, so the same name means a gallery tile in a photo view and a card in a record view, and the pinned size feeds the auto span too — a section's width is an answer about how many of *its own* tiles fit. `buildTreeBoard` carries `cardSize` from a `TreeBoardNode`, validating it exactly as it validates `span`: both arrive from persisted per-section config, where a retired value outlives the code that wrote it, and an unknown size would index the preset table to `undefined` and emit a broken grid template.
 
 `sectionHeaderActions(section)` and `sectionHeaderLeading(section)` are the companion slots — the two ends of the section header row. `actions` is trailing furniture, after the count: a per-section ⋯ menu, rename/delete affordances. `leading` renders **before the collapse chevron**, at the head of the row, and is where a drag grip (`data-drag-grip`) belongs: a handle for the whole section should sit at the head of the row it drags, and in the trailing cluster it shifts sideways whenever the count or aggregate changes width. Every prop here is per-view overridable via the view def, like every other shape prop.
+
+### Section backdrops (`sectionTone`)
+
+`sectionTone` (2.14+, sections base only) gives each group its own backdrop from the theme's **card palette** — `surface-1 … surface-8`, see [themes](./themes.md#card-backdrop-palette--surface-1--surface-8). It exists because a packer with a dozen groups is a wall of identical frames: the sections are all there, but nothing says where one ends and the next begins.
+
+```tsx
+<DataTable … sectionTone="index" />                               // by position
+<DataTable … sectionTone={(s) => CATEGORY_TONE[s.value] ?? null} /> // by value
+```
+
+| value | behaviour |
+|---|---|
+| `"none"` (default) | the neutral `bg-card/50` / `bg-background/40` frame — an existing consumer sees no change until it opts in |
+| `"index"` | by top-level position, **sub-sections inheriting their parent's hue** at 60% |
+| `(section) => number \| null` | caller-owned mapping; any integer, cycled — return `null` for no backdrop |
+
+Two rules are baked in rather than configurable:
+
+- **A group is a top-level section and everything under it.** Nesting inherits `rootIndex`, so a sub-section is an inset of its parent's colour, never a ninth one. This is also why the palette is stored opaque — the nested rung applies `/60` over its parent's own hue, and two alpha tints would multiply.
+- **The "no value" bucket is never tinted**, whatever the resolver returns. It already signals itself with muted text and a dashed frame; colouring it would make absence look like just another group.
+
+Prefer the function form when reordering shouldn't reshuffle the page, or when a value should keep one colour across pages ("Kitchen" is always the same hue).
+
+**This package never records how many backdrops exist.** `themeSurfaceCount()` counts the `--surface-N` custom properties on the running document, and a backdrop is applied as an inline `hsl(var(--surface-N))` rather than a `bg-surface-N` class. That choice is what removes the drift: a Tailwind class would have to be a scannable literal, and a literal map *is* a hard-coded palette size that would keep cycling through eight after @bcl32/themes shipped ten. Growing the palette needs no change here and no version bump.
+
+It also degrades honestly. An app on an @bcl32/themes without the palette measures zero, `resolveSectionTone` returns `undefined`, and sections keep the neutral frame — rather than painting with a token that doesn't exist.
+
+Cost is one `getComputedStyle` per sections render (never per section), memoized per `data-theme`, and skipped entirely while `sectionTone` is `"none"`. The memo is keyed rather than global because nothing guarantees two themes define the same number — themes.json is hand-editable, which is exactly why @bcl32/themes reports the minimum — and a stale count yields a `var()` with no definition, which is invalid at computed-value time and paints **transparent** (measured), so the section would silently lose its backdrop on a theme switch.
+
+`themeSurfaceCount()` and `sectionToneStyle(tone, depth, count?)` are exported for consumers doing their own tinting — a board's lanes, a set of cards.
 
 ### Layout & virtualization
 
