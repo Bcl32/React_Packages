@@ -99,6 +99,38 @@
     "description": "Extra colour for charting with many colours",
     "group": "chart"
   },
+  "surface-1": {
+    "description": "Card/section backdrop 1 — the theme's own hue, tinted",
+    "group": "surface"
+  },
+  "surface-2": {
+    "description": "Card/section backdrop 2",
+    "group": "surface"
+  },
+  "surface-3": {
+    "description": "Card/section backdrop 3",
+    "group": "surface"
+  },
+  "surface-4": {
+    "description": "Card/section backdrop 4",
+    "group": "surface"
+  },
+  "surface-5": {
+    "description": "Card/section backdrop 5",
+    "group": "surface"
+  },
+  "surface-6": {
+    "description": "Card/section backdrop 6",
+    "group": "surface"
+  },
+  "surface-7": {
+    "description": "Card/section backdrop 7",
+    "group": "surface"
+  },
+  "surface-8": {
+    "description": "Card/section backdrop 8",
+    "group": "surface"
+  },
   "sidebar-background": {
     "description": "Defaults to background",
     "group": "extra"

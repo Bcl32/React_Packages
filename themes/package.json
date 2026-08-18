@@ -85,6 +85,7 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
+    "seed-surfaces": "node scripts/seed-surface-palette.mjs",
     "prepublishOnly": "pnpm run build"
   },
   "repository": {

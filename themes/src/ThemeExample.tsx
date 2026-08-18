@@ -5,6 +5,7 @@ import { ShowHierarchy } from "@bcl32/utils/ShowHierarchy";
 import { Input } from "@bcl32/utils/Input";
 import { Checkbox } from "@bcl32/utils/Checkbox";
 import { Label } from "@bcl32/utils/Label";
+import { SURFACE_COUNT } from "./contrastCheck";
 
 interface ExampleJson {
   [key: string]: string | boolean | number | ExampleJson | (string | number | boolean)[];
@@ -38,6 +39,16 @@ const CHART_SWATCHES: { name: string; className: string }[] = [
   { name: "chart-5", className: "bg-chart-5" },
 ];
 
+// The card backdrop palette. Sized from SURFACE_COUNT and painted through the
+// CSS variable rather than listed as `bg-surface-N` literals: the demo should
+// show what the palette IS, and a hand-written list would keep showing eight
+// after themes.json grew to ten.
+//
+// Drawn as tiles carrying `card-foreground` rather than as bare chips, because
+// that is the whole claim these tokens make — one lightness across the family,
+// so a single text colour reads on all of them.
+const SURFACE_SWATCHES = Array.from({ length: SURFACE_COUNT }, (_, i) => i + 1);
+
 export function ThemeExample() {
   return (
     <div className="container space-y-3">
@@ -63,6 +74,23 @@ export function ThemeExample() {
             title={name}
             className={`h-6 flex-1 rounded ${className}`}
           />
+        ))}
+      </div>
+
+      <h2 className="text-lg pt-2">Card Backdrops:</h2>
+      <div
+        className="grid gap-2"
+        style={{ gridTemplateColumns: `repeat(${Math.min(SURFACE_COUNT, 8)}, minmax(0, 1fr))` }}
+      >
+        {SURFACE_SWATCHES.map((n) => (
+          <div
+            key={n}
+            title={`surface-${n}`}
+            className="rounded-lg border p-2 text-center text-xs text-card-foreground"
+            style={{ background: `hsl(var(--surface-${n}))` }}
+          >
+            {n}
+          </div>
         ))}
       </div>
 

@@ -23,6 +23,7 @@ const TypedStyleMetadata = style_metadata as StyleMetadataType;
 const TOKEN_GROUPS: { key: string; label: string }[] = [
   { key: "main", label: "Main" },
   { key: "chart", label: "Charts" },
+  { key: "surface", label: "Cards" },
   { key: "extra", label: "Sidebar & Extra" },
 ];
 

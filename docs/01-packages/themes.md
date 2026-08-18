@@ -302,6 +302,81 @@ from each theme's `primary`, `destructive` and `success` is ΔE ≥ 25.7. Keep t
 two properties in mind when retuning: a warning colour that fails on a tint is the
 failure mode that reintroduces the hardcoded-amber workaround.
 
+### Card backdrop palette — `surface-1 … surface-8`
+
+**New in 5.1.0.** The second numbered family after `chart-1 … chart-5`, and the
+one to reach for when cards or sections need to read as *groups* — a section
+packer where each group carries its own subtle backdrop, a board whose lanes
+should be tellable apart at a glance.
+
+**It is not the chart palette tinted, and that is deliberate.** Chart colours
+are *marks*: small, saturated, chosen to survive at three pixels. Backdrops are
+*surfaces*: large, and required to recede behind text. The five chart
+lightnesses differ by more than 20 points inside a single theme, so five equal
+tints of them (`bg-chart-N/10`, the obvious move) read as five different
+*weights* — an accidental hierarchy across groups that have none.
+
+Four rules, all enforced by the generator:
+
+| rule | why |
+|---|---|
+| one **lightness** for the whole family | unequal lightness reads as rank; it is also what lets `card-foreground` stay the single text colour for all eight, so there are no `surface-N-foreground` tokens to keep in step |
+| one **saturation**, from the theme's own `accent`/`card` | a fixed constant washes out `green`/`red`/`purple`/`dark-blue` (cards 45–70% saturated) and blows out `light` (card pure grey) |
+| **hue is the only variable**, anchored on `primary` | the family belongs to the theme; the ladder is perceptually corrected rather than an even 45°, because even HSL steps cluster four of the eight in the green–cyan band |
+| values are **opaque** | sections nest, and two alpha tints multiply. A nested surface applies its own `/60` at the call site, compositing against its parent's own hue so it reads as an inset |
+
+Lightness sits one small step from `card` — down on light themes, up on dark
+ones, and dark themes take the larger step because below ~L12 a hue is barely a
+hue. Measured against `card`, the step is a 1.08–1.40 contrast ratio: present,
+but well short of a new elevation. Measured against `card-foreground`, the worst
+of all 72 values is **8.8:1** (`purple`, `surface-5`), comfortably past AA.
+
+Generate them with:
+
+```bash
+cd react-packages/themes && pnpm seed-surfaces      # --dry-run to preview
+```
+
+The script is **idempotent** — a theme that already has `surface-1` is skipped
+whole, so anything hand-tuned in the theme editor survives a re-run. `--force`
+reseeds. It also splices the matching `style_metadata.json` entries (as text,
+to avoid reformatting that hand-formatted file), which is what files the tokens
+under the editor's **Cards** tab rather than silently under "Sidebar & Extra".
+
+`CONTRAST_PAIRS` checks every backdrop against `card-foreground`, so a hand-tune
+that drifts too dark surfaces as an editor warning rather than on the page.
+
+#### Resizing the family
+
+`--count N --force` is the whole procedure — **no other file, in any package,
+records the size**:
+
+```bash
+pnpm seed-surfaces --count 10 --force
+```
+
+The hue curve is resampled rather than replaced by even steps, so ten backdrops
+keep the same perceptual spacing as eight. Everything downstream derives the
+number instead of declaring it:
+
+| consumer | how it learns the count |
+|---|---|
+| `contrastCheck.SURFACE_COUNT` | counts `surface-N` keys in themes.json — the **minimum** across themes, so an index below it resolves under every theme |
+| `ThemeExample` | reads `SURFACE_COUNT` |
+| @bcl32/datatable | probes the live `--surface-N` custom properties at runtime; see [`sectionTone`](./datatable.md#section-backdrops-sectiontone) |
+
+Taking the minimum has one deliberate consequence: **adding a theme without
+re-running the seeder drops the count to 0 and turns backdrops off everywhere**,
+rather than leaving them broken on that one theme. The seeder warns about a
+size mismatch when it skips (`already seeded at 8, not 10`) so the half-resized
+state is visible rather than silent.
+
+Only `DEFAULT_SURFACE_COUNT` in the seeder holds the literal number.
+
+Consumers: `bg-surface-3` etc. work anywhere, but the packed-sections layout has
+a first-class seam — see `sectionTone` in
+[datatable](./datatable.md).
+
 ## Known Smells & Caveats
 
 > These are documented behaviours to be aware of — they are not necessarily bugs you
