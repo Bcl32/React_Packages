@@ -109,7 +109,12 @@ export function OptionsFilter({
       )}
 
       {display === "toggle-buttons" && (
-        <ToggleButtonsView options={options} selected={currentValue} onChange={setValue} />
+        <ToggleButtonsView
+          options={options}
+          selected={currentValue}
+          multiple={selection === "multi"}
+          onChange={setValue}
+        />
       )}
 
       {display === "swatch-grid" && (
@@ -198,28 +203,51 @@ function ChipToggleView({ options, selected, onToggle }: ChipToggleViewProps): J
 interface ToggleButtonsViewProps {
   options: FilterOption[];
   selected: string[];
+  multiple: boolean;
   onChange: (next: string[]) => void;
 }
 
-function ToggleButtonsView({ options, selected, onChange }: ToggleButtonsViewProps): JSX.Element {
+function ToggleButtonsView({ options, selected, multiple, onChange }: ToggleButtonsViewProps): JSX.Element {
+  const itemClassName = "h-6 rounded px-1.5 text-[11px]";
+  const groupClassName = "flex flex-wrap justify-start gap-0.5";
+  // Overrides the `sm` variant's h-9 on each item: inside the filter grid
+  // these are captions, and a full-height button row is what made an options
+  // filter twice as tall as a text one.
+  //
+  // Two ToggleGroups rather than one with a computed `type`: Radix types the
+  // value/onValueChange pair by that prop (string[] vs string), and a union
+  // there makes both callbacks `any`. Single-select still clears — clicking
+  // the pressed button reports "" — so the filter state stays [] / [value],
+  // the same options-filter shape the predicate and the chip already read.
+  if (multiple) {
+    return (
+      <ToggleGroup
+        type="multiple"
+        variant="outline"
+        size="sm"
+        value={selected}
+        onValueChange={(value: string[]) => onChange(value)}
+        className={groupClassName}
+      >
+        {options.map((o) => (
+          <ToggleGroupItem key={o.value} value={o.value} className={itemClassName}>
+            {capitalize(o.label)}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+    );
+  }
   return (
     <ToggleGroup
-      type="multiple"
+      type="single"
       variant="outline"
       size="sm"
-      value={selected}
-      onValueChange={(value: string[]) => onChange(value)}
-      className="flex flex-wrap justify-start gap-0.5"
+      value={selected[0] ?? ""}
+      onValueChange={(value: string) => onChange(value ? [value] : [])}
+      className={groupClassName}
     >
       {options.map((o) => (
-        // Overrides the `sm` variant's h-9: inside the filter grid these are
-        // captions, and a full-height button row is what made an options filter
-        // twice as tall as a text one.
-        <ToggleGroupItem
-          key={o.value}
-          value={o.value}
-          className="h-6 rounded px-1.5 text-[11px]"
-        >
+        <ToggleGroupItem key={o.value} value={o.value} className={itemClassName}>
           {capitalize(o.label)}
         </ToggleGroupItem>
       ))}
