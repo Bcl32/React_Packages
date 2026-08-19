@@ -1,5 +1,11 @@
 # @bcl32/filters
 
+## 3.7.1
+
+### Patch Changes
+
+- 0326303: feat(filters): let a toggle-buttons options filter be single-select
+
 ## 3.7.0
 
 ### Minor Changes
