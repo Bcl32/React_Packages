@@ -11,7 +11,7 @@ import { useDatabaseMutation } from "@bcl32/hooks/useDatabaseMutation";
 import { Button } from "@bcl32/utils/Button";
 import { Checkbox } from "@bcl32/utils/Checkbox";
 import { Label } from "@bcl32/utils/Label";
-import { getFormDefault, type ModelData } from "@bcl32/data-utils";
+import { getFormDefault, resolveBulkUpdateUrl, type ModelData } from "@bcl32/data-utils";
 
 import { toast } from "sonner";
 import { FormElement, canRenderFormElement, type FormData } from "./FormElement";
@@ -21,7 +21,11 @@ interface RowSelection {
 }
 
 interface BulkEditModelFormProps {
-  ModelData: ModelData & { update_api_url: string };
+  // Plain ModelData: the bulk endpoint used to be derived from
+  // `update_api_url`, which is what made that key a precondition here. Now that
+  // the URL is resolved through resolveBulkUpdateUrl, an editable-but-not-bulk
+  // model is a legitimate shape this form simply is not mounted for.
+  ModelData: ModelData;
   query_invalidation: string[];
   rowSelection: RowSelection;
   setRowSelection: React.Dispatch<React.SetStateAction<RowSelection>>;
@@ -131,8 +135,12 @@ export function BulkEditModelForm({
   const payload = { ids: selectedIds, data: enabledData, merge_fields };
   const enabledCount = Object.values(enabledFields).filter(Boolean).length;
 
+  // The bulk endpoint is a capability the generator emits, not a string this
+  // form is entitled to invent — see resolveBulkUpdateUrl. `?? ""` keeps the
+  // hook's argument a string for the unreachable case: the toolbar only mounts
+  // this form when the same resolver returned a URL.
   const mutation = useDatabaseMutation(
-    ModelData.update_api_url + "/bulk-update",
+    resolveBulkUpdateUrl(ModelData) ?? "",
     payload,
     query_invalidation
   );

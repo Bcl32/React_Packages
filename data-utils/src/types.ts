@@ -36,6 +36,12 @@ export interface ModelData {
   add_api_url?: string;
   update_api_url?: string;
   delete_api_url?: string;
+  /**
+   * Emitted only when the API really has a bulk-update route. Absent means the
+   * file predates capability emission (see {@link resolveBulkUpdateUrl}), which
+   * is why consumers must read it through that resolver rather than directly.
+   */
+  bulk_update_api_url?: string;
   [key: string]: unknown;
 }
 

@@ -140,10 +140,15 @@ Things a consumer **must** know to use this package correctly:
 - **ModelData descriptor pattern.** All CRUD forms are driven by a `ModelData` object whose
   `model_attributes` array declares each field. Consumers must construct and pass this
   descriptor — no inline field config is accepted.
-- **Edit requires `update_api_url`.** `EditModelForm` and `BulkEditModelForm` require the
-  `ModelData` to be extended with `update_api_url` (`ModelData & { update_api_url: string }`).
-  `AddModelForm` instead takes `add_api_url` as a **separate** prop, and `DeleteModelForm`
-  takes `delete_api_url` directly.
+- **Edit requires `update_api_url`.** `EditModelForm` requires the `ModelData` to be extended
+  with `update_api_url` (`ModelData & { update_api_url: string }`). `AddModelForm` instead takes
+  `add_api_url` as a **separate** prop, and `DeleteModelForm` takes `delete_api_url` directly.
+- **`BulkEditModelForm` takes plain `ModelData` and resolves its own URL.** It posts to
+  `resolveBulkUpdateUrl(ModelData)` (from `@bcl32/data-utils`), which prefers the generated
+  `bulk_update_api_url` and falls back to `update_api_url + "/bulk-update"` only while that key
+  is absent — a migration window for metadata generated before the key existed. Bulk update is
+  therefore its **own** capability: an entity can be row-editable with no bulk route, and this
+  form must not be mounted for one. `DataTableToolbar` gates on the same resolver.
 - **`colour_array` carries a sibling `_ids` array.** `colour_array` (and `*_colour(s)`) fields
   silently manage a parallel `*_ids` FK array in `formData` (derived by replacing
   `/_colours?$/` with `/_ids/`). The backend schema must include this sibling key.

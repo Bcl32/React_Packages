@@ -410,7 +410,8 @@ toolbar there is, and `"none"` then removes it — which is a real trap, since
 "the page owns bulk actions" says nothing about who owns the shape.
 
 The quiet bar draws bulk **Edit** and **Delete** under the same gates the
-standard toolbar uses (`ModelData.update_api_url`, `bulk_delete_enabled`), and
+standard toolbar uses (`resolveBulkUpdateUrl(ModelData)`, `bulk_delete_enabled`
+plus `ModelData.delete_api_url`), and
 through the same `BulkEditButton` / `BulkDeleteButton` components — as it does
 the `toolbarActions`, so nothing has to be written twice. It carried neither
 until 2.12, on the reasoning that they belonged to the table that owns the

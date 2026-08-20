@@ -18,6 +18,7 @@ import { CustomTooltip } from "@bcl32/utils/Tooltip";
 import { AddModelForm } from "@bcl32/forms/AddModelForm";
 import { BulkEditModelForm } from "@bcl32/forms/BulkEditModelForm";
 import { DeleteModelForm } from "@bcl32/forms/DeleteModelForm";
+import { resolveBulkUpdateUrl } from "@bcl32/data-utils";
 import type { ModelData, RowData } from "@bcl32/data-utils";
 
 import { SortControl } from "./SortControl";
@@ -159,7 +160,11 @@ function BulkEditButton<TData extends RowData>(props: {
 }): JSX.Element | null {
   const [open, setOpen] = React.useState(false);
   const { toolbar } = props;
-  if (!toolbar.ModelData.update_api_url) return null;
+  // Gate on the bulk endpoint itself, not on row editing. They were the same
+  // question only while the bulk URL was derived from `update_api_url`; a model
+  // can be row-editable with no bulk-update route (Print-Tracker's UploadJob),
+  // and this button used to open a dialog that 405s on submit for exactly those.
+  if (!resolveBulkUpdateUrl(toolbar.ModelData)) return null;
 
   return (
     <DialogButton
@@ -177,7 +182,7 @@ function BulkEditButton<TData extends RowData>(props: {
       title={`Bulk Edit ${toolbar.ModelData.model_name || "Entries"}`}
     >
       <BulkEditModelForm
-        ModelData={toolbar.ModelData as ModelData & { update_api_url: string }}
+        ModelData={toolbar.ModelData}
         query_invalidation={toolbar.query_invalidation || []}
         rowSelection={toolbar.rowSelection}
         setRowSelection={toolbar.setRowSelection}
@@ -383,8 +388,10 @@ export function DataTableToolbar<TData extends RowData>(
             grow leftward into the row's slack and every stable control keeps
             its position. */}
 
-        {/* Bulk Edit */}
-        {props.ModelData.update_api_url && (
+        {/* Bulk Edit — the same capability check as BulkEditButton, so the
+            disabled placeholder does not advertise an action that could never
+            become available once a record is selected. */}
+        {resolveBulkUpdateUrl(props.ModelData) && (
           selectedIds.length > 0 ? (
             <BulkEditButton toolbar={props} />
           ) : props.toolbarStyle === "compact" ? (
@@ -413,7 +420,13 @@ export function DataTableToolbar<TData extends RowData>(
           </CustomTooltip>
         ) : null}
 
-        {props.create_enabled && (
+        {/* The URL as well as the flag, for the same reason bulk delete checks
+            both: `create_enabled` says the page wants a Create button, but with
+            no add URL the form posts to "". Call sites pass
+            `ModelData.add_api_url`, which the generator now omits when the API
+            has no create route — Print-Tracker's PrintJob had this button for
+            an endpoint that never existed. */}
+        {props.create_enabled && props.add_api_url && (
           <DialogButton
             key={"dialog-add-entry"}
             size="large"
