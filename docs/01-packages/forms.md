@@ -59,7 +59,7 @@ import { ColourField } from "@bcl32/forms/ColourField";
 | --- | --- | --- | --- |
 | `AddModelForm` | component | Renders a 2-column grid form for creating a new entity. Derives defaults from `ModelData` via `getFormDefault`, POSTs via `useDatabaseMutation`, and fires a sonner toast on success. | `(props: { ModelData: ModelData; add_api_url: string; query_invalidation: string[]; processing_function?: () => void; onClose?: () => void; onSuccess?: () => void }) => JSX.Element` |
 | `EditModelForm` | component | Same 2-column grid pre-populated with `obj_data`. Computes a **minimal PATCH body** (only changed fields, via `changedFields` / `_diff.ts`), PATCHes to `ModelData.update_api_url/:id`, and toasts on success. | `(props: { ModelData: ModelData & { update_api_url: string }; query_invalidation: string[]; obj_data: { id: string \| number; [key: string]: unknown }; processing_function?: () => void; onSuccess?: (formData: FormData, objData: ObjData) => void; onClose?: () => void }) => JSX.Element` |
-| `BulkEditModelForm` | component | Lets the user enable individual fields to patch across multiple selected rows. POSTs `{ ids, data, merge_fields }` to `update_api_url/bulk-update`. Handles the `colour_array` paired `_ids` sibling, merge-vs-replace mode for `list`/`id_list` fields, and avoids the rowSelection-clear-before-`isSuccess` unmount bug via refs. | `(props: { ModelData: ModelData & { update_api_url: string }; query_invalidation: string[]; rowSelection: Record<string, boolean>; setRowSelection: Dispatch<SetStateAction<Record<string, boolean>>>; onSuccess?: (ids: string[], data: FormData) => void; onClose?: () => void }) => JSX.Element` |
+| `BulkEditModelForm` | component | Lets the user enable individual fields to patch across multiple selected rows. POSTs `{ ids, data, merge_fields }` to `resolveBulkUpdateUrl(ModelData)`. Handles the `colour_array` paired `_ids` sibling, merge-vs-replace mode for `list`/`id_list` fields, and avoids the rowSelection-clear-before-`isSuccess` unmount bug via refs. | `(props: { ModelData: ModelData; query_invalidation: string[]; rowSelection: Record<string, boolean>; setRowSelection: Dispatch<SetStateAction<Record<string, boolean>>>; onSuccess?: (ids: string[], data: FormData) => void; onClose?: () => void }) => JSX.Element` |
 | `DeleteModelForm` | component | Confirms and POSTs deletion of selected row ids to `delete_api_url/bulk`. Handles `409` conflict responses with a structured skip-or-cascade resolution UI (internal `DeleteConflictView`). | `(props: { delete_api_url: string; query_invalidation: string[]; rowSelection: Record<string, boolean>; setRowSelection: Dispatch<SetStateAction<Record<string, boolean>>>; onClose?: () => void; onSuccess?: () => void }) => JSX.Element` |
 
 > **`ButtonDatePicker` was removed in 3.0.0 (MAJOR).** The old MUI
@@ -144,9 +144,9 @@ Things a consumer **must** know to use this package correctly:
   with `update_api_url` (`ModelData & { update_api_url: string }`). `AddModelForm` instead takes
   `add_api_url` as a **separate** prop, and `DeleteModelForm` takes `delete_api_url` directly.
 - **`BulkEditModelForm` takes plain `ModelData` and resolves its own URL.** It posts to
-  `resolveBulkUpdateUrl(ModelData)` (from `@bcl32/data-utils`), which prefers the generated
-  `bulk_update_api_url` and falls back to `update_api_url + "/bulk-update"` only while that key
-  is absent — a migration window for metadata generated before the key existed. Bulk update is
+  `resolveBulkUpdateUrl(ModelData)` (from `@bcl32/data-utils`), which as of data-utils 2.4.0
+  reads the generated `bulk_update_api_url` and nothing else — the fallback to
+  `update_api_url + "/bulk-update"` was a migration window and is gone. Bulk update is
   therefore its **own** capability: an entity can be row-editable with no bulk route, and this
   form must not be mounted for one. `DataTableToolbar` gates on the same resolver.
 - **`colour_array` carries a sibling `_ids` array.** `colour_array` (and `*_colour(s)`) fields

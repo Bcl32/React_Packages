@@ -37,9 +37,11 @@ export interface ModelData {
   update_api_url?: string;
   delete_api_url?: string;
   /**
-   * Emitted only when the API really has a bulk-update route. Absent means the
-   * file predates capability emission (see {@link resolveBulkUpdateUrl}), which
-   * is why consumers must read it through that resolver rather than directly.
+   * Emitted only when the API really has a bulk-update route; absent means
+   * there is none. Read it through {@link resolveBulkUpdateUrl} rather than
+   * directly, so the "presence is the capability" rule stays in one place —
+   * and so a hand-built ModelData that omits it reads as "no bulk route"
+   * everywhere at once.
    */
   bulk_update_api_url?: string;
   [key: string]: unknown;

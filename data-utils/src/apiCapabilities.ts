@@ -11,32 +11,31 @@ import type { ModelData } from "./types";
  * Bulk edit was the exception: it had no URL of its own and was derived as
  * `update_api_url + "/bulk-update"`, so it was **always** present wherever
  * editing was. That made the capability undetectable, and the button shipped on
- * tables whose API has no such route (Print-Tracker's `UploadJob`, Base-POC,
- * which batches at `/batch`) — a dialog that 405s on submit.
+ * tables whose API has no such route (Print-Tracker's `UploadJob` and
+ * `PrintJob`) — a dialog that 405s on submit.
  *
- * `bulk_update_api_url` is now emitted by the generator only when the route
- * really exists (bcl32-schema-utils probes the app's OpenAPI document), so
- * presence answers the question directly.
+ * `bulk_update_api_url` is emitted by the generator only when the route really
+ * exists (bcl32-schema-utils probes the app's OpenAPI document), so presence
+ * answers the question directly. It stays a function so that rule lives in one
+ * place and consumers never special-case a missing key.
  *
- * ## The fallback is a migration window, and it is meant to be deleted
+ * ## The migration window is closed as of 2.4.0
  *
- * A ModelData file generated *before* capability emission has no
- * `bulk_update_api_url` key at all — absence there means "unknown", not "no
- * route". Without the fallback, a frontend that picks up this package before
- * its app regenerates its metadata loses bulk edit on every table at once. So
- * while the key is missing we fall back to the old derivation.
+ * 2.3.0 fell back to the old derivation while the key was absent, so an app
+ * could adopt the package before regenerating its metadata. Every app that
+ * consumes data-utils now emits the key (image-poc, the one unmigrated
+ * registry, does not depend on this package at all), so absence has stopped
+ * meaning "unknown" and now means "no route". Removing the branch is what
+ * finally switches the dead buttons off.
  *
- * The cost of the window is precise and worth knowing: it is the only reason a
- * model with editing but no bulk route still shows the button. Once all four
- * apps have regenerated with a capability-aware generator, delete the fallback
- * branch — that single deletion is what finally switches those dead buttons
- * off.
+ * One consequence is worth stating, because it is invisible from this file: a
+ * call site that **hand-injects** `update_api_url` for a model the generator
+ * gives no URLs at all — a `surface: scoped` model such as Print-Tracker's
+ * part-set members or project items — used to get a working bulk URL out of
+ * the derivation for free. Those sites must inject `bulk_update_api_url`
+ * alongside it. Injecting the update URL is now a statement about row editing
+ * only.
  */
 export function resolveBulkUpdateUrl(ModelData: ModelData): string | null {
-  const explicit = ModelData.bulk_update_api_url;
-  if (typeof explicit === "string") return explicit || null;
-
-  // Migration window — see above. Delete once every app emits the explicit key.
-  const update = ModelData.update_api_url;
-  return update ? `${update}/bulk-update` : null;
+  return ModelData.bulk_update_api_url || null;
 }

@@ -136,7 +136,7 @@ interface DoubleGroupEntry {
 | `Capitalize` | `util` | `(s: string \| null \| undefined) => string` | Uppercases the first character of a string; returns an empty string for null/undefined. |
 | `Truncate` | `util` | `(str: string, n: number) => string` | Truncates a string to `n` characters, appending `'...'` if longer. |
 | `getFormDefault` | `util` | `(attr: ModelAttribute) => unknown` | Derives a sensible default value from a `ModelAttribute`: returns `attr.default` if set, otherwise `''` for string, `false` for boolean, `[]` for list/id_list, `null` for id, `undefined` otherwise. |
-| `resolveBulkUpdateUrl` | `util` | `(ModelData: ModelData) => string \| null` | The bulk-update endpoint, or `null` when the entity has none. Prefers the generated `bulk_update_api_url`; falls back to `update_api_url + "/bulk-update"` **only while that key is absent** — metadata generated before capability emission. `null` is the signal to render no bulk-edit affordance at all; see the caveat below. |
+| `resolveBulkUpdateUrl` | `util` | `(ModelData: ModelData) => string \| null` | The bulk-update endpoint, or `null` when the entity has none. Reads the generated `bulk_update_api_url` and nothing else — the 2.3.0 fallback to `update_api_url + "/bulk-update"` was removed in **2.4.0**, so an absent key means "no route", not "unknown". `null` is the signal to render no bulk-edit affordance at all; see the caveat below. |
 
 #### `CalculateFeatureStats` per-field behaviour
 
@@ -169,6 +169,7 @@ This package is intentionally UI-free and dependency-light. `dayjs` is a peer de
 - **`dayjs_sorter` expects the TanStack Table v8 row shape** `{ original: Record<string, unknown> }`. The third `_columnId` argument is used as the key into `row.original`. Wire it into a column definition's `sortingFn`.
 - **`getFormDefault` returns `unknown`.** Callers must cast the result to the concrete type their form library expects.
 - **A URL key's *presence* is a capability flag — never invent one.** The generator emits each URL only for an endpoint the API really serves (bcl32-schema-utils probes the app's OpenAPI document), so a missing `update_api_url` means "this entity is not editable", not "look it up another way". Building a URL by concatenation defeats that: bulk edit was derived as `update_api_url + "/bulk-update"` for years, which is exactly why it could not be switched off for the entities that have no such route. Read it through `resolveBulkUpdateUrl` and treat `null` as "render nothing".
+- **A hand-injected ModelData must name *every* capability it has.** A `surface: scoped` entity is generated with no URL keys at all, because its routes sit under a parent (`/part-sets/{id}/members`), so the call site builds them. Until 2.4.0 such a site got bulk update free from the derivation — often a real route — and closing that window turned the omission into a silent loss of the button. Injecting `update_api_url` is now a statement about row editing and nothing else; add `bulk_update_api_url` beside it when the parent-scoped bulk route exists.
 
 ```ts
 import type { ColumnDef } from "@tanstack/react-table";
