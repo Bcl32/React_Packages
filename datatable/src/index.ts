@@ -24,6 +24,7 @@ export * from "./RowEditButton";
 export * from "./DetailPaneView";
 export * from "./GalleryCard";
 export * from "./CardCells";
+export * from "./CompletionCell";
 export * from "./CardActions";
 export * from "./Table";
 export * from "./KeyValueTable";
