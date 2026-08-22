@@ -55,6 +55,7 @@ export interface FormData {
 export function canRenderFormElement(attr: ModelAttribute): boolean {
   switch (attr.type) {
     case "string":
+    case "date":
     case "textarea":
     case "number":
     case "boolean":
@@ -152,7 +153,12 @@ export function FormElement({
     setFormData((prev) => ({ ...prev, [name]: value }));
 
   switch (type) {
+    // `date` shares the string layout: it is a single-line control with a
+    // label, and FieldInput is what makes it a native date picker. It does NOT
+    // share the `datetime` branch below — that one is a dayjs-backed
+    // date-and-time control, and a due date has no time to ask for.
     case "string":
+    case "date":
       return (
         <div className="flex">
           <div>

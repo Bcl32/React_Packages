@@ -9,7 +9,9 @@ export interface ModelAttribute {
   name: string;
   /**
    * Discriminant consumed by FormElement: "string" | "number" | "boolean" |
-   * "list" | "select" | "datetime" | "colour" | "colour_array" | "id" | "file".
+   * "list" | "select" | "date" | "datetime" | "colour" | "colour_array" |
+   * "id" | "file". `date` is a calendar day ("YYYY-MM-DD", a native date
+   * input); `datetime` is the dayjs-backed date-and-time control.
    * Typed as `string` for forward-compatibility with app-specific extensions.
    */
   type: string;

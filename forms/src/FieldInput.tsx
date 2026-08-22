@@ -34,6 +34,9 @@ export interface FieldInputProps {
  * in exactly one place. Returns `null` for the types it does not own (datetime, id
  * reference, colour, file, list/id_list, relation_collection) — those carry data
  * flows that don't fit a plain value/onChange contract and stay in FormElement.
+ *
+ * `date` IS owned here, unlike `datetime`: its value is a plain "YYYY-MM-DD"
+ * string in and out, so it fits the value/onChange contract exactly.
  */
 export function FieldInput({
   attr,
@@ -111,6 +114,27 @@ export function FieldInput({
             </option>
           ))}
         </Select>
+      );
+
+    case "date":
+      // A native date input. The wire format is the value format: an
+      // `<input type="date">` reads and writes "YYYY-MM-DD", which is exactly
+      // what a Pydantic `datetime.date` accepts and emits — so no parsing,
+      // no formatting and no timezone conversion sits between the picker and
+      // the column. (This is why it is not the dayjs-backed datetime control:
+      // that one would introduce all three.)
+      return (
+        <Input
+          id={id}
+          name={name}
+          type="date"
+          variant={compact ? undefined : "background"}
+          size={compact ? undefined : "default"}
+          className={cls("")}
+          value={(value as string) ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+        />
       );
 
     case "string":

@@ -115,7 +115,12 @@ export function CalculateFeatureStats(metadata: ModelAttribute[], dataset: DataE
       stats[name].push(count, optionsStat);
     }
 
-    if (item["type"] === "string" || item["type"] === "select") {
+    // `date` is included with the string types deliberately. It filters as a
+    // string (see bcl32-schema-utils' define_filtering), so it needs the same
+    // grouped-count stat a string gets — without it a date column's stats
+    // entry would be empty and its filter would behave differently from the
+    // free-text box it replaced.
+    if (item["type"] === "string" || item["type"] === "select" || item["type"] === "date") {
       const entry: StatEntry = {
         name: "count",
         type: "count",
