@@ -215,7 +215,7 @@ importers:
   forms:
     dependencies:
       '@bcl32/data-utils':
-        specifier: workspace:^2.3.0
+        specifier: workspace:^2.5.0
         version: link:../data-utils
       '@bcl32/hooks':
         specifier: workspace:^4.0.1
