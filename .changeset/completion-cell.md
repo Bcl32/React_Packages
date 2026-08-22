@@ -11,7 +11,10 @@ easy to get wrong:
 
 - **Optimism.** A checkbox that waits for its round trip reads as a click that
   missed, so the user clicks again and un-does it. The cell shows the value it
-  is writing until the parent's value agrees, and reverts if the write rejects.
+  is writing while the write is in flight, and hands the row back the moment it
+  settles — including when it fails. Holding the pending value until `checked`
+  catches up, which is the obvious rule, sticks forever on a failed write whose
+  consumer reverts the row: that value never equals the pending one.
 - **Not starting a drag.** In any card layout with whole-card drag, the
   pointer-down that ticks the box also arms the drag sensor, so the tick becomes
   a four-pixel drag and never fires. `data-no-drag` — the opt-out those sensors

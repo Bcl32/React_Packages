@@ -42,7 +42,8 @@ export interface CompletionCellProps {
   checked: boolean;
   /**
    * Persist the new value. May return a promise; while it is in flight the box
-   * shows `next`. If it rejects, the tick reverts to `checked`.
+   * shows `next`. Once it settles — either way — the row is authoritative
+   * again, so a failed write shows whatever the consumer reverted the row to.
    *
    * A rejection is caught here (an uncaught one from an event handler is an
    * unhandled rejection, not an error message) and handed to `onToggleError`.
@@ -72,9 +73,9 @@ export function CompletionCell({
   // null = "no opinion, show the persisted value".
   const [pending, setPending] = React.useState<boolean | null>(null);
 
-  // Once the parent's value agrees with the pending one, the round trip landed
-  // and the row healed — drop the local opinion so future parent updates (a
-  // refetch, a bulk edit, another user) show through immediately.
+  // Fast path: the parent's value already agrees, so the local opinion has
+  // nothing left to add. Consumers that apply the change to their own state
+  // before awaiting (the common shape) clear here, on the very next render.
   React.useEffect(() => {
     if (pending !== null && pending === checked) setPending(null);
   }, [checked, pending]);
@@ -87,8 +88,15 @@ export function CompletionCell({
     try {
       await onToggle(next);
     } catch (error) {
-      setPending(null);
       onToggleError?.(error);
+    } finally {
+      // Unconditional, and this is the important half. The obvious rule —
+      // "hold the pending value until `checked` catches up" — leaves the box
+      // stuck FOREVER on a failed write whose consumer reverts the row to its
+      // old value: that value never equals the pending one, so the condition
+      // never fires and the checkbox shows a state that was never saved.
+      // Once the write has settled the row is authoritative either way.
+      setPending(null);
     }
   };
 
