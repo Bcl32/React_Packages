@@ -43,6 +43,11 @@ export interface AccountPanelProps {
    * *account* panel; the whole-house feed belongs on the dashboard.
    */
   activityOwnOnly?: boolean;
+  /**
+   * Verbs the Activity tab hides (`?exclude_verbs=`). Passed straight to
+   * `ActivityFeed` — see its prop for why the API does the filtering.
+   */
+  activityExcludeVerbs?: string[];
   /** Body of the Preferences tab. Omit to drop that tab. */
   children?: React.ReactNode;
   preferencesLabel?: string;
@@ -67,6 +72,7 @@ export function AccountPanel({
   activityUrl,
   activityPageSize = 20,
   activityOwnOnly = true,
+  activityExcludeVerbs,
   children,
   preferencesLabel = "Preferences",
   panelClassName = ACCOUNT_DIALOG_BODY_HEIGHT,
@@ -169,6 +175,7 @@ export function AccountPanel({
           activityUrl={activityUrl}
           pageSize={activityPageSize}
           userId={activityOwnOnly ? (user?.id ?? undefined) : undefined}
+          excludeVerbs={activityExcludeVerbs}
         />
       </TabContent>
     );

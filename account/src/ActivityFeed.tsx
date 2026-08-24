@@ -20,6 +20,14 @@ export interface ActivityFeedProps {
   userId?: string;
   /** Restrict the feed to one entity type (`?entity_type=`). */
   entityType?: string;
+  /**
+   * Verbs to hide (`?exclude_verbs=`, repeated). For actions worth recording
+   * but not worth reading — Home Helper hides `thumbnail` / `thumbnail_fetch`.
+   *
+   * Filtered by the API, not here, so `total` counts the same rows the reader
+   * can see and "Show more" never fetches a page that renders as nothing.
+   */
+  excludeVerbs?: string[];
   /** Render nothing at all when the feed is empty — for dashboard widgets that
    *  should not show a "no activity yet" placeholder on a fresh install. */
   hideWhenEmpty?: boolean;
@@ -32,11 +40,19 @@ export interface ActivityFeedProps {
 
 function buildUrl(
   base: string,
-  params: Record<string, string | number | undefined>
+  params: Record<string, string | number | string[] | undefined>
 ): string {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "") search.set(key, String(value));
+    if (value === undefined || value === "") continue;
+    // An array becomes a REPEATED parameter (?k=a&k=b), which is what FastAPI
+    // reads into a `list[str]`. Joining it with a comma would arrive as one
+    // string that matches no verb at all.
+    if (Array.isArray(value)) {
+      for (const item of value) if (item !== "") search.append(key, item);
+      continue;
+    }
+    search.set(key, String(value));
   }
   const separator = base.includes("?") ? "&" : "?";
   return `${base}${separator}${search.toString()}`;
@@ -55,6 +71,7 @@ export function ActivityFeed({
   pageSize = 20,
   userId,
   entityType,
+  excludeVerbs,
   hideWhenEmpty = false,
   hidePagination = false,
   emptyMessage = "No activity yet.",
@@ -63,17 +80,24 @@ export function ActivityFeed({
 }: ActivityFeedProps) {
   const [limit, setLimit] = React.useState(pageSize);
 
+  // Depend on the CONTENTS, not the array. Callers pass a literal
+  // (`excludeVerbs={["thumbnail"]}`), which is a fresh identity every render —
+  // in the dependency list that would re-run the reset below on every render
+  // and snap "Show more" back to the first page as fast as it was clicked.
+  const excludeKey = (excludeVerbs ?? []).join(",");
+
   // A changed filter or page size restarts the window rather than keeping a
   // stale, larger one.
   React.useEffect(() => {
     setLimit(pageSize);
-  }, [pageSize, userId, entityType, activityUrl]);
+  }, [pageSize, userId, entityType, excludeKey, activityUrl]);
 
   const url = buildUrl(activityUrl, {
     limit,
     offset: 0,
     user_id: userId,
     entity_type: entityType,
+    exclude_verbs: excludeVerbs,
   });
 
   const { data, isLoading, isError } = useGetRequest<ListResponse<ActivityEntry>>(url, {
