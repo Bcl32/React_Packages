@@ -54,5 +54,15 @@ export interface RowData {
   id: string | number;
   time_created?: string;
   time_updated?: string;
+  /**
+   * Attribution ids stamped server-side by `bcl32-auth`'s `before_flush`
+   * listener — a `users.id` UUID, or null on rows written before the
+   * attribution migration (and on system writes with no identity bound).
+   *
+   * Declared explicitly rather than left to the index signature so
+   * `@bcl32/datatable`'s `AttributionContext` can read them type-safely.
+   */
+  created_by?: string | null;
+  updated_by?: string | null;
   [key: string]: unknown;
 }

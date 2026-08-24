@@ -16,6 +16,7 @@ import {
   getPaginationRowModel,
 } from "@tanstack/react-table";
 
+import { useAttributionRenderer, withAttributionColumns } from "./AttributionContext";
 import { TableView } from "./TableView";
 import {
   CardView,
@@ -310,8 +311,19 @@ export function DataTable<TData extends RowData>(
     if (props.sorting === undefined) setUncontrolledSorting(next);
   };
 
+  // Attribution columns are injected here rather than in `ColumnGenerator`
+  // because this is the only hook-legal callsite in the chain: consumers call
+  // `ColumnGenerator` from inside `useMemo`, where reading context is illegal.
+  // With no `AttributionProvider` mounted the renderer is null and
+  // `withAttributionColumns` returns the very same array — zero change.
+  const attributionRenderer = useAttributionRenderer();
+  const resolvedColumns = React.useMemo(
+    () => withAttributionColumns(props.columns, attributionRenderer),
+    [props.columns, attributionRenderer]
+  );
+
   const tableInstance = useReactTable({
-    columns: props.columns,
+    columns: resolvedColumns,
     data: props.tableData,
     state: {
       sorting,
@@ -625,7 +637,7 @@ export function DataTable<TData extends RowData>(
             ) : (
               <TableView
                 table={tableInstance}
-                columnsCount={props.columns.length}
+                columnsCount={resolvedColumns.length}
                 scrollRef={scrollRef}
                 virtualized={props.virtualized}
                 estimatedRowHeight={props.estimatedRowHeight}

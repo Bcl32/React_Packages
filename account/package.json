@@ -1,0 +1,89 @@
+{
+  "name": "@bcl32/account",
+  "version": "0.1.0",
+  "description": "User identity surface: sidebar account section, profile/preferences panel, activity feed and attribution badges",
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
+    },
+    "./UserProvider": {
+      "types": "./dist/UserProvider.d.ts",
+      "import": "./dist/UserProvider.js"
+    },
+    "./Avatar": {
+      "types": "./dist/Avatar.d.ts",
+      "import": "./dist/Avatar.js"
+    },
+    "./UserBadge": {
+      "types": "./dist/UserBadge.d.ts",
+      "import": "./dist/UserBadge.js"
+    },
+    "./SidebarUserSection": {
+      "types": "./dist/SidebarUserSection.d.ts",
+      "import": "./dist/SidebarUserSection.js"
+    },
+    "./AccountPanel": {
+      "types": "./dist/AccountPanel.d.ts",
+      "import": "./dist/AccountPanel.js"
+    },
+    "./ActivityFeed": {
+      "types": "./dist/ActivityFeed.d.ts",
+      "import": "./dist/ActivityFeed.js"
+    },
+    "./ActivityTimeline": {
+      "types": "./dist/ActivityTimeline.d.ts",
+      "import": "./dist/ActivityTimeline.js"
+    },
+    "./useAccountCommands": {
+      "types": "./dist/useAccountCommands.d.ts",
+      "import": "./dist/useAccountCommands.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bcl32/React_Packages.git",
+    "directory": "account"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.18.1",
+    "dayjs": "^1.11.10",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "dependencies": {
+    "@bcl32/hooks": "workspace:^4.2.0",
+    "@bcl32/utils": "workspace:^2.10.1",
+    "lucide-react": "^0.447.0"
+  },
+  "devDependencies": {
+    "@bcl32/command-palette": "workspace:^1.1.1",
+    "@tanstack/react-query": "^5.18.1",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "dayjs": "^1.11.10",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}

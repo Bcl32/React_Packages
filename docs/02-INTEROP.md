@@ -1,8 +1,9 @@
 # 02 — Package Interop
 
 How the nine `@bcl32/*` packages depend on one another, how the apps consume
-them, and the shared contracts (peer dependencies, version pinning) that keep
-the whole graph deduplicated and reproducible.
+them, and the shared contracts (peer dependencies, version pinning, dialog
+shape) that keep the whole graph deduplicated, reproducible and visually
+consistent.
 
 See also:
 
@@ -306,6 +307,67 @@ publish to **GitHub Packages** under the `@bcl32` scope. Each app's `.npmrc`
 maps `@bcl32:registry` to that URL with a `${GITHUB_TOKEN}` auth token, so
 non-workspace resolution and publishing both target the private GitHub
 registry.
+
+---
+
+## 6. Dialog design conventions
+
+A shared contract that is not a dependency edge: **a dialog's shape is part of
+its identity.** The box a user opens should be the same box a moment later — it
+must not resize in response to its own content.
+
+That splits into two rules, one per axis.
+
+### Width: always a `size` variant
+
+`SimpleDialog`/`DialogButton` (`@bcl32/utils/DialogButton`) set width from a
+`size` variant — `default` (`max-w-md`), `medium` (`max-w-2xl`), `large`
+(`max-w-4xl`), `xl` (`max-w-5xl`), `big` (`max-w-screen-2xl`). Width is already
+content-independent; pick the variant for the *kind* of dialog and keep sibling
+dialogs on the same one.
+
+### Height: pin it whenever the content varies
+
+Height is **not** handled for you. `SimpleDialog`'s content is
+`max-h-[calc(100vh-4rem)] overflow-y-auto`, which is a ceiling, not a height —
+below the ceiling the box grows and shrinks with whatever is inside it. Any
+dialog whose body changes size at runtime therefore jumps:
+
+- **tabbed bodies** — `AnimatedTabs` (`@bcl32/utils/AnimatedTabs`) is a Headless
+  UI `TabGroup` and mounts only the active panel, at its natural height, so a
+  short tab and a long tab are different dialogs;
+- **anything else that swaps content in place** — a list that loads, a form that
+  reveals a section, a step that changes.
+
+The convention: **give the body one fixed height with `overflow-y-auto`, so the
+rendered box is identical in every state.** A dialog that changes size when you
+click a tab is a defect, not a preference. The same height also applies *across*
+sibling dialogs opened from one menu — switching between them should be as still
+as switching between tabs inside one of them.
+
+Two mechanical notes:
+
+- Put the height on the scroll container itself. A fixed height nested inside
+  another fixed height nests a taller scroller in a shorter box and you get two
+  scrollbars — when a child component pins its own height (`@bcl32/themes`'
+  `Theming` caps itself at `max-h-[70vh]`), neutralize the child's cap rather
+  than adding a second scroller.
+- If the body sits in a flex column, the scrolling element needs `min-h-0` or
+  the flex item refuses to shrink below its content and scrolls the page
+  instead.
+
+### Reference implementation
+
+`@bcl32/account`'s `AccountPanel` (`react-packages/account/src/AccountPanel.tsx`).
+Every `TabContent` gets one class string — `overflow-y-auto p-4` plus the height
+— so Profile, Preferences and Activity render the same rectangle. The height is
+exported as `ACCOUNT_DIALOG_BODY_HEIGHT` (`h-[28rem]` — tall enough to show real
+content, short enough that the whole dialog clears a short laptop viewport
+without hitting `SimpleDialog`'s own `max-h` cap, which would reintroduce the
+jump), and overridable per consumer via `panelClassName`.
+Exporting it is the point: Home Helper's `AccountDialogContext` pins the two
+sibling dialogs it owns — the whole-house activity feed and the theme editor —
+to that same constant instead of a copied magic number.
 
 ---
 

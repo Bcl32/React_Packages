@@ -159,6 +159,13 @@ These must be provided by the consuming app:
 
 ### Dialog (modal)
 
+> **Shape is a convention, not a default.** `size` pins the width, but height is
+> content-driven (`max-h-[calc(100vh-4rem)]` is a ceiling, not a height), so a
+> dialog whose body changes size — tabbed content especially — resizes as the
+> user clicks around. See
+> [02-INTEROP §6 — Dialog design conventions](../02-INTEROP.md#6-dialog-design-conventions)
+> for the rule and the reference implementation.
+
 | Name | Kind | Signature / Props | Description |
 | --- | --- | --- | --- |
 | `Dialog` | component | re-export | Radix `DialogPrimitive.Root`. |
@@ -271,6 +278,12 @@ These must be provided by the consuming app:
 | --- | --- | --- | --- |
 | `AnimatedTabs` | component | `({ tab_titles: string[], children, theme_type?: 'dark' \| 'light', size?: 'sm' \| 'lg' }) => JSX` | framer-motion spring-animated pill tabs built on Headless UI `TabGroup`; expects sibling `TabContent` panels as children. |
 | `TabContent` | component | `typeof TabPanel` | Re-export of Headless UI `TabPanel`; use as direct children of `AnimatedTabs`. |
+
+`AnimatedTabs` manages no height — only the active panel is mounted, at its
+natural height. That is fine on a page and wrong in a dialog, where it makes the
+modal jump between tabs; inside one, give every `TabContent` the same fixed
+height per
+[02-INTEROP §6](../02-INTEROP.md#6-dialog-design-conventions).
 
 ### Stepper (controlled wizard)
 

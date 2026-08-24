@@ -4,6 +4,7 @@ packages:
   - "hooks"
   - "charts"
   - "command-palette"
+  - "account"
   - "datatable"
   - "filters"
   - "forms"

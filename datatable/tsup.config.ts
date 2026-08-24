@@ -13,6 +13,7 @@ export default defineConfig({
     "src/KeyValueTable.tsx",
     "src/StatsTable.tsx",
     "src/ColumnGenerator.tsx",
+    "src/AttributionContext.tsx",
     "src/CompletionCell.tsx",
     "src/RowActions.tsx",
     "src/TablePagination.tsx",

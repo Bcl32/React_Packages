@@ -2,13 +2,13 @@
 
 > **Audience:** Engineers building or consuming the shared React component/data libraries that live under `react-packages/` in the `web-app-monorepo`.
 >
-> **Scope:** This document is the entry point. It describes *what the system is*, *how the nine packages relate*, *how they are built/versioned/published*, and *how an app consumes them*. Deep dives live in the [sibling docs](#related-documentation).
+> **Scope:** This document is the entry point. It describes *what the system is*, *how the eleven packages relate*, *how they are built/versioned/published*, and *how an app consumes them*. Deep dives live in the [sibling docs](#related-documentation).
 
 ---
 
 ## 1. What the system is
 
-The `@bcl32/*` packages are a set of **nine independently versioned, ESM-only React libraries** published to the GitHub Package Registry under the `@bcl32` scope. They split the concerns of a data-driven CRUD application into composable layers:
+The `@bcl32/*` packages are a set of **eleven independently versioned, ESM-only React libraries** published to the GitHub Package Registry under the `@bcl32` scope. They split the concerns of a data-driven CRUD application into composable layers:
 
 - **Presentation primitives** (styled UI components, theming).
 - **Pure data utilities** (statistics, sorting, string helpers — no UI, no React).
@@ -35,9 +35,9 @@ Packages are grouped into three tiers by their position in the dependency graph.
 | --- | --- | --- |
 | **Foundational** (Tier 0) | `utils`, `data-utils`, `hooks` | Zero `@bcl32` internal dependencies. The bedrock. |
 | **Mid** (Tier 1) | `charts`, `navigation`, `themes` | Depend only on foundational packages. |
-| **Composite** (Tier 2) | `datatable`, `filters`, `forms` | Combine foundational + mid packages into full features. |
+| **Composite** (Tier 2) | `datatable`, `filters`, `forms`, `command-palette`, `account` | Combine foundational + mid packages into full features. |
 
-> Note: `forms` depends only on foundational packages but is categorised as **composite** because it delivers a complete feature (data-driven CRUD forms) rather than a primitive. It is also the only Tier-2 package that `datatable` depends on, so the build resolves it before `datatable`.
+> Note: `forms` and `account` depend only on foundational packages but are categorised as **composite** because they deliver complete features (data-driven CRUD forms; identity/attribution surfaces) rather than primitives. `forms` is also the only Tier-2 package that `datatable` depends on, so the build resolves it before `datatable`.
 
 ### Dependency diagram
 
@@ -57,6 +57,8 @@ graph TD
     forms["@bcl32/forms"]
     datatable["@bcl32/datatable"]
     filters["@bcl32/filters"]
+    commandPalette["@bcl32/command-palette"]
+    account["@bcl32/account"]
 
     %% Edges
     charts --> utils
@@ -78,6 +80,13 @@ graph TD
     filters --> hooks
     filters --> dataUtils
     filters --> charts
+
+    commandPalette --> utils
+    commandPalette --> hooks
+    commandPalette --> themes
+
+    account --> utils
+    account --> hooks
 ```
 
 ASCII fallback (arrow = "depends on"):
@@ -94,11 +103,13 @@ Tier 2 (composite):                     │   │            │
                  forms ─────────────────┴───┴────────────┘   (forms → utils, data-utils, hooks)
                  datatable → utils, data-utils, hooks, forms
                  filters   → utils, hooks, data-utils, charts
+                 command-palette → utils, hooks, themes
+                 account   → utils, hooks
 ```
 
 ---
 
-## 3. The nine packages at a glance
+## 3. The eleven packages at a glance
 
 | Package | Tier | Version | One-line role |
 | --- | --- | --- | --- |
@@ -111,6 +122,8 @@ Tier 2 (composite):                     │   │            │
 | [`@bcl32/forms`](./01-packages/) | composite | `3.0.0` | Data-driven CRUD form components (add/edit/bulk-edit/delete) driven by a `ModelData` descriptor, plus standalone field primitives. `ButtonDatePicker` (MUI) was removed in 3.0.0 — the `datetime` field type now renders `@bcl32/utils/DateTimePicker` directly. |
 | [`@bcl32/datatable`](./01-packages/) | composite | `2.8.0` | TanStack Table v8 data table with built-in CRUD dialogs, column visibility, selection, virtualization, expandable rows, pagination, plus `KeyValueTable`/`StatsTable`. Icons are lucide-react (MUI icons removed in 2.8.0). |
 | [`@bcl32/filters`](./01-packages/) | composite | `3.2.0` | Filter-and-chart library: filter context, UI filter controls (text/number/options/datetime), chart drill-down filters, and pure filter data utilities. `TimeFilter`/`TimeEditDialog` use `@bcl32/utils/DateTimePicker` and icons are lucide-react (MUI removed in 3.2.0). |
+| [`@bcl32/command-palette`](./01-packages/) | composite | `1.1.1` | `cmdk`-based Ctrl/Cmd+K palette: route navigation, arbitrary actions (incl. the built-in theme switcher), nested entity-search pages (server or client mode), and the which-key shortcut HUD / leader grid. Owns its own open state and window hotkey listener. |
+| [`@bcl32/account`](./01-packages/) | composite | `0.1.0` | Frontend half of the identity plugin pair (`bcl32-auth` is the Python half): `UserProvider` over `/auth/me`, sidebar user section, account panel (Profile/Preferences/Activity), activity feed/timeline, and the `Avatar`/`UserBadge` primitives that resolve `created_by`/`updated_by` attribution cells. |
 
 Per-package API reference (key exports, peer deps, usage) lives in [`./01-packages/`](./01-packages/).
 
@@ -127,12 +140,14 @@ Per-package API reference (key exports, peer deps, usage) lives in [`./01-packag
 | `@bcl32/forms` | `AddModelForm`, `EditModelForm`, `BulkEditModelForm`, `DeleteModelForm`, `FormElement`, `ColourField`, `RelationCollectionField` (14 total — `ButtonDatePicker` removed in 3.0.0) |
 | `@bcl32/datatable` | `DataTable`, `ColumnGenerator`, `RowActions`, `DataTablePagination`, `KeyValueTable`, `StatsTable`, plus low-level `Table*` primitives (16 total) |
 | `@bcl32/filters` | `FilterProvider`, `useFilterContext`, `AllFilters`, `DebouncedTextFilter`, `OptionsFilter`, `TimeFilter`, `ChartFilter`, `BarChartFilter` (54 total) |
+| `@bcl32/command-palette` | `CommandPalette`, `EntitySearchPage`, `flattenNavItems`, `useThemeCommands`, `buildShortcutTrie`, `useShortcutSequencer`, `SequenceHUD`, `LeaderGrid` |
+| `@bcl32/account` | `UserProvider`, `useCurrentUser`, `useUserDirectory`, `Avatar`, `UserBadge`, `AccountPanel`, `SidebarUserSection`, `ActivityFeed`, `ActivityTimeline`, `useAccountCommands` |
 
 ---
 
 ## 4. Build system
 
-All nine packages share a uniform build toolchain.
+All eleven packages share a uniform build toolchain.
 
 ### tsup (esbuild) configuration
 
@@ -153,7 +168,7 @@ Each package also has `prepublishOnly: pnpm run build` as a safety net, though C
 
 ### TypeScript
 
-All nine `tsconfig.json` files extend [`../tsconfig.base.json`](../tsconfig.base.json) and add only `include`/`exclude`. The base uses:
+All eleven `tsconfig.json` files extend [`../tsconfig.base.json`](../tsconfig.base.json) and add only `include`/`exclude`. The base uses:
 
 ```jsonc
 {
@@ -174,7 +189,7 @@ All nine `tsconfig.json` files extend [`../tsconfig.base.json`](../tsconfig.base
 
 ### Workspace protocol
 
-- The monorepo root `pnpm-workspace.yaml` and `react-packages/pnpm-workspace.yaml` enumerate all nine `react-packages/*` directories.
+- The monorepo root `pnpm-workspace.yaml` and `react-packages/pnpm-workspace.yaml` enumerate all eleven `react-packages/*` directories.
 - Inter-package deps use the **`workspace:^X.Y.Z`** protocol, which pnpm resolves to local symlinks during development (never hitting the registry) and rewrites to bare caret ranges in published tarballs.
 - `.npmrc` (root and `react-packages/`) sets `link-workspace-packages=true`, `prefer-workspace-packages=true`, and `@bcl32:registry=https://npm.pkg.github.com`.
 - **Consumer apps outside the workspace** must use plain `^X.Y.Z` carets — the `workspace:` protocol is invalid to npm in Docker build contexts. (`Base-POC/image-poc-react/` is explicitly *not* in the workspace.)
@@ -208,7 +223,7 @@ Tier 0:  utils, data-utils, hooks
    ↓
 Tier 1:  themes, forms, charts, navigation
    ↓
-Tier 2:  datatable, filters
+Tier 2:  datatable, filters, command-palette, account
 ```
 
 ---

@@ -7,6 +7,9 @@ import dayjs from "dayjs";
 import { RowActions } from "./RowActions";
 import { RowEditButton } from "./RowEditButton";
 
+import { withAttributionColumns } from "./AttributionContext";
+import type { AttributionRenderer } from "./AttributionContext";
+
 import { dayjs_sorter } from "@bcl32/data-utils/dayjs_sorter";
 import type { ModelData, RowData } from "@bcl32/data-utils";
 
@@ -16,6 +19,18 @@ interface ColumnGeneratorProps {
   ModelData: ModelData & { update_api_url: string };
   add_edit?: boolean;
   onEditSuccess?: (formData: Record<string, unknown>, objData: Record<string, unknown>) => void;
+  /**
+   * Draw `created_by` / `updated_by` beside the timestamp columns, rendering
+   * each id with this function. Omit (the normal case) and nothing changes.
+   *
+   * Usually you do **not** pass this: mount an `AttributionProvider` and
+   * `DataTable` picks the renderer up from context for every table at once.
+   * This prop is the escape hatch for a consumer that renders the generated
+   * columns somewhere other than `DataTable`. It cannot be read from context
+   * here — `ColumnGenerator` is a plain factory, routinely called from inside
+   * a `useMemo` callback, where reading context is illegal.
+   */
+  renderUser?: AttributionRenderer | null;
 }
 
 const columnHelper = createColumnHelper<RowData>();
@@ -26,6 +41,7 @@ export function ColumnGenerator({
   ModelData,
   add_edit = true,
   onEditSuccess,
+  renderUser,
 }: ColumnGeneratorProps): ColumnDef<RowData, unknown>[] {
   const edit_column: ColumnDef<RowData, unknown> = {
     id: "EditEntry",
@@ -143,5 +159,6 @@ export function ColumnGenerator({
   }
   let all_columns = control_columns.concat(custom_columns);
   all_columns = all_columns.concat([time_created, time_updated, action_column]);
-  return all_columns;
+  // No-op (same array reference) unless a renderer was threaded in.
+  return withAttributionColumns(all_columns, renderUser);
 }

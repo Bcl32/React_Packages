@@ -30,5 +30,6 @@ export * from "./Table";
 export * from "./KeyValueTable";
 export * from "./StatsTable";
 export * from "./ColumnGenerator";
+export * from "./AttributionContext";
 export * from "./RowActions";
 export * from "./TablePagination";

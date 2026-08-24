@@ -57,6 +57,10 @@
       "types": "./dist/ColumnGenerator.d.ts",
       "import": "./dist/ColumnGenerator.js"
     },
+    "./AttributionContext": {
+      "types": "./dist/AttributionContext.d.ts",
+      "import": "./dist/AttributionContext.js"
+    },
     "./CompletionCell": {
       "types": "./dist/CompletionCell.d.ts",
       "import": "./dist/CompletionCell.js"

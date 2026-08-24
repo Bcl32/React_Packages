@@ -30,7 +30,7 @@ the existing docs/skills have drifted from the code.
 
 ### Core
 - **[`00-OVERVIEW.md`](./00-OVERVIEW.md)** — what the system is, the 3-tier dependency DAG, build/versioning/publishing model, and how an app consumes the packages.
-- **[`02-INTEROP.md`](./02-INTEROP.md)** — package dependency graph, the `ModelData`/`ModelAttribute` contract, provider wiring, peer-dependency contract, and the app→package consumer matrix.
+- **[`02-INTEROP.md`](./02-INTEROP.md)** — package dependency graph, the `ModelData`/`ModelAttribute` contract, provider wiring, peer-dependency contract, the app→package consumer matrix, and the [dialog design conventions](./02-INTEROP.md#6-dialog-design-conventions) every dialog in the fleet follows.
 - **[`03-NEW-PROJECT-GUIDE.md`](./03-NEW-PROJECT-GUIDE.md)** — front-to-back guide for scaffolding a new Vite app: workspace membership, dependency declaration, provider setup, a full datatable+filters+forms CRUD page, and deploy. Defers to the `react-website-dev` and `entity-lifecycle` skills.
 
 ### Per-package reference — [`01-packages/`](./01-packages/)
