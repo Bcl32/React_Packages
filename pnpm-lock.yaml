@@ -154,7 +154,7 @@ importers:
   datatable:
     dependencies:
       '@bcl32/data-utils':
-        specifier: workspace:^2.3.0
+        specifier: workspace:^2.6.0
         version: link:../data-utils
       '@bcl32/forms':
         specifier: workspace:^3.2.0

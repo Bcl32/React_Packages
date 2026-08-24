@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/account",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "User identity surface: sidebar account section, profile/preferences panel, activity feed and attribution badges",
   "author": "",
   "license": "ISC",
