@@ -92,6 +92,38 @@ jobs:
           echo "Building: ${filters[*]}"
           pnpm "${filters[@]}" build
 
+      - name: Typecheck bumped packages (+ workspace dependency chain)
+        if: steps.changesets.outputs.has_changesets == 'true'
+        # Every package defines `typecheck: tsc --noEmit`, and nothing ran it —
+        # the only gate on a release was that tsup managed to emit a bundle, and
+        # tsup transpiles without typechecking, so a type error shipped.
+        #
+        # AFTER the build step, deliberately: no tsconfig here declares `paths`,
+        # so a cross-package import like `@bcl32/utils` resolves through the
+        # workspace symlink and (moduleResolution: bundler) lands on that
+        # package's `exports.types` -> ./dist/index.d.ts. Typechecking before
+        # the dependencies' dist/ exists would fail on missing declarations
+        # rather than on real type errors.
+        #
+        # Same filtered set as the build, re-derived from the same file so the
+        # two steps cannot drift: `<pkg>...` is the bumped package plus its
+        # workspace dependencies. A non-zero tsc exit fails the run, before
+        # anything reaches the registry.
+        run: |
+          BUMPED_FILE="${RUNNER_TEMP}/publish-bumped.txt"
+          if [ ! -s "$BUMPED_FILE" ]; then
+            echo "::warning::no bumped packages recorded — falling back to full typecheck"
+            pnpm -r typecheck
+            exit 0
+          fi
+          filters=()
+          while read -r spec _dir; do
+            [ -n "$spec" ] || continue
+            filters+=(--filter "${spec%@*}...")
+          done < "$BUMPED_FILE"
+          echo "Typechecking: ${filters[*]}"
+          pnpm "${filters[@]}" typecheck
+
       - name: Pre-publish collision check
         # Fails BEFORE publishing if a bumped version already exists on the
         # registry with DIFFERENT contents (the 2026-07-04 stale-artifact
