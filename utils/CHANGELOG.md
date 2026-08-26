@@ -1,5 +1,11 @@
 # @bcl32/utils
 
+## 2.10.2
+
+### Patch Changes
+
+- cd112e9: feat: match swatch filters on preset identity, not colour
+
 ## 2.10.1
 
 ### Patch Changes

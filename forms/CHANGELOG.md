@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.3.1
+
+### Patch Changes
+
+- cd112e9: feat: match swatch filters on preset identity, not colour
+- Updated dependencies [cd112e9]
+  - @bcl32/utils@2.10.2
+
 ## 3.3.0
 
 ### Minor Changes
