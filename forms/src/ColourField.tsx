@@ -57,12 +57,12 @@ export function ColourField({
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  const handleSelect = (colour: string, filamentId?: string) => {
+  const handleSelect = (colour: string, presetId?: string) => {
     setFormData((prev) => {
       const next = { ...prev, [name]: colour };
       const idsKey = name.replace(/_colours?$/, "_ids");
       if (idsKey !== name) {
-        next[idsKey] = filamentId ? [filamentId] : [null];
+        next[idsKey] = presetId ? [presetId] : [null];
       }
       return next;
     });

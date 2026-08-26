@@ -63,7 +63,16 @@ export function FiltersSummary({ active_filters }: FiltersSummaryProps): JSX.Ele
               const arrValue = context.filters[key]["value"] as string[];
               const rule = context.filters[key]["rule"];
               const ruleHint = rule === "all" ? " (all)" : "";
-              filter_value = ruleHint + formatOptionsValue(arrValue, context.filters[key]["options"]);
+              if (context.filters[key]["display"] === "swatch-grid") {
+                // Swatch picks may be stored as option ids (see `match_field`),
+                // and this panel has no preset list to resolve them against —
+                // a raw id list is worse than a count. Matches the toolbar chip.
+                const n = arrValue.length;
+                filter_value = `${ruleHint}${n} colour${n === 1 ? "" : "s"}`;
+              } else {
+                filter_value =
+                  ruleHint + formatOptionsValue(arrValue, context.filters[key]["options"]);
+              }
             } else {
               filter_value =
                 context.filters[key]["rule"] + " " + context.filters[key]["value"];

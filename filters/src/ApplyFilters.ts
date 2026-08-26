@@ -25,6 +25,15 @@ function extractRowValues(
   }
 }
 
+/** A colour token, as opposed to an identity token (an id never starts with #). */
+const isColourToken = (v: string) => v.startsWith("#");
+
+/** `#RRGGBB` and `#RRGGBBAA` denote the same colour; compare them as one key. */
+function normHex(v: string): string {
+  const h = v.replace("#", "").toUpperCase();
+  return h.length === 6 ? `${h}FF` : h;
+}
+
 export function ApplyFilters(data: unknown[], filters: Filters): DataEntry[] {
   // Always filter out null/undefined entries first
   let filteredData: DataEntry[] = Array.isArray(data)
@@ -85,15 +94,31 @@ export function ApplyFilters(data: unknown[], filters: Filters): DataEntry[] {
         if (selected.length === 0) break;
         const value_key = filter["value_key"] ?? "value";
         const rule = filter["rule"] ?? "any";
+        // With `match_field` set, a selection is the option's id rather than
+        // its colour: several presets can share one hex, so a colour match
+        // would return all of them. Colour tokens are still honoured — the
+        // custom colour input and a board/group lane drill-in both produce one
+        // — and match the filter's own column as before.
+        const matchField = filter["colour_presets"]?.match_field;
         filteredData = filteredData.filter((entry) => {
           const rowValues = extractRowValues(entry?.[column], filter["source_kind"], value_key);
+          const rowHexes = rowValues.map(normHex);
+          const rowIds = matchField
+            ? extractRowValues(entry?.[matchField], "scalar-array", value_key)
+            : [];
+          const hit = (token: string) =>
+            matchField && !isColourToken(token)
+              ? rowIds.includes(token)
+              : isColourToken(token)
+                ? rowHexes.includes(normHex(token))
+                : rowValues.includes(token);
           if (rule === "equals") {
-            return selected.length === 1 && rowValues.includes(selected[0]);
+            return selected.length === 1 && hit(selected[0]);
           }
           if (rule === "all") {
-            return selected.every((s) => rowValues.includes(s));
+            return selected.every(hit);
           }
-          return selected.some((s) => rowValues.includes(s));
+          return selected.some(hit);
         });
         break;
       }

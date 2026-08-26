@@ -4,8 +4,13 @@ export interface ColourSwatch {
   id?: string;
   colour_hex: string;
   colour_name?: string;
-  material?: string;
-  sub_type?: string;
+  /**
+   * Consumers may hang extra fields on a swatch for their own
+   * `renderSwatchIcon` to read. The popover passes the object through
+   * untouched and never looks at them, so what they are called is the
+   * consumer's business, not this package's.
+   */
+  [key: string]: unknown;
 }
 
 /**
@@ -22,8 +27,15 @@ export interface ColourPickerPopoverProps {
   currentColour?: string;
   currentId?: string;
   selectedColours?: string[];
+  /**
+   * Multi-select by swatch id. Prefer this over `selectedColours` wherever
+   * several swatches can share a hex: a colour-based check then lights up all
+   * of them at once, and "re-pick the highlighted one" can land on a different
+   * swatch than the one that was chosen.
+   */
+  selectedIds?: string[];
   defaultCustomColour?: string;
-  onSelect: (hex: string, filamentId?: string) => void;
+  onSelect: (hex: string, presetId?: string) => void;
   /** Custom dot renderer (e.g. finish-aware swatches); default is a flat circle. */
   renderSwatchIcon?: (s: ColourSwatch) => ReactNode;
   /**
@@ -45,6 +57,7 @@ export function ColourPickerPopover({
   currentColour,
   currentId,
   selectedColours,
+  selectedIds,
   defaultCustomColour = "#6b9bd2",
   onSelect,
   renderSwatchIcon,
@@ -65,7 +78,10 @@ export function ColourPickerPopover({
     currentId != null && allSwatches.some((s) => s.id === currentId);
 
   const isSelected = (s: ColourSwatch) => {
+    // Identity first, both for the single pick and the multi-select set;
+    // colour is only consulted when the caller has no id to offer.
     if (hasMatchingId) return s.id === currentId;
+    if (selectedIds?.length) return !!s.id && selectedIds.includes(s.id);
     return (
       currentColour === s.colour_hex ||
       (selectedColours?.includes(s.colour_hex) ?? false)

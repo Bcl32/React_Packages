@@ -113,6 +113,14 @@ export interface ColourPresetsConfig {
   get_api_url: string;
   group_by?: string;
   subgroup_by?: string;
+  /**
+   * Row column holding the IDENTITY of each selected preset, parallel to the
+   * colour column the filter is declared on. When set, a swatch pick is stored
+   * as the preset's id and matched against this column instead of by colour —
+   * necessary wherever several presets share one hex, which a colour
+   * comparison cannot tell apart. Supplied by the schema.
+   */
+  match_field?: string;
 }
 
 export interface GroupedFilters {

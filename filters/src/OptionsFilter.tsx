@@ -276,9 +276,12 @@ function SwatchGridView({ colour_presets, selected, onToggle }: SwatchGridViewPr
   const groupKey = colour_presets?.group_by;
   const subgroupKey = colour_presets?.subgroup_by;
 
-  const groupedSwatches = React.useMemo(() => {
+  const { groupedSwatches, byToken } = React.useMemo(() => {
     const groups = new Map<string, Map<string, ColourSwatch[]>>();
-    if (!data?.items) return groups;
+    // A selection is stored as the option's id (see `match_field`), so the
+    // chips need the preset back to render its swatch colour and a label.
+    const byToken = new Map<string, { hex: string; label: string }>();
+    if (!data?.items) return { groupedSwatches: groups, byToken };
     for (const item of data.items) {
       const hex = item.colour_hex as string | undefined;
       if (!hex) continue;
@@ -293,6 +296,16 @@ function SwatchGridView({ colour_presets, selected, onToggle }: SwatchGridViewPr
         colour_hex: hex,
         colour_name: item.colour_name as string | undefined,
       };
+      if (swatch.id) {
+        // Built from the CONFIGURED grouping keys, not from any particular
+        // field name — several presets can share a hex, so the chip needs the
+        // same words the popover groups them under to be unambiguous.
+        const label =
+          [groupKey ? groupLabel : "", subLabel, swatch.colour_name]
+            .filter(Boolean)
+            .join(" ") || hex;
+        byToken.set(swatch.id, { hex, label });
+      }
       let subGroups = groups.get(groupLabel);
       if (!subGroups) {
         subGroups = new Map<string, ColourSwatch[]>();
@@ -302,8 +315,12 @@ function SwatchGridView({ colour_presets, selected, onToggle }: SwatchGridViewPr
       swatches.push(swatch);
       subGroups.set(subLabel, swatches);
     }
-    return groups;
+    return { groupedSwatches: groups, byToken };
   }, [data, groupKey, subgroupKey]);
+
+  // A token is either an option id or, for the custom colour input, a raw hex.
+  const describe = (token: string) =>
+    byToken.get(token) ?? { hex: token, label: token };
 
   React.useEffect(() => {
     if (!open) return;
@@ -319,16 +336,19 @@ function SwatchGridView({ colour_presets, selected, onToggle }: SwatchGridViewPr
   return (
     <div className="relative inline-block" ref={ref}>
       <div className="flex items-center gap-1 flex-wrap">
-        {selected.map((hex) => (
-          <button
-            key={hex}
-            type="button"
-            onClick={() => onToggle(hex)}
-            className="w-6 h-6 rounded-full border-2 border-primary ring-1 ring-primary cursor-pointer hover:scale-110 transition-transform"
-            style={{ backgroundColor: hex }}
-            title={`Remove ${hex}`}
-          />
-        ))}
+        {selected.map((token) => {
+          const { hex, label } = describe(token);
+          return (
+            <button
+              key={token}
+              type="button"
+              onClick={() => onToggle(token)}
+              className="w-6 h-6 rounded-full border-2 border-primary ring-1 ring-primary cursor-pointer hover:scale-110 transition-transform"
+              style={{ backgroundColor: hex }}
+              title={`Remove ${label}`}
+            />
+          );
+        })}
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
@@ -341,10 +361,13 @@ function SwatchGridView({ colour_presets, selected, onToggle }: SwatchGridViewPr
       {open && (
         <ColourPickerPopover
           swatchGroups={groupedSwatches}
+          selectedIds={selected}
           selectedColours={selected}
           size="lg"
-          onSelect={(hex) => {
-            onToggle(hex);
+          onSelect={(hex, presetId) => {
+            // The id identifies the option; the hex is only the fallback for
+            // the custom colour input, which has no preset behind it.
+            onToggle(presetId ?? hex);
           }}
         />
       )}

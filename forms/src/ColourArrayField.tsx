@@ -50,6 +50,11 @@ export function ColourArrayField({
   const groupedSwatches = useGroupedSwatches(entry_data);
 
   const colours = (formData[name] as string[]) || [];
+  // Padded to the colour count: an older row can carry a shorter ids array,
+  // and indexing it raw would offset every swatch past the gap.
+  const ids = colours.map(
+    (_, i) => ((formData[idsKey] as (string | null)[]) || [])[i] ?? null,
+  );
 
   React.useEffect(() => {
     if (!open && editingIndex === null) return;
@@ -65,38 +70,56 @@ export function ColourArrayField({
     return () => document.removeEventListener("mousedown", handler);
   }, [open, editingIndex]);
 
-  const addColour = (colour: string, filamentId?: string) => {
+  /**
+   * The colour array and its `_ids` companion are ONE list, paired by index.
+   * The ids can arrive shorter than the colours on an older row, and appending
+   * to an unpadded array silently re-points earlier entries at the wrong id.
+   * Pad to the colour count before touching either.
+   */
+  const aligned = (prev: Record<string, unknown>) => {
+    const colours = (prev[name] as string[]) || [];
+    const ids = (prev[idsKey] as (string | null)[]) || [];
+    const padded = colours.map((_, i) => ids[i] ?? null);
+    return { colours, ids: padded };
+  };
+
+  const addColour = (colour: string, presetId?: string) => {
     setFormData((prev) => {
-      const currentColours = (prev[name] as string[]) || [];
-      const currentIds = (prev[idsKey] as (string | null)[]) || [];
-      if (currentColours.includes(colour)) return prev;
+      const { colours, ids } = aligned(prev);
+      // Dedupe on the id, not the hex: a list can legitimately hold two
+      // different entries that share a colour, and rejecting the second by
+      // colour made the pick a silent no-op.
+      const duplicate = presetId
+        ? ids.includes(presetId)
+        : colours.some((c, i) => c === colour && ids[i] == null);
+      if (duplicate) return prev;
       return {
         ...prev,
-        [name]: [...currentColours, colour],
-        [idsKey]: [...currentIds, filamentId || null],
+        [name]: [...colours, colour],
+        [idsKey]: [...ids, presetId || null],
       };
     });
   };
 
   const removeColour = (index: number) => {
     setFormData((prev) => {
-      const currentColours = (prev[name] as string[]) || [];
-      const currentIds = (prev[idsKey] as (string | null)[]) || [];
+      const { colours, ids } = aligned(prev);
       return {
         ...prev,
-        [name]: currentColours.filter((_, i) => i !== index),
-        [idsKey]: currentIds.filter((_, i) => i !== index),
+        [name]: colours.filter((_, i) => i !== index),
+        [idsKey]: ids.filter((_, i) => i !== index),
       };
     });
   };
 
-  const replaceColour = (index: number, colour: string, filamentId?: string) => {
+  const replaceColour = (index: number, colour: string, presetId?: string) => {
     setFormData((prev) => {
-      const currentColours = [...((prev[name] as string[]) || [])];
-      const currentIds = [...((prev[idsKey] as (string | null)[]) || [])];
-      currentColours[index] = colour;
-      currentIds[index] = filamentId || null;
-      return { ...prev, [name]: currentColours, [idsKey]: currentIds };
+      const { colours, ids } = aligned(prev);
+      const nextColours = [...colours];
+      const nextIds = [...ids];
+      nextColours[index] = colour;
+      nextIds[index] = presetId || null;
+      return { ...prev, [name]: nextColours, [idsKey]: nextIds };
     });
   };
 
@@ -135,9 +158,10 @@ export function ColourArrayField({
                 <ColourPickerPopover
                   swatchGroups={groupedSwatches}
                   currentColour={colour}
+                  currentId={ids[index] ?? undefined}
                   defaultCustomColour={colour}
-                  onSelect={(hex, filamentId) => {
-                    replaceColour(index, hex, filamentId);
+                  onSelect={(hex, presetId) => {
+                    replaceColour(index, hex, presetId);
                     setEditingIndex(null);
                   }}
                 />
@@ -160,9 +184,10 @@ export function ColourArrayField({
             {open && (
               <ColourPickerPopover
                 swatchGroups={groupedSwatches}
+                selectedIds={ids.filter((i): i is string => !!i)}
                 selectedColours={colours}
-                onSelect={(hex, filamentId) => {
-                  addColour(hex, filamentId);
+                onSelect={(hex, presetId) => {
+                  addColour(hex, presetId);
                   setOpen(false);
                 }}
               />
