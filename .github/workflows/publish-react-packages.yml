@@ -233,3 +233,45 @@ jobs:
           else
             echo "No version changes to commit"
           fi
+
+      - name: Tag releases
+        if: steps.changesets.outputs.has_changesets == 'true'
+        # Release tags stopped entirely when this workflow replaced the old
+        # flow (datatable published 2.18.0 while its newest tag read 2.7.2),
+        # leaving "what source produced this version" answerable only by
+        # bisecting `chore: version packages` commits. Tag exactly what THIS
+        # run shipped — the bumped file publish-verify.sh detect wrote, the
+        # same record the precheck/postcheck ran over — in changesets' native
+        # `@scope/name@version` format, annotated like the 64 existing tags,
+        # pointing at the version commit created above.
+        #
+        # Deliberately NOT `pnpm changeset tag`: on its first run that would
+        # also mint tags for every package whose current version published
+        # long ago, pinning those versions to today's commit — source they
+        # may not match. An already-existing tag is a benign retry and is
+        # skipped; only tags created here are pushed, by explicit ref, so a
+        # push can never move or duplicate an existing tag.
+        run: |
+          BUMPED_FILE="${RUNNER_TEMP}/publish-bumped.txt"
+          if [ ! -s "$BUMPED_FILE" ]; then
+            echo "::warning::no bumped packages recorded — nothing to tag"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          created=()
+          while read -r spec _dir; do
+            [ -n "$spec" ] || continue
+            if git rev-parse -q --verify "refs/tags/${spec}" >/dev/null; then
+              echo "tag ${spec} already exists — skipping (benign retry)"
+              continue
+            fi
+            git tag -a "${spec}" -m "Release ${spec}"
+            echo "tagged ${spec} at $(git rev-parse --short HEAD)"
+            created+=("refs/tags/${spec}")
+          done < "$BUMPED_FILE"
+          if [ "${#created[@]}" -gt 0 ]; then
+            git push origin "${created[@]}"
+          else
+            echo "No new tags to push"
+          fi
