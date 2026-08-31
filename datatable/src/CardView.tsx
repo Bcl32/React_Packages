@@ -164,7 +164,13 @@ export function CardSelectAllControl<TData extends RowData>(props: {
   table: TanstackTable<TData>;
 }): JSX.Element | null {
   // Selection is opt-in per table: no visible select column, no select-all.
-  const selectColumn = props.table.getColumn("select");
+  // Looked up via getAllColumns() rather than getColumn(): a consumer that
+  // builds its own columns array (no ColumnGenerator) has no "select" column
+  // at all, and getColumn() console.errors on every render in dev before
+  // returning undefined.
+  const selectColumn = props.table
+    .getAllColumns()
+    .find((c) => c.id === "select");
   if (!selectColumn?.getIsVisible()) return null;
 
   // Match what toggleAllRowsSelected actually acts on (pre-grouping, and so
