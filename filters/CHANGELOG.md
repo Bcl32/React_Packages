@@ -1,5 +1,11 @@
 # @bcl32/filters
 
+## 3.8.0
+
+### Minor Changes
+
+- b4c1336: feat(filters): optional labelFor display mapping on chart filters
+
 ## 3.7.2
 
 ### Patch Changes

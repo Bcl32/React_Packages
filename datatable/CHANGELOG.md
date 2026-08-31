@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.18.1
+
+### Patch Changes
+
+- 041d726: fix(datatable): stop CardSelectAllControl console-erroring without a select column
+
 ## 2.18.0
 
 ### Minor Changes
