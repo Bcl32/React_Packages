@@ -141,6 +141,28 @@ export interface ChartMetadata {
   title?: string;
 }
 
+/**
+ * Display-only rename for one chart category value.
+ *
+ * A chart category is a raw data value ("runner_crashed") that doubles as the
+ * value a click writes into the filter. A labeller changes ONLY what is drawn
+ * — axis ticks, legend text, tooltip names — and is never consulted on the
+ * click path, so the filter round-trip keeps using the raw value.
+ *
+ * Returning "" (or the value unchanged) falls back to the default
+ * `prettyOptionLabel` treatment, so a partial map is safe.
+ */
+export type ChartValueLabeller = (rawValue: string) => string;
+
+/**
+ * Either a single labeller for the chart at hand, or a map from chart
+ * dimension name (`ChartMetadata.name`) to that dimension's labeller — the map
+ * form lets a caller hand one object to every chart it renders.
+ */
+export type ChartValueLabelling =
+  | ChartValueLabeller
+  | Record<string, ChartValueLabeller>;
+
 export interface ChartDataEntry {
   name: string;
   length?: number;

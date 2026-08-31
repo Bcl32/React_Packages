@@ -1,4 +1,5 @@
 import type { ChartConfig } from "@bcl32/charts/Charts";
+import type { ChartValueLabeller, ChartValueLabelling } from "./types";
 
 export function extractLabels(items: (string | { label: string })[]): string[] {
   return items.map(item => typeof item === "string" ? item : item.label);
@@ -113,6 +114,37 @@ export function prettyOptionLabel(label: string): string {
   if (!/^[a-z0-9]+(_[a-z0-9]+)*$/.test(label)) return label;
   const spaced = label.replace(/_/g, " ");
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+/**
+ * Collapse a `labelFor` prop into the single function a chart draws with.
+ *
+ * `labelFor` is optional and may be either one labeller or a map keyed by
+ * chart dimension name; both — and a map with no entry for `name` — resolve to
+ * the same default, `prettyOptionLabel`. A labeller that returns an empty or
+ * non-string result falls back to that default too, so a partial mapping never
+ * blanks a category.
+ *
+ * Purely a display concern: nothing here reaches the click handlers, which
+ * keep writing the raw category value into the filter.
+ */
+export function resolveChartLabeller(
+  labelFor: ChartValueLabelling | undefined,
+  name?: string
+): ChartValueLabeller {
+  let labeller: ChartValueLabeller | undefined;
+  if (typeof labelFor === "function") {
+    labeller = labelFor;
+  } else if (labelFor && name) {
+    labeller = labelFor[name];
+  }
+  if (!labeller) return prettyOptionLabel;
+  return (rawValue: string) => {
+    const label = labeller(rawValue);
+    return typeof label === "string" && label !== ""
+      ? label
+      : prettyOptionLabel(rawValue);
+  };
 }
 
 // Turn a raw snake_case field name into a readable filter label:

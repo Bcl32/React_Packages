@@ -47,6 +47,8 @@ export type {
   GroupedFilters,
   ChartMetadata,
   ChartDataEntry,
+  ChartValueLabeller,
+  ChartValueLabelling,
   ModelAttribute,
   ModelData,
   StatValue,

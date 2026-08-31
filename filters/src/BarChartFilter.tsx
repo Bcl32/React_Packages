@@ -16,19 +16,37 @@ import {
   ChartTooltipContent,
 } from "@bcl32/charts/Charts";
 import { FilterHeader } from "./FilterHeader";
-import type { FilterContextValue, ChartDataEntry, ChartClickEvent } from "./types";
-import { humanizeFieldName, prettyOptionLabel } from "./utils";
+import type {
+  FilterContextValue,
+  ChartDataEntry,
+  ChartClickEvent,
+  ChartValueLabelling,
+} from "./types";
+import { humanizeFieldName, resolveChartLabeller } from "./utils";
 
 interface BarChartFilterProps {
   name: string;
   chart_data: ChartDataEntry[];
   title?: string;
+  /**
+   * Display-only renaming of the bar categories: a `(rawValue) => label`
+   * function, or a map keyed by dimension name. Drives the axis ticks and the
+   * tooltip only — `bar_click` still sends the raw category value to the
+   * filter. Defaults to `prettyOptionLabel`, which is what it did before.
+   */
+  labelFor?: ChartValueLabelling;
 }
 
 /** Row height in px — bars stay ≤ 24px thick with air around them. */
 const ROW_HEIGHT = 30;
 
-export function BarChartFilter({ name, chart_data, title }: BarChartFilterProps): JSX.Element {
+export function BarChartFilter({
+  name,
+  chart_data,
+  title,
+  labelFor,
+}: BarChartFilterProps): JSX.Element {
+  const labelOf = resolveChartLabeller(labelFor, name);
   const context = React.useContext(FilterContext) as FilterContextValue | null;
 
   const filter = context?.filters?.[name];
@@ -110,14 +128,27 @@ export function BarChartFilter({ name, chart_data, title }: BarChartFilterProps)
             tickMargin={6}
             fontSize={12}
             tickFormatter={(value: string) => {
-              const label = prettyOptionLabel(value);
+              const label = labelOf(value);
               return label.length > 13 ? label.slice(0, 12) + "…" : label;
             }}
           />
           <XAxis dataKey="length" type="number" hide />
           <ChartTooltip
             cursor={false}
-            content={<ChartTooltipContent indicator="line" />}
+            content={
+              <ChartTooltipContent
+                indicator="line"
+                // The tooltip's heading is the raw category value. Only rewrite
+                // it when the caller actually asked for renaming — without
+                // `labelFor` this stays the untouched token it has always been.
+                {...(labelFor
+                  ? {
+                      labelFormatter: (value: string | undefined) =>
+                        value ? labelOf(String(value)) : "",
+                    }
+                  : {})}
+              />
+            }
           />
 
           <Bar dataKey="length" barSize={18} radius={[0, 4, 4, 0]}>

@@ -9,14 +9,18 @@ import {
   ChartTooltipContent,
 } from "@bcl32/charts/Charts";
 import { FilterHeader } from "./FilterHeader";
-import type { FilterContextValue, ChartDataEntry } from "./types";
+import type {
+  FilterContextValue,
+  ChartDataEntry,
+  ChartValueLabelling,
+} from "./types";
 import {
   buildChartConfig,
   foldChartData,
   humanizeFieldName,
   isSemanticStatusName,
   OTHER_KEY,
-  prettyOptionLabel,
+  resolveChartLabeller,
   resolveCategoryColour,
 } from "./utils";
 
@@ -24,6 +28,13 @@ interface PieChartFilterProps {
   name: string;
   chart_data: ChartDataEntry[];
   title?: string;
+  /**
+   * Display-only renaming of the slice categories: a `(rawValue) => label`
+   * function, or a map keyed by dimension name. Drives the legend and tooltip
+   * text only — `filter_on_click` still sends the raw slice name to the
+   * filter. Defaults to `prettyOptionLabel`, which is what it did before.
+   */
+  labelFor?: ChartValueLabelling;
 }
 
 /** Slice colours: semantic tokens for status-like names, categorical slots in
@@ -40,7 +51,13 @@ function sliceColours(entries: { name: string }[]): Record<string, string> {
   return colours;
 }
 
-export function PieChartFilter({ name, chart_data, title }: PieChartFilterProps): JSX.Element {
+export function PieChartFilter({
+  name,
+  chart_data,
+  title,
+  labelFor,
+}: PieChartFilterProps): JSX.Element {
+  const labelOf = resolveChartLabeller(labelFor, name);
   const context = React.useContext(FilterContext) as FilterContextValue | null;
 
   const filter = context?.filters?.[name];
@@ -77,7 +94,7 @@ export function PieChartFilter({ name, chart_data, title }: PieChartFilterProps)
   const chartConfig = buildChartConfig(entries.map((e) => e.name));
   entries.forEach((entry) => {
     chartConfig[entry.name] = {
-      label: prettyOptionLabel(entry.name),
+      label: labelOf(entry.name),
       color: colours[entry.name],
     };
   });
@@ -175,7 +192,7 @@ export function PieChartFilter({ name, chart_data, title }: PieChartFilterProps)
               className="h-2 w-2 shrink-0 rounded-[2px]"
               style={{ backgroundColor: colours[entry.name] }}
             />
-            {prettyOptionLabel(entry.name)}
+            {labelOf(entry.name)}
             <span className="tabular-nums text-muted-foreground">
               {(entry.length ?? 0).toLocaleString()}
             </span>
