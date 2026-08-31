@@ -4,6 +4,26 @@ on:
   push:
     paths:
       - '.changeset/**'
+      # The package dirs are triggers so the changeset guard below can catch a
+      # source push that carries no changeset — before this, such a push
+      # started no workflow at all and the non-release was silent (the
+      # auto-changeset hook the npm-publishing skill describes is not
+      # installed). The version commit this workflow pushes says [skip ci],
+      # so consuming changesets never re-triggers. This list and the guard's
+      # filter below both mirror pnpm-workspace.yaml — a new package goes in
+      # all three places.
+      - 'utils/**'
+      - 'data-utils/**'
+      - 'hooks/**'
+      - 'charts/**'
+      - 'command-palette/**'
+      - 'account/**'
+      - 'datatable/**'
+      - 'filters/**'
+      - 'forms/**'
+      - 'navigation/**'
+      - 'themes/**'
+      - '.github/workflows/publish-react-packages.yml'
     branches:
       - main
   workflow_dispatch:
@@ -54,6 +74,40 @@ jobs:
             echo "has_changesets=false" >> "$GITHUB_OUTPUT"
             echo "No pending changesets found"
           fi
+
+      # push only: paths-filter diffs the push range (event.before..sha, which
+      # needs the fetch-depth: 0 checkout above); a workflow_dispatch has no
+      # range, so the guard below does not apply there. The dir list mirrors
+      # pnpm-workspace.yaml, same as the trigger paths above.
+      - uses: dorny/paths-filter@v4
+        if: github.event_name == 'push'
+        id: srcfilter
+        with:
+          filters: |
+            source:
+              - 'utils/**'
+              - 'data-utils/**'
+              - 'hooks/**'
+              - 'charts/**'
+              - 'command-palette/**'
+              - 'account/**'
+              - 'datatable/**'
+              - 'filters/**'
+              - 'forms/**'
+              - 'navigation/**'
+              - 'themes/**'
+
+      - name: Guard — package source changed but no changeset is pending
+        # A package-source push with no pending changeset publishes nothing,
+        # and before this guard nothing said so. Fail the run loudly instead;
+        # the push has already landed, so the remedy is a follow-up commit.
+        if: >-
+          github.event_name == 'push' &&
+          steps.changesets.outputs.has_changesets == 'false' &&
+          steps.srcfilter.outputs.source == 'true'
+        run: |
+          echo "::error::package source changed in this push but no changeset is pending — nothing will be published. Add one with 'pnpm changeset' (or 'pnpm changeset --empty' to record that no release is intended) and push again."
+          exit 1
 
       - name: Version packages
         if: steps.changesets.outputs.has_changesets == 'true'
