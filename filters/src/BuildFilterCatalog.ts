@@ -10,20 +10,31 @@ import type {
 const INSTANCE_SEPARATOR = "#";
 
 /** Filter kinds that support add-on-demand instances. */
-export type DynamicFilterKind = "number" | "datetime" | "string" | "boolean";
+export type DynamicFilterKind =
+  | "number"
+  | "datetime"
+  | "string"
+  | "boolean"
+  | "options";
 
-/** The filter kind an attribute renders as, or null when it isn't one of them. */
+/** The filter kind an attribute renders as, or null when it isn't filterable. */
 export function dynamicFilterKind(item: ModelAttribute): DynamicFilterKind | null {
   if (!item || !item["filter"]) return null;
   // Booleans filter as options (a baked-in Yes/No list) but are their own kind
-  // here: they're the one options-backed filter worth collapsing, since the
-  // value list is fixed rather than derived from the data. Checked before
-  // filter_type, which reads "options" for them.
+  // here: the value list is fixed rather than derived from the data, so they get
+  // their own picker section. Checked before filter_type, which reads "options"
+  // for them.
   if (item["type"] === "boolean") return "boolean";
+
+  // Mirrors CreateFilter's `resolvedType` exactly: a declared filter_type wins,
+  // and anything that isn't one of the three scalar kinds is an options filter.
+  // Resolving it the same way here is what keeps the catalog and the filter it
+  // creates from disagreeing — an attribute typed "select" with no filter_type
+  // builds an options filter, so it must be catalogued as one too.
   const declared = item["filter_type"] as string | undefined;
   const type = declared ?? (item["type"] as string);
   if (type === "number" || type === "datetime" || type === "string") return type;
-  return null;
+  return "options";
 }
 
 /** True when the attribute renders as a numeric range filter. */
@@ -55,7 +66,7 @@ export function isBooleanFilterAttribute(item: ModelAttribute): boolean {
  */
 export function isDynamicFilterAttribute(
   item: ModelAttribute,
-  kinds: DynamicFilterKind[] = ["number", "datetime", "string", "boolean"],
+  kinds: DynamicFilterKind[] = ["number", "datetime", "string", "boolean", "options"],
 ): boolean {
   const kind = dynamicFilterKind(item);
   return !!kind && kinds.includes(kind) && !item["primaryFilter"];
@@ -158,6 +169,8 @@ export function BuildFilterCatalog(
   const catalog: FilterCatalogEntry[] = [];
 
   for (const item of model_attributes) {
+    // null now means "not filterable at all" — every filterable attribute
+    // resolves to a kind, options included.
     const kind = dynamicFilterKind(item);
     if (!kind) continue;
 
@@ -194,6 +207,28 @@ export function BuildFilterCatalog(
       // column is a computed flag that always has a value. CalculateFeatureStats
       // has no boolean branch, so there are no counts to show either.
       catalog.push({ ...base, disabled: false });
+      continue;
+    }
+
+    if (kind === "options") {
+      // Two possible measures of "is there anything here?": the values the data
+      // actually holds, and the vocabulary the schema declares. Prefer the data
+      // — an enum can declare a dozen statuses none of which any row uses — and
+      // fall back to the declared list for array-valued columns (tags), which
+      // CalculateFeatureStats does not group.
+      const counts = stats?.find((s) => s.name === "count")?.value;
+      const declared = Array.isArray(item["options"])
+        ? (item["options"] as unknown[]).length
+        : undefined;
+      const distinct = Array.isArray(counts) ? counts.length : declared;
+
+      catalog.push({
+        ...base,
+        distinct,
+        topValues: topValues(stats),
+        disabled: distinct === 0,
+        reason: distinct === 0 ? "no data" : undefined,
+      });
       continue;
     }
 

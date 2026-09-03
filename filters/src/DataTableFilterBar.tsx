@@ -124,6 +124,19 @@ interface UseDataTableFilterBarProps {
    * enough for the fallback to fire on an entity that never needed it.
    */
   hasPrimaryFilters?: boolean;
+  /**
+   * Fields whose cards this bar must not render.
+   *
+   * For filters that are mounted and writable but whose UI lives somewhere else
+   * on the page — a colour wheel, a map, a calendar — so the control and a
+   * duplicate card don't both drive the same field. The filter itself is
+   * untouched: it still matches rows, still shows a toolbar chip, and is still
+   * reachable from filter search and the keyboard shortcuts.
+   *
+   * Matched on the data column (`field ?? key`), so a user-added second
+   * instance of the same field is hidden too.
+   */
+  hiddenFields?: string[];
 }
 
 export function useDataTableFilterBar({
@@ -139,12 +152,25 @@ export function useDataTableFilterBar({
   columns,
   columnVisibility,
   hasPrimaryFilters,
+  hiddenFields,
 }: UseDataTableFilterBarProps): DataTableFilter {
   // One flat, ordered list instead of per-kind tabs: pinned filters first,
   // then the always-present options filters, then user-added instances in the
   // order they were added. See OrderFilters for why bucketing by type is wrong
   // here.
-  const orderedFilters = allFilters ? OrderFilters(allFilters) : [];
+  const allOrderedFilters = allFilters ? OrderFilters(allFilters) : [];
+  // Hidden fields drop out of the *rendered* list only. Everything else in this
+  // hook — the initial-open check, the chips, targeting — keeps working off the
+  // full filter map, because a hidden filter is still a live one.
+  const orderedFilters =
+    hiddenFields && hiddenFields.length > 0
+      ? allOrderedFilters.filter(
+          (entry) =>
+            !hiddenFields.includes(
+              (entry["field"] as string | undefined) ?? baseFieldName(entry.name),
+            ),
+        )
+      : allOrderedFilters;
   const [open, setOpen] = useState(false);
   const [addPickerOpen, setAddPickerOpen] = useState(false);
   const hasSetInitialOpen = useRef(false);
@@ -224,6 +250,8 @@ export function useDataTableFilterBar({
   // Open on first load when the entity has pinned filters — same behaviour the
   // auto-selected "Main" tab used to give.
   useEffect(() => {
+    // `orderedFilters`, not the full set: a pinned filter that is hidden has no
+    // card to reveal, so opening the panel for it shows an empty strip.
     if (!hasSetInitialOpen.current && orderedFilters.some((entry) => entry["primaryFilter"])) {
       setOpen(true);
       hasSetInitialOpen.current = true;

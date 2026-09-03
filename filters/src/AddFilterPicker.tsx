@@ -67,10 +67,15 @@ function formatRange(entry: FilterCatalogEntry): string {
   // A boolean's value list is a fixed pair, so the row just says what control
   // it will add rather than pretending to summarise the data.
   if (entry.type === "boolean") return "yes / no";
-  if (entry.type === "string") {
+  if (entry.type === "string" || entry.type === "options") {
     // Textareas have no grouped stats, so there's no count to show — the row
-    // still adds a perfectly good contains-search.
-    if (typeof entry.distinct !== "number") return "text";
+    // still adds a perfectly good contains-search. An options column with no
+    // grouped stats is array-valued (tags), where the declared vocabulary
+    // stands in; if even that is absent, name the control instead of lying
+    // about a range.
+    if (typeof entry.distinct !== "number") {
+      return entry.type === "options" ? "options" : "text";
+    }
     return `${entry.distinct} value${entry.distinct === 1 ? "" : "s"}`;
   }
   if (entry.type === "datetime") {

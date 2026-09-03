@@ -14,6 +14,13 @@ export interface InitializeFiltersOptions {
    * `true` covers every supported kind; an array narrows it
    * (e.g. `["number", "datetime"]` keeps text filters eager).
    *
+   * **Options filters are in the pool too.** They were the one kind that
+   * ignored `primaryFilter` entirely — always mounted, never offered in the
+   * picker — so a page could not choose its own defaults for them. Including
+   * them makes `primaryFilter` mean the same thing for every kind: pinned ones
+   * keep their slot, the rest move to "+ Add filter". Narrow the array to opt a
+   * page back out.
+   *
    * Defaults to **off**: a consumer that hasn't wired addFilter/removeFilter/
    * filterCatalog into its filter UI would otherwise end up with filters it can
    * neither see nor create.
@@ -21,7 +28,13 @@ export interface InitializeFiltersOptions {
   dynamicFilters?: boolean | DynamicFilterKind[];
 }
 
-const ALL_DYNAMIC_KINDS: DynamicFilterKind[] = ["number", "datetime", "string", "boolean"];
+const ALL_DYNAMIC_KINDS: DynamicFilterKind[] = [
+  "number",
+  "datetime",
+  "string",
+  "boolean",
+  "options",
+];
 
 export function resolveDynamicKinds(
   option: boolean | DynamicFilterKind[] | undefined,
