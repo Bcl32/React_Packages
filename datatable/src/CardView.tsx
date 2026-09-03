@@ -375,11 +375,31 @@ export function CardView<TData extends RowData>(props: CardViewProps<TData>): JS
     overscan: 4,
     measureElement: (el) => el.getBoundingClientRect().height,
   });
-  // A width change reflows every chunk; cached measurements are stale.
-  React.useEffect(() => {
-    if (props.virtualized) virtualizer.measure();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cols]);
+  /**
+   * Changing the card size reflows every chunk, so the virtualizer's cached
+   * heights are stale — and the way it re-measures is subtle enough to have
+   * been wrong twice, so it is spelled out here.
+   *
+   * `virtualizer.measure()` on its own does NOT fix it. It only *clears* the
+   * size cache; the re-measure is supposed to arrive through the
+   * `measureElement` ref, which React does not re-run for an element that
+   * stayed mounted. Every chunk already on screen therefore kept its
+   * `estimateSize` guess for positioning while actually being its real height:
+   * 70px cards on a 220px pitch, a 150px gap under every row, until something
+   * forced a remount (a reload, or scrolling the chunk away and back).
+   *
+   * Calling `measureElement` by hand straight after `measure()` does not fix it
+   * either, and fails silently: `_measureElement` looks the element's index up
+   * in `measurementsCache`, which `measure()` has just emptied and which is
+   * only rebuilt during the next render, so it bails before measuring anything.
+   *
+   * So the size is part of the chunk's key instead. A size change remounts the
+   * chunks, React re-runs the refs, and each one measures itself against a
+   * cache that is already rebuilt. Nothing to clear and nothing to sequence —
+   * and chunks not currently mounted re-measure whenever they next mount, since
+   * their keys changed too.
+   */
+  const chunkGeneration = `${cardMinWidth}:${cols}:${variant}`;
 
   // Animation stays off while virtualized: cards mount and unmount as the
   // scroll position moves, so enter/exit would fire on scrolling rather than
@@ -532,7 +552,7 @@ export function CardView<TData extends RowData>(props: CardViewProps<TData>): JS
         <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
           {virtualItems.map((vi) => (
             <div
-              key={vi.key}
+              key={`${vi.key}-${chunkGeneration}`}
               // This wrapper exists only to position the chunk; an unlabelled
               // element between grid and row would break the role chain.
               role="presentation"
