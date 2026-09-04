@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/datatable",
-  "version": "2.18.2",
+  "version": "2.19.0",
   "description": "Custom data table built using react query table",
   "author": "",
   "license": "ISC",
