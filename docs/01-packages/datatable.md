@@ -195,7 +195,7 @@ All primitives have the signature `React.ForwardRefExoticComponent<React.HTMLAtt
 
 ```ts
 DataTable<TData extends RowData>(props: {
-  title: string;
+  title?: string;   // omit when a PageFilterBar above the table draws it; the title row is then skipped
   columns: ColumnDef<TData, unknown>[];
   tableData: TData[];
   ModelData: ModelData;

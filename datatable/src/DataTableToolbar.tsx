@@ -74,7 +74,7 @@ export interface DataTableFilter {
 }
 
 export interface DataTableToolbarProps<TData extends RowData> {
-  title: string;
+  title?: string;
   table: TanstackTable<TData>;
   ModelData: ModelData;
   filter?: DataTableFilter;
@@ -329,6 +329,10 @@ export function DataTableToolbar<TData extends RowData>(
 
   const { selectedIds, table } = props;
   const hasFilters = Boolean(props.filter);
+  // Whether zone 1 has anything to say. A page that draws its title and its
+  // filter bar above the table (PageFilterBar) passes neither, and an empty
+  // 36px row with a rule under it would be all that was left of the zone.
+  const hasTitleRow = Boolean(props.title) || Boolean(props.filter?.toolbar);
   // Which layout is actually drawing. A declared shape answers as the layout it
   // is built on, so "cards have no header row" stays true of every card shape.
   const base = props.activeView.base;
@@ -341,25 +345,29 @@ export function DataTableToolbar<TData extends RowData>(
   return (
     <div className="mb-2 shrink-0">
       {/* ---- zone 1: which rows ------------------------------------------ */}
-      <div className="flex flex-wrap items-center gap-2 min-h-9">
-        <h3 className="text-lg font-semibold capitalize whitespace-nowrap shrink-0">
-          {props.title}
-          {props.filter && (
-            <span className="text-sm font-normal text-muted-foreground ml-1.5">
-              ({props.filter.filteredCount}/{props.filter.totalCount})
-            </span>
+      {hasTitleRow && (
+        <div className="flex flex-wrap items-center gap-2 min-h-9">
+          {props.title && (
+            <h3 className="text-lg font-semibold capitalize whitespace-nowrap shrink-0">
+              {props.title}
+              {props.filter && (
+                <span className="text-sm font-normal text-muted-foreground ml-1.5">
+                  ({props.filter.filteredCount}/{props.filter.totalCount})
+                </span>
+              )}
+            </h3>
           )}
-        </h3>
 
-        {props.filter?.toolbar && (
-          // Scrolls sideways rather than wrapping: the active-filter chips are
-          // unbounded in number, and letting them push the zone taller would
-          // shove the table down every time one is added.
-          <div className="flex items-center gap-1.5 flex-1 min-w-0 overflow-x-auto">
-            {props.filter.toolbar}
-          </div>
-        )}
-      </div>
+          {props.filter?.toolbar && (
+            // Scrolls sideways rather than wrapping: the active-filter chips are
+            // unbounded in number, and letting them push the zone taller would
+            // shove the table down every time one is added.
+            <div className="flex items-center gap-1.5 flex-1 min-w-0 overflow-x-auto">
+              {props.filter.toolbar}
+            </div>
+          )}
+        </div>
+      )}
 
       {props.filter?.panel}
 
@@ -378,7 +386,7 @@ export function DataTableToolbar<TData extends RowData>(
           // they are the same colour and read as the single line they should
           // be. While the panel is collapsed it is clipped to zero height, so
           // only this border shows and the 1px shift lands on nothing.
-          hasFilters && "-mt-px border-t pt-2"
+          hasFilters && hasTitleRow && "-mt-px border-t pt-2"
         )}
       >
         {/* The selection-dependent actions come FIRST in this right-anchored

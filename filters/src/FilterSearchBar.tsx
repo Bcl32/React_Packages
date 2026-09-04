@@ -24,6 +24,12 @@ interface FilterSearchBarProps {
   /** Called with the affected filter key after a suggestion applies. */
   onApplied?: (key: string | null) => void;
   placeholder?: string;
+  /**
+   * Control size. `default` is the table-toolbar box that shares a row with
+   * the title; `large` is for a bar that owns the top of its page and has room
+   * to be read from further away. The suggestion panel is the same either way.
+   */
+  size?: "default" | "large";
 }
 
 /**
@@ -48,7 +54,9 @@ export function FilterSearchBar({
   // what it is, and the old "Search filters..." only competed with the ghost
   // completion that renders in the same spot.
   placeholder = "",
+  size = "default",
 }: FilterSearchBarProps): JSX.Element {
+  const large = size === "large";
   const [query, setQuery] = React.useState("");
   const [active, setActive] = React.useState(0);
   const [focused, setFocused] = React.useState(false);
@@ -166,7 +174,7 @@ export function FilterSearchBar({
   return (
     <div className="relative inline-block" ref={containerRef}>
       <div className="flex items-center gap-1.5">
-        <Search size={13} className="shrink-0 text-muted-foreground" />
+        <Search size={large ? 17 : 13} className="shrink-0 text-muted-foreground" />
         <div className="relative">
           <Input
             ref={inputRef}
@@ -178,14 +186,14 @@ export function FilterSearchBar({
             onFocus={() => setFocused(true)}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
-            className="h-7 w-44 text-xs"
+            className={large ? "h-10 w-72 text-base" : "h-7 w-44 text-xs"}
           />
           {ghost && (
             // Mirrors the input's box metrics (px-3 + 1px border) so the ghost
             // remainder lines up exactly after the typed text.
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-pre border border-transparent px-3 text-xs"
+              className={`pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-pre border border-transparent px-3 ${large ? "text-base" : "text-xs"}`}
             >
               <span className="invisible">{query}</span>
               <span className="text-muted-foreground">{ghost}</span>

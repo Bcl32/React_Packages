@@ -57,7 +57,12 @@ import type { ModelData, RowData } from "@bcl32/data-utils";
 export type { ToolbarAction, DataTableFilter, BoardConfig, BoardLane, GroupingLevel };
 
 interface DataTableProps<TData extends RowData> {
-  title: string;
+  /**
+   * Heading for the toolbar's title row. Omit it when the page draws the
+   * title elsewhere — a `PageFilterBar` above the table — and the toolbar
+   * skips the row rather than leaving an empty one.
+   */
+  title?: string;
   columns: ColumnDef<TData, unknown>[];
   tableData: TData[];
   ModelData: ModelData;

@@ -34,6 +34,7 @@ export * from "./EntityGroupCards";
 export * from "./FilterProvider";
 export * from "./useFilterContext";
 export * from "./DataTableFilterBar";
+export * from "./PageFilterBar";
 export type {
   FilterValue,
   Filters,

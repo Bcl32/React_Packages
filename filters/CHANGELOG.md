@@ -4,7 +4,7 @@
 
 ### Minor Changes
 
-- 75339f1: Options filters honour `primaryFilter`, and the panel gains `hiddenFields` / `panelLeading`
+- 75339f1: Options filters honour `primaryFilter`, and the panel gains `hiddenFields`
 
   Options filters were the one kind that ignored `primaryFilter`: `dynamicFilterKind`
   returned `null` for them, so `InitializeFilters` always mounted them eagerly and

@@ -23,6 +23,11 @@ interface AddFilterPickerProps {
    */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /**
+   * Trigger size. `default` matches the table-toolbar chips; `large` matches
+   * the bigger controls of a page-level bar. The dropdown is the same either way.
+   */
+  size?: "default" | "large";
 }
 
 /** Compact span for a datetime attribute: "Mar 4 '25 – Aug 2 '26". */
@@ -149,6 +154,7 @@ export function AddFilterPicker({
   emptyHint = "No attributes available",
   open: openProp,
   onOpenChange,
+  size = "default",
 }: AddFilterPickerProps): JSX.Element {
   const [selfOpen, setSelfOpen] = React.useState(false);
   const open = openProp ?? selfOpen;
@@ -288,13 +294,15 @@ export function AddFilterPicker({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`inline-flex shrink-0 items-center gap-1 rounded-full border border-dashed px-2.5 py-1 text-xs font-medium transition-colors ${
+        className={`inline-flex shrink-0 items-center gap-1 rounded-full border border-dashed font-medium transition-colors ${
+          size === "large" ? "px-4 py-2 text-base" : "px-2.5 py-1 text-xs"
+        } ${
           open
             ? "border-primary text-primary"
             : "border-border text-muted-foreground hover:border-primary hover:text-primary"
         }`}
       >
-        <Plus size={13} />
+        <Plus size={size === "large" ? 17 : 13} />
         {label}
       </button>
 
