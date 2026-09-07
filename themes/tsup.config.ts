@@ -1,24 +1,9 @@
 import { defineConfig } from "tsup";
 
+import { entriesFromExports } from "../tsup-entries";
+
 export default defineConfig({
-  entry: [
-    "src/Theming.tsx",
-    "src/ThemeGenerator.tsx",
-    "src/ThemeProvider.tsx",
-    "src/ThemePanel.tsx",
-    "src/ThemeExample.tsx",
-    "src/ThemeDropdownSelect.tsx",
-    "src/ColourControls.tsx",
-    "src/ColourConverter.tsx",
-    "src/ColourPicker.tsx",
-    "src/CopyTheme.tsx",
-    "src/ImportTheme.tsx",
-    "src/colorUtils.ts",
-    "src/contrastCheck.ts",
-    "src/themeMeta.ts",
-    "src/themeOverrides.ts",
-    "src/index.ts"
-  ],
+  entry: entriesFromExports(__dirname, { staticExports: ["./tailwind-preset", "./themes.json"] }),
   format: ["esm"],
   dts: true,
   splitting: true,

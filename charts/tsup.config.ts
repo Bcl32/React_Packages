@@ -1,13 +1,9 @@
 import { defineConfig } from "tsup";
 
+import { entriesFromExports } from "../tsup-entries";
+
 export default defineConfig({
-  entry: [
-    "src/Charts.tsx",
-    "src/TimeSeriesChart.tsx",
-    "src/StatCard.tsx",
-    "src/DonutChart.tsx",
-    "src/index.ts"
-  ],
+  entry: entriesFromExports(__dirname),
   format: ["esm"],
   dts: true,
   splitting: true,

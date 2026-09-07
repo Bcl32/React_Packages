@@ -1,17 +1,9 @@
 import { defineConfig } from "tsup";
 
+import { entriesFromExports } from "../tsup-entries";
+
 export default defineConfig({
-  entry: [
-    "src/ApiError.ts",
-    "src/apiFetch.ts",
-    "src/queryDefaults.ts",
-    "src/useDatabaseMutation.ts",
-    "src/useGetRequest.ts",
-    "src/useApiMutation.ts",
-    "src/useDataLoader.ts",
-    "src/useOptionsEnrichment.ts",
-    "src/index.ts"
-  ],
+  entry: entriesFromExports(__dirname),
   format: ["esm"],
   dts: true,
   splitting: true,

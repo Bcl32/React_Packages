@@ -1,18 +1,9 @@
 import { defineConfig } from "tsup";
 
+import { entriesFromExports } from "../tsup-entries";
+
 export default defineConfig({
-  entry: [
-    "src/types.ts",
-    "src/Avatar.tsx",
-    "src/UserProvider.tsx",
-    "src/UserBadge.tsx",
-    "src/ActivityTimeline.tsx",
-    "src/ActivityFeed.tsx",
-    "src/AccountPanel.tsx",
-    "src/SidebarUserSection.tsx",
-    "src/useAccountCommands.ts",
-    "src/index.ts"
-  ],
+  entry: entriesFromExports(__dirname),
   format: ["esm"],
   dts: true,
   splitting: true,

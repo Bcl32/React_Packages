@@ -1,21 +1,9 @@
 import { defineConfig } from "tsup";
 
+import { entriesFromExports } from "../tsup-entries";
+
 export default defineConfig({
-  entry: [
-    "src/AddModelForm.tsx",
-    "src/BulkEditModelForm.tsx",
-    "src/EditModelForm.tsx",
-    "src/DeleteModelForm.tsx",
-    "src/FormElement.tsx",
-    "src/fieldLabel.ts",
-    "src/ColourField.tsx",
-    "src/ColourArrayField.tsx",
-    "src/AutoGrowTextarea.tsx",
-    "src/EditableStringList.tsx",
-    "src/RelationCollectionField.tsx",
-    "src/useDebouncedCallback.ts",
-    "src/index.ts"
-  ],
+  entry: entriesFromExports(__dirname),
   format: ["esm"],
   dts: true,
   splitting: true,

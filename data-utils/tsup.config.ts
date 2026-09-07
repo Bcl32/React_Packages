@@ -1,17 +1,9 @@
 import { defineConfig } from "tsup";
 
+import { entriesFromExports } from "../tsup-entries";
+
 export default defineConfig({
-  entry: [
-    "src/ComputeTimeBounds.ts",
-    "src/ComputeGroupedStats.ts",
-    "src/CalculateFeatureStats.ts",
-    "src/StringFunctions.ts",
-    "src/dayjs_sorter.ts",
-    "src/getFormDefault.ts",
-    "src/pivotTimeSeries.ts",
-    "src/types.ts",
-    "src/index.ts"
-  ],
+  entry: entriesFromExports(__dirname),
   format: ["esm"],
   dts: true,
   splitting: true,

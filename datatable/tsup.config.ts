@@ -1,24 +1,9 @@
 import { defineConfig } from "tsup";
 
+import { entriesFromExports } from "../tsup-entries";
+
 export default defineConfig({
-  entry: [
-    "src/DataTable.tsx",
-    "src/TableView.tsx",
-    "src/CardView.tsx",
-    "src/BoardView.tsx",
-    "src/RowCard.tsx",
-    "src/GalleryCard.tsx",
-    "src/DetailPaneView.tsx",
-    "src/Table.tsx",
-    "src/KeyValueTable.tsx",
-    "src/StatsTable.tsx",
-    "src/ColumnGenerator.tsx",
-    "src/AttributionContext.tsx",
-    "src/CompletionCell.tsx",
-    "src/RowActions.tsx",
-    "src/TablePagination.tsx",
-    "src/index.ts"
-  ],
+  entry: entriesFromExports(__dirname),
   format: ["esm"],
   dts: true,
   splitting: true,

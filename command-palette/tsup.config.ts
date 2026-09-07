@@ -1,18 +1,9 @@
 import { defineConfig } from "tsup";
 
+import { entriesFromExports } from "../tsup-entries";
+
 export default defineConfig({
-  entry: [
-    "src/types.ts",
-    "src/flattenNavItems.ts",
-    "src/useThemeCommands.ts",
-    "src/shortcutTrie.ts",
-    "src/useShortcutSequencer.ts",
-    "src/EntitySearchPage.tsx",
-    "src/SequenceHUD.tsx",
-    "src/LeaderGrid.tsx",
-    "src/CommandPalette.tsx",
-    "src/index.ts"
-  ],
+  entry: entriesFromExports(__dirname),
   format: ["esm"],
   dts: true,
   splitting: true,
