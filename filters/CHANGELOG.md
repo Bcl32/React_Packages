@@ -1,5 +1,11 @@
 # @bcl32/filters
 
+## 3.10.1
+
+### Patch Changes
+
+- d5368df: fix(filters): actually build PageFilterBar
+
 ## 3.10.0
 
 ### Minor Changes
