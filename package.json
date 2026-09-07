@@ -6,7 +6,8 @@
     "build": "pnpm -r build",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "pnpm run build && pnpm -r publish --no-git-checks"
+    "release": "pnpm run build && pnpm -r publish --no-git-checks",
+    "check-exports": "node .github/scripts/check-exports.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.30.0",

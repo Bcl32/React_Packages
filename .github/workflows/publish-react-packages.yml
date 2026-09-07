@@ -178,6 +178,31 @@ jobs:
           echo "Typechecking: ${filters[*]}"
           pnpm "${filters[@]}" typecheck
 
+      - name: Check every entry point resolves in the packed artifact
+        if: steps.changesets.outputs.has_changesets == 'true'
+        # Every string in each bumped package's exports map (plus main/types/
+        # bin) must be a file `npm pack` would ship. Two exports shipped with
+        # no built file behind them (filters ./PageFilterBar, data-utils
+        # ./types) and both published GREEN: nothing before a consumer's
+        # bundler dereferences an exports map. tsup-entries.ts prevents the
+        # missing-SOURCE shape at build time; this catches every other shape
+        # (wrong dist path, a target the `files` whitelist drops) after it.
+        # See .github/scripts/check-exports.mjs.
+        run: |
+          BUMPED_FILE="${RUNNER_TEMP}/publish-bumped.txt"
+          if [ ! -s "$BUMPED_FILE" ]; then
+            echo "::warning::no bumped packages recorded — checking every package"
+            node .github/scripts/check-exports.mjs
+            exit 0
+          fi
+          dirs=()
+          while read -r _spec dir; do
+            [ -n "$dir" ] || continue
+            dirs+=("$dir")
+          done < "$BUMPED_FILE"
+          echo "Checking exports: ${dirs[*]}"
+          node .github/scripts/check-exports.mjs "${dirs[@]}"
+
       - name: Pre-publish collision check
         # Fails BEFORE publishing if a bumped version already exists on the
         # registry with DIFFERENT contents (the 2026-07-04 stale-artifact
