@@ -30,6 +30,7 @@ export default defineConfig({
     "src/ProcessDataset.ts",
     "src/useEntityFilters.ts",
     "src/DataTableFilterBar.tsx",
+    "src/PageFilterBar.tsx",
     "src/FilterSearchHotkey.ts",
     "src/FilterTargeting.ts",
     "src/FilterProvider.tsx",
