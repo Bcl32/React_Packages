@@ -1,5 +1,11 @@
 # @bcl32/data-utils
 
+## 2.6.1
+
+### Patch Changes
+
+- 84226fc: fix(data-utils): actually build the ./types entry point
+
 ## 2.6.0
 
 ### Minor Changes
