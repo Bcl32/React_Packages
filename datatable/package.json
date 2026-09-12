@@ -69,6 +69,10 @@
       "types": "./dist/RowActions.d.ts",
       "import": "./dist/RowActions.js"
     },
+    "./RowEditButton": {
+      "types": "./dist/RowEditButton.d.ts",
+      "import": "./dist/RowEditButton.js"
+    },
     "./TablePagination": {
       "types": "./dist/TablePagination.d.ts",
       "import": "./dist/TablePagination.js"
