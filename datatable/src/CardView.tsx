@@ -125,6 +125,28 @@ export interface DataTableViewDef<TData extends RowData = RowData> {
    */
   variant?: CardViewVariant;
   cardMinWidth?: number;
+  /**
+   * This view's own size-preset table, in px of minimum card width — what the
+   * toolbar's Compact/Comfortable/Large actually mean here.
+   *
+   * The two built-in tables exist because a tile and a card want different
+   * numbers for the same word: `CARD_SIZE_WIDTHS` is sized for five bands of
+   * text, `GALLERY_SIZE_WIDTHS` for one image and one line. A bespoke
+   * `renderCard` is a third shape and had no way to say so — until this, its
+   * only lever was `cardMinWidth`, which pins ONE width and withdraws the size
+   * control altogether, because a view that names its width has answered the
+   * question the presets ask.
+   *
+   * Declaring a table answers it three times instead, so the control stays. The
+   * size NAMES are still shared, which is the point: the stored preference and
+   * the toolbar carry across a view switch even though "compact" is 260 px of
+   * card, 104 px of tile and whatever this view says.
+   *
+   * Ignored when `cardMinWidth` is set on the view or the table — a pin is a
+   * stronger statement than a preset, and it is what the control's absence is
+   * already reporting.
+   */
+  cardSizeWidths?: Record<CardSize, number>;
   estimatedCardHeight?: number;
   /**
    * Column preset for this view. Re-applied on every switch *into* it — the

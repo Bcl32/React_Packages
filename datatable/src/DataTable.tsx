@@ -458,8 +458,12 @@ export function DataTable<TData extends RowData>(
   // variant also picks the size-preset table, so a photo-shaped view gets
   // gallery densities without carrying its own cardMinWidth.
   const cardVariant = activeView.variant ?? (base === "gallery" ? "gallery" : "cards");
+  // A view may bring its own preset table as well as its own tile — see
+  // `DataTableViewDef.cardSizeWidths`. The variant's table is the fallback, so
+  // a view that says nothing behaves exactly as it always did.
+  const cardSizeWidths = activeView.cardSizeWidths ?? sizeWidthsForVariant(cardVariant);
   const cardMinWidth =
-    activeView.cardMinWidth ?? props.cardMinWidth ?? sizeWidthsForVariant(cardVariant)[cardSize];
+    activeView.cardMinWidth ?? props.cardMinWidth ?? cardSizeWidths[cardSize];
 
   // Filtered rather than a bare Object.keys: TanStack deletes a deselected
   // key, but a controlled consumer merging maps by hand can easily leave an
