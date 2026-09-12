@@ -52,15 +52,35 @@ Per the react-website-dev **Stack Overview**, the pinned toolchain is:
 | Bun | latest | Only needed for `pnpm generate-schemas` (runs `bun ../../tools/generate-schemas.ts`). |
 
 Authentication to the GitHub Packages registry is needed even inside the
-workspace (pnpm reads `.npmrc` before it links local packages). Export a token
-with `read:packages`:
+workspace (pnpm reads `.npmrc` before it links local packages). Supply a token
+with `read:packages` one of two ways.
+
+**Recommended — a user-level `~/.npmrc`.** No credential lives under the repo,
+and it works in non-interactive shells that never source your profile:
+
+```ini
+@bcl32:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=ghp_xxxxxxxxxxxxxxxxxxxx
+```
+
+Create it under `umask 077` so it is mode `600` from the moment it exists,
+rather than `chmod`-ing afterwards and leaving it briefly world-readable.
+
+**Or — export the env var**, which the tracked `.npmrc` files interpolate:
 
 ```bash
 export GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
 ```
 
-The root `.npmrc` already wires the scope and token (see §4); you only supply
-the env var.
+The root `.npmrc` already wires the scope and token (see §4b); on this path you
+only supply the env var.
+
+The two do **not** stack. npm and pnpm merge config with the **project-level
+file winning per key**, so a project `.npmrc` carrying
+`_authToken=${GITHUB_TOKEN}` shadows `~/.npmrc` entirely and resolves to an
+empty token if the env var is unset. `react-packages/.npmrc` omits that line on
+purpose for exactly this reason (see §4b); the root and per-app files keep it
+and still depend on the export.
 
 ---
 
@@ -203,6 +223,12 @@ prefer-workspace-packages=true
   pnpm symlinks the in-repo source instead of hitting the registry.
 
 You do **not** need a per-app `.npmrc`; the root one applies workspace-wide.
+
+`react-packages/.npmrc` (gitignored, local-only) is the one deliberate
+exception: it carries the same settings **minus** the `_authToken` line, so
+auth falls through to a user-level `~/.npmrc` (§1). Do not add the token line
+back — it would shadow `~/.npmrc` and reintroduce the dependency on
+`GITHUB_TOKEN` being exported into every shell.
 
 ### 4c. Declare the `@bcl32/*` dependencies
 

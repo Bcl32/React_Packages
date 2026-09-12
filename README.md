@@ -31,6 +31,20 @@ Create or update `.npmrc` in your project:
 //npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
 ```
 
+This form reads the token from the environment, so `GITHUB_TOKEN` must be
+exported in every shell that runs an install. Alternatively, put the token
+itself in your user-level `~/.npmrc` (mode `600`) and leave it out of the
+project file, so no credential lives under the repo:
+
+```ini
+@bcl32:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=ghp_xxxxxxxxxxxxxxxxxxxx
+```
+
+Pick one. Doing both silently breaks the second: project-level config wins per
+key, so `_authToken=${GITHUB_TOKEN}` shadows the user-level value and resolves
+to an empty token whenever the env var is unset.
+
 ### 2. Install packages
 
 ```bash
