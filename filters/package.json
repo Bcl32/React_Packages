@@ -105,6 +105,10 @@
       "types": "./dist/AddFilterPicker.d.ts",
       "import": "./dist/AddFilterPicker.js"
     },
+    "./FilterSearchBar": {
+      "types": "./dist/FilterSearchBar.d.ts",
+      "import": "./dist/FilterSearchBar.js"
+    },
     "./GroupFilters": {
       "types": "./dist/GroupFilters.d.ts",
       "import": "./dist/GroupFilters.js"
@@ -120,6 +124,10 @@
     "./useEntityFilters": {
       "types": "./dist/useEntityFilters.d.ts",
       "import": "./dist/useEntityFilters.js"
+    },
+    "./useEntityGroups": {
+      "types": "./dist/useEntityGroups.d.ts",
+      "import": "./dist/useEntityGroups.js"
     },
     "./DataTableFilterBar": {
       "types": "./dist/DataTableFilterBar.d.ts",
@@ -149,6 +157,12 @@
       "types": "./dist/types.d.ts",
       "import": "./dist/types.js"
     }
+  },
+  "bcl32": {
+    "barrelOnlyModules": [
+      "EntityGroupCards",
+      "FilterSearch"
+    ]
   },
   "files": [
     "dist"

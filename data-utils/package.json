@@ -46,6 +46,11 @@
       "import": "./dist/pivotTimeSeries.js"
     }
   },
+  "bcl32": {
+    "barrelOnlyModules": [
+      "apiCapabilities"
+    ]
+  },
   "files": [
     "dist"
   ],

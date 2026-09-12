@@ -29,6 +29,10 @@
       "types": "./dist/BoardView.d.ts",
       "import": "./dist/BoardView.js"
     },
+    "./SectionsView": {
+      "types": "./dist/SectionsView.d.ts",
+      "import": "./dist/SectionsView.js"
+    },
     "./RowCard": {
       "types": "./dist/RowCard.d.ts",
       "import": "./dist/RowCard.js"
@@ -69,6 +73,10 @@
       "types": "./dist/RowActions.d.ts",
       "import": "./dist/RowActions.js"
     },
+    "./CardActions": {
+      "types": "./dist/CardActions.d.ts",
+      "import": "./dist/CardActions.js"
+    },
     "./RowEditButton": {
       "types": "./dist/RowEditButton.d.ts",
       "import": "./dist/RowEditButton.js"
@@ -76,7 +84,26 @@
     "./TablePagination": {
       "types": "./dist/TablePagination.d.ts",
       "import": "./dist/TablePagination.js"
+    },
+    "./SectionNesting": {
+      "types": "./dist/SectionNesting.d.ts",
+      "import": "./dist/SectionNesting.js"
+    },
+    "./TreeBoard": {
+      "types": "./dist/TreeBoard.d.ts",
+      "import": "./dist/TreeBoard.js"
     }
+  },
+  "bcl32": {
+    "barrelOnlyModules": [
+      "CardCells",
+      "ColumnLabels",
+      "GroupControl",
+      "GroupSections",
+      "SortControl",
+      "ViewDefs",
+      "ViewScroll"
+    ]
   },
   "files": [
     "dist"

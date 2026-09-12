@@ -61,6 +61,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check the barrel agrees with the exports map
+        # Ungated and before the build: this compares two files and needs
+        # neither a changeset nor a dist/. Every module `src/index.ts`
+        # re-exports must be named in the exports map, or declared barrel-only
+        # in `bcl32.barrelOnlyModules`. RowEditButton was neither — public
+        # through the barrel, absent from the map, so tsup built no entry for
+        # it and `@bcl32/datatable/RowEditButton` resolved to nothing in a
+        # consumer's bundler. See .github/scripts/check-barrel.mjs.
+        run: node .github/scripts/check-barrel.mjs
+
       - name: Check for pending changesets
         id: changesets
         run: |
