@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/account",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "User identity surface: sidebar account section, profile/preferences panel, activity feed and attribution badges",
   "author": "",
   "license": "ISC",
@@ -74,12 +74,12 @@
     "react-dom": "^18.2.0"
   },
   "dependencies": {
-    "@bcl32/hooks": "workspace:^4.2.0",
-    "@bcl32/utils": "workspace:^2.10.1",
+    "@bcl32/hooks": "workspace:^4.2.1",
+    "@bcl32/utils": "workspace:^2.10.3",
     "lucide-react": "^0.447.0"
   },
   "devDependencies": {
-    "@bcl32/command-palette": "workspace:^1.1.1",
+    "@bcl32/command-palette": "workspace:^1.1.2",
     "@tanstack/react-query": "^5.18.1",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",

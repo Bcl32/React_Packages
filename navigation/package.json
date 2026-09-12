@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/navigation",
-  "version": "2.1.9",
+  "version": "2.1.10",
   "description": "Navigation components including sidebar, breadcrumb, and navigation provider",
   "author": "",
   "license": "ISC",
@@ -45,7 +45,7 @@
     "react-router-dom": "^6.22.0"
   },
   "dependencies": {
-    "@bcl32/utils": "workspace:^2.3.9",
+    "@bcl32/utils": "workspace:^2.10.3",
     "lucide-react": "^0.447.0"
   },
   "devDependencies": {

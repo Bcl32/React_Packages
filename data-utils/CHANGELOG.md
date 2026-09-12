@@ -1,5 +1,86 @@
 # @bcl32/data-utils
 
+## 2.6.2
+
+### Patch Changes
+
+- 13daf3b: The barrel may no longer publish what the exports map does not
+
+  Three surfaces answer "what is public" here: the exports map, the build's
+  entry list, and `src/index.ts`. `tsup-entries.ts` derived the second FROM the
+  first so those two cannot disagree; the barrel was left independent, and
+  `RowEditButton` is what that cost — re-exported from `index.ts`, absent from
+  the map, therefore never built, therefore unreachable at
+  `@bcl32/datatable/RowEditButton`. It failed in a consumer's CI, one repo away,
+  after release.
+
+  `.github/scripts/check-barrel.mjs` closes it. Every module the barrel
+  re-exports must either be named in the exports map or listed in
+  `bcl32.barrelOnlyModules` — public both ways, or barrel-only on purpose. The
+  check compares two files, so it runs ungated and before the build, and a stale
+  list entry (a module that has since gained a subpath, or left the barrel) is an
+  error in its own right. Nothing can infer this intent, which is why it is asked
+  for rather than derived: a module re-exported from the barrel and nowhere else
+  is indistinguishable from one deliberately kept off the subpath list.
+
+  **Six modules gain the subpath they should always have had.** Each was chosen
+  on evidence rather than taste — consumers already reaching for it, or a direct
+  sibling that has one:
+
+  - `datatable/SectionNesting` and `datatable/TreeBoard` — imported from the root
+    barrel by Home Helper, House Hunter and Print-Tracker today, in fifteen
+    statements, because there was no other way in
+  - `filters/useEntityGroups` — the same, in Print-Tracker
+  - `datatable/SectionsView` — the only one of five views without a subpath
+    (`TableView`, `CardView`, `BoardView`, `DetailPaneView` all have one)
+  - `datatable/CardActions` — the card-shaped half of `RowActions`, which has one
+  - `filters/FilterSearchBar` — named in 3.10.0's own changelog beside
+    `AddFilterPicker`, which has one
+
+  **Ten are declared barrel-only**, which is a decision recorded rather than a
+  gap: `datatable` `CardCells`, `ColumnLabels`, `GroupControl`, `GroupSections`,
+  `SortControl`, `ViewDefs`, `ViewScroll`; `filters` `EntityGroupCards`,
+  `FilterSearch`; `data-utils` `apiCapabilities`. None has a consumer, and the
+  asymmetry is deliberate: adding a subpath later is additive, withdrawing one is
+  breaking, so absent evidence the reversible answer wins. Flipping any of them is
+  one exports entry and a rebuild.
+
+  Nothing is removed and no existing import changes — the barrel exports stay, so
+  both spellings work for the six.
+
+- 31ef177: Every package declares `sideEffects: false`
+
+  A bundler's central question about an unused export is "may I delete the module
+  it came from?", and without this field the answer has to be no: a module that
+  _might_ do something at import time cannot be dropped just because nothing reads
+  a symbol from it. Tree-shaking then works only as far as Rollup's own analysis
+  can prove purity on its own, which is well but not reliably, and not at all
+  under bundlers that lean on the field instead.
+
+  The promise is safe here, and it was checked rather than assumed. Across all
+  eleven packages there are **no bare side-effect imports** (`import "./x.css"`),
+  **no top-level writes to `window`, `document` or `globalThis`**, and **no CSS
+  files at all** — styling is Tailwind classes, so nothing depends on import order
+  to paint. That last one is the usual reason a package cannot make this promise,
+  and it does not apply: there is no stylesheet here to be stripped.
+
+  Module-level state that some modules do hold (a `Map` built at module scope) is
+  not a blocking side effect — such a module is still only retained when something
+  imports from it, which is exactly the behaviour wanted.
+
+  What it is worth today was measured rather than guessed, and it is small:
+  Home Helper's whole bundle came out 2,562 bytes lighter with the field than
+  without it (3,647,634 against 3,650,196, same container, same inputs, both
+  green) — 0.07%. Rollup was already proving most of this on its own.
+
+  So this is insurance, not an optimisation. It guarantees the behaviour instead
+  of leaving it to a bundler's analysis, and it matters more for anything that
+  leans on the field rather than deriving the answer, where the current absence
+  means no tree-shaking across this boundary at all. The related measurement, for
+  scale: importing `RowActions` alone costs 58 KB more through the barrel than
+  through its subpath, while in a file that already imports `DataTable` the two
+  are byte-identical.
+
 ## 2.6.1
 
 ### Patch Changes
