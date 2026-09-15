@@ -7,7 +7,7 @@ import timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, X } from "lucide-react";
 import { Input } from "@bcl32/utils/Input";
 import { Label } from "@bcl32/utils/Label";
 import { CustomTooltip } from "@bcl32/utils/Tooltip";
@@ -60,6 +60,7 @@ export function canRenderFormElement(attr: ModelAttribute): boolean {
     case "number":
     case "boolean":
     case "list":
+    case "single_combobox":
     case "id_list":
     case "select":
     case "datetime":
@@ -246,6 +247,48 @@ export function FormElement({
           />
         </div>
       );
+
+    case "single_combobox": {
+      // One free-text value with suggestions (`format: "single_combobox"` in the
+      // Pydantic schema) — the single-select sibling of `list`. The generator has
+      // emitted this type for a long time and the form had no branch for it, so
+      // the field silently vanished from every generated create/edit dialog.
+      // Clearing writes null rather than "", because an empty string would be
+      // stored as a value the field was never meant to hold.
+      const current = (formData[name] as string | null | undefined) || "";
+      return (
+        <div className="py-2">
+          <LabelWithHelp htmlFor={name} helpText={helpText}>
+            {label}:
+          </LabelWithHelp>
+          <div className="flex items-center gap-2">
+            <Combobox
+              freeSolo
+              className="flex-1"
+              options={((entry_data.options as Array<string | { label: string }>) || []).map(
+                (o) => (typeof o === "string" ? o : o.label)
+              )}
+              value={current ? [current] : []}
+              onChange={(newValue) =>
+                setFormData((prev) => ({ ...prev, [name]: newValue[0] ?? null }))
+              }
+              placeholder={`Select ${label.toLowerCase()}...`}
+            />
+            {current && (
+              <button
+                type="button"
+                onClick={() => setFormData((prev) => ({ ...prev, [name]: null }))}
+                className="rounded-sm p-1 text-muted-foreground hover:text-foreground"
+                aria-label={`Clear ${label.toLowerCase()}`}
+                title="Clear"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
 
     case "id_list": {
       // Multi-select of {value, label} reference pairs (e.g. systems).
