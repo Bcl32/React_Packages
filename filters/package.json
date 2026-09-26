@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/filters",
-  "version": "3.11.0",
+  "version": "4.0.0",
   "description": "Custom filters for data pulled from servers",
   "author": "",
   "license": "ISC",

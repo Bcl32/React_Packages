@@ -1,5 +1,33 @@
 # @bcl32/filters
 
+## 4.0.0
+
+### Major Changes
+
+- 9e4e9d2: Filter matching moves into one per-kind table, unused exports are removed, and the filter text, chart clicks and seeding get tests.
+
+  - **Removed** (no app imports them): `GroupFilters`, the `GroupedFilters` type, `AllFilters`, and `FilterValue.timespan_begin` from `@bcl32/filters`; `StatsTable` from `@bcl32/datatable`. The `./AllFilters`, `./GroupFilters`, `./InitializeFilters`, `./ProcessDataset`, `./FilterContext` and `./StatsTable` subpaths are gone, and `InitializeFilters`, `ProcessDataset` and the raw `FilterContext` are internal: use `useEntityFilters`, `FilterProvider` and `useFilterContext`.
+  - `ApplyFilters`, `GetActiveFilters`, `emptyFor` and `addFilter`'s opening value now read one internal table of per-kind rules (`src/predicates.ts`), keyed by `FilterKind` so booleans already have a slot. Matching rules are unchanged except:
+    - A string filter with no `rule` now matches as `contains`. It used to count as active (showing a chip) while matching every row.
+    - `GetActiveFilters` returns the filter objects themselves. It no longer copies a moved datetime start with `timespan_begin: "filter"`, which nothing read.
+  - Chip text, summary text, the bar/pie click logic and `addFilter` seeding moved into small internal modules with characterization tests; their output is unchanged. The number filter's typed input has its first component test (jsdom).
+
+### Minor Changes
+
+- 03a04c9: Filters, catalog entries and search entries now carry the model attribute they were built from, and one function decides every attribute's filter kind.
+
+  - `FilterValue.attr` (optional), `FilterCatalogEntry.attr` and `SearchFieldEntry.attr` hold a reference to the attribute, so keys `CreateFilter` doesn't copy (`unit`, `searchAliases`, anything added later) reach the filter UI without another copy list. When fetched options arrive, `useEntityFilters` now swaps in the enriched attribute along with `options`, so `filter.attr.options` and `filter.options` agree.
+  - New `resolveFilterKind`, `filterTypeFor` and `emptyFor`, plus the `FilterKind` type. `CreateFilter`, `BuildFilterCatalog` and `BuildFilterSearchIndex` all resolve kinds through `resolveFilterKind`. `dynamicFilterKind` remains as the same function; `DynamicFilterKind` and `SearchFieldKind` are aliases of `FilterKind`.
+  - `CreateFilter` resolves an invalid declared `filter_type` (such as `"select"`) to an options filter, matching what the picker already showed, instead of building a filter no control understood.
+  - Fix: a number, text, datetime or options attribute with no `filter_empty` now builds like a generated one instead of throwing (B3). Security-Benchmarks' hand-written judge-score filters could not be added from the picker.
+  - Fix: datetime bounds follow the resolved filter type (B9). A date field declared as a datetime filter is bounded by its data, and a datetime field declared as a string filter no longer throws.
+
+- d262610: `useEntityFilters` gains an `initialValues` option and a `setFilterValue` function, so pages stop writing filter value shapes by hand.
+
+  - `initialValues: { [field]: value }` sets opening values (a URL drill-through, a page default such as "Archived: No") once, when the filters are first built. There's no need to wait for the filters in an effect, and a field whose filter is created on demand is added pinned.
+  - `setFilterValue(key, value)` changes a filter, or creates it pinned when it doesn't exist yet. An empty value clears it, and clearing a filter that isn't there does nothing.
+  - Both take the same value shapes as `addFilter`'s `initial` and go through the same per-kind checks. For example, an empty datetime start keeps the data's earliest date instead of becoming an invalid date that matches no rows.
+
 ## 3.11.0
 
 ### Minor Changes
