@@ -156,12 +156,16 @@ its entity.
 | `GroupFilters` | util | `(filters: Filters) => GroupedFilters` | Partitions a `Filters` map into `{ primary_filters, string_filters, numeric_filters, options_filters, time_filters }`; primary filters are sorted by `filterOrder`. |
 | `ProcessDataset` | util | `(dataset, filters, ModelData) => ProcessedDataset` | One-call pipeline: `GetActiveFilters` → `ApplyFilters` → `CalculateFeatureStats` for both full and filtered data. |
 | `GetSubkeyValues` | util | `(chart_metadata: ChartMetadata, stats: DatasetStats) => string[]` | Extracts ordered subkey names from a `DatasetStats` `count` stat entry; used to populate `subkeys` arrays for chart components. |
+| `resolveFilterKind` | util | `(attr: ModelAttribute) => FilterKind \| null` | The single answer to "what kind of filter is this attribute?", shared by `CreateFilter`, `BuildFilterCatalog` and `BuildFilterSearchIndex`. `null` = not filterable. A boolean is `"boolean"`; a declared `filter_type` is kept only if it's `number`, `datetime` or `string`; anything else is `"options"`. `dynamicFilterKind` is the same function under its former name. |
+| `filterTypeFor` | util | `(kind: FilterKind) => FilterValue["type"]` | The runtime filter type a kind builds: `"boolean"` → `"options"`, the rest unchanged. |
+| `emptyFor` | util | `(type: FilterValue["type"]) => unknown` | The default `filter_empty` for a type, matching the Python generator. `CreateFilter` uses it when a hand-written attribute declares none. |
 
 ### Types
 
 | Name | Kind | Signature / Shape | Description |
 |---|---|---|---|
-| `FilterValue` | type | `{ type, value, rule, filter_empty, options, source_kind, selection, display, value_key, label_key, colour_presets, timespan_begin, primaryFilter }` | Core per-filter state shape. `type` is `"string" \| "number" \| "datetime" \| "options"`. |
+| `FilterValue` | type | `{ type, value, rule, filter_empty, options, source_kind, selection, display, value_key, label_key, colour_presets, timespan_begin, primaryFilter, attr? }` | Core per-filter state shape. `type` is `"string" \| "number" \| "datetime" \| "options"`. `attr` is the model attribute the filter was built from, held by reference, so keys `CreateFilter` doesn't copy (`unit`, `searchAliases`) are still readable. Read the live option list from `options`, not `attr.options`; `useEntityFilters` swaps in the enriched attribute when fetched options arrive, so the two agree. Never write to `attr`. |
+| `FilterKind` | type | `"number" \| "datetime" \| "string" \| "boolean" \| "options"` | The picker's and search's kind: the four runtime types plus `"boolean"`. `FilterCatalogEntry.type` and `SearchFieldEntry.kind` hold one; both entries also carry `attr`. |
 | `Filters` | type | `Record<string, FilterValue>` | The full filter state map. |
 | `FilterContextValue` | type | `{ filters: Filters, change_filters: (name, key, value) => void }` | Value held by `FilterContext`. |
 | `FilterData` | type | `FilterValue & { name: string }` | A filter plus its name; used when rendering filter lists. |
