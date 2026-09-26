@@ -64,12 +64,9 @@ export function entriesFromExports(pkgDir: string, opts: EntriesOptions = {}): s
   for (const key of Object.keys(pkg.exports ?? {})) {
     if (staticExports.has(key)) continue;
 
-    const base = key === "." ? "index" : key.replace(/^\.\//, "");
-    const source = [".tsx", ".ts"]
-      .map((ext) => `src/${base}${ext}`)
-      .find((rel) => existsSync(join(pkgDir, rel)));
-
+    const source = exportSource(pkgDir, key);
     if (!source) {
+      const base = exportBase(key);
       throw new Error(
         `${label}: exports "${key}" but neither src/${base}.tsx nor src/${base}.ts exists. ` +
           "Add the source file, drop the export, or — only if it ships as a static asset — " +
@@ -80,4 +77,20 @@ export function entriesFromExports(pkgDir: string, opts: EntriesOptions = {}): s
   }
 
   return [...entries, ...(opts.extraEntries ?? [])];
+}
+
+function exportBase(key: string): string {
+  return key === "." ? "index" : key.replace(/^\.\//, "");
+}
+
+/**
+ * The source file behind one export key (MAPPING above), relative to pkgDir,
+ * or undefined when there is none. Shared with vitest.config.mts, which aliases
+ * each export to this file so tests run against source rather than dist/.
+ */
+export function exportSource(pkgDir: string, key: string): string | undefined {
+  const base = exportBase(key);
+  return [".tsx", ".ts"]
+    .map((ext) => `src/${base}${ext}`)
+    .find((rel) => existsSync(join(pkgDir, rel)));
 }

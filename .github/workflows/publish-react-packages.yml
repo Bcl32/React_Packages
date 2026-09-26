@@ -24,6 +24,7 @@ on:
       - 'navigation/**'
       - 'themes/**'
       - '.github/workflows/publish-react-packages.yml'
+      - 'vitest.config.mts'
     branches:
       - main
   workflow_dispatch:
@@ -41,7 +42,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Its own job, not a step beside typecheck: every step below that point is
+  # gated on has_changesets, so tests placed there would run only on release
+  # pushes. Here they run on every push that touches a package, and release
+  # `needs` them, so a red test still blocks a publish. No build first: the
+  # vitest config aliases @bcl32/* imports to src/.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          registry-url: https://npm.pkg.github.com
+          scope: '@bcl32'
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run tests
+        run: pnpm test
+
   release:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

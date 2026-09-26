@@ -38,7 +38,12 @@ export function CalculateFeatureStats(metadata: ModelAttribute[], dataset: DataE
               Array.isArray(entry[name]) ? (entry[name] as unknown[]) : []
             )
           : dataset.map((entry) => entry[name]);
+      // Empty cells are dropped before converting: Number(null) and Number("")
+      // are both 0, which is finite, so they used to count as real zeros —
+      // dragging the slider minimum to 0 and inflating the first bin.
+      // (undefined needs no case: Number(undefined) is NaN.)
       const validValues = rawValues
+        .filter((raw) => raw !== null && raw !== "")
         .map((raw) => (typeof raw === "number" ? raw : Number(raw)))
         .filter((val): val is number => isFinite(val));
 
