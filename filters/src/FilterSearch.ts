@@ -1,8 +1,9 @@
-import { baseFieldName } from "./BuildFilterCatalog";
+import { baseFieldName, resolveFilterKind } from "./BuildFilterCatalog";
 import { humanizeFieldName } from "./utils";
 import type {
   DatasetStats,
   FilterInitialValue,
+  FilterKind,
   FilterOption,
   Filters,
   ModelAttribute,
@@ -24,7 +25,8 @@ import type {
  * resolves to "BaseMaterial: PLA" without any syntax from the user.
  */
 
-export type SearchFieldKind = "number" | "datetime" | "string" | "boolean" | "options";
+/** The kind a field searches as: the same kinds the picker uses. */
+export type SearchFieldKind = FilterKind;
 
 export interface SearchValueEntry {
   value: string;
@@ -46,6 +48,8 @@ export interface SearchFieldEntry {
   max?: number;
   earliest?: string;
   latest?: string;
+  /** The attribute this entry indexes, by reference (see FilterValue.attr). */
+  attr: ModelAttribute;
 }
 
 export type FilterSearchAction =
@@ -76,17 +80,6 @@ interface GroupCountLike {
 const MAX_VALUE_LENGTH = 60;
 /** Bound per-field index size so huge free-text columns stay cheap. */
 const MAX_VALUES_PER_FIELD = 300;
-
-/** The kind a filterable attribute searches as — mirrors CreateFilter's type
- * resolution (declared filter_type, else the data type, else options). */
-function searchFieldKind(item: ModelAttribute): SearchFieldKind | null {
-  if (!item || !item["filter"]) return null;
-  if (item["type"] === "boolean") return "boolean";
-  const declared = item["filter_type"] as string | undefined;
-  const type = declared ?? (item["type"] as string);
-  if (type === "number" || type === "datetime" || type === "string") return type;
-  return "options";
-}
 
 function statValue(stats: DatasetStats, field: string, name: string): unknown {
   return stats?.[field]?.find((s) => s.name === name)?.value;
@@ -143,7 +136,7 @@ export function BuildFilterSearchIndex(
   const index: SearchFieldEntry[] = [];
 
   for (const item of model_attributes) {
-    const kind = searchFieldKind(item);
+    const kind = resolveFilterKind(item);
     if (!kind) continue;
 
     const field = item["name"];
@@ -153,6 +146,7 @@ export function BuildFilterSearchIndex(
       title: (item["title"] as string) ?? humanizeFieldName(field),
       aliases: Array.isArray(rawAliases) ? rawAliases.map(String) : [],
       kind,
+      attr: item,
     };
 
     if (kind === "number") {

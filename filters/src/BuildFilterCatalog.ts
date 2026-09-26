@@ -2,59 +2,68 @@ import { humanizeFieldName } from "./utils";
 import type {
   DatasetStats,
   FilterCatalogEntry,
+  FilterKind,
   Filters,
+  FilterValue,
   ModelAttribute,
 } from "./types";
 
 /** Separator between a field name and its instance ordinal ("weight_g#2"). */
 const INSTANCE_SEPARATOR = "#";
 
-/** Filter kinds that support add-on-demand instances. */
-export type DynamicFilterKind =
-  | "number"
-  | "datetime"
-  | "string"
-  | "boolean"
-  | "options";
+/** Filter kinds that support add-on-demand instances: every kind. */
+export type DynamicFilterKind = FilterKind;
 
-/** The filter kind an attribute renders as, or null when it isn't filterable. */
-export function dynamicFilterKind(item: ModelAttribute): DynamicFilterKind | null {
+/**
+ * The one answer to "what kind of filter is this attribute?", or null when it
+ * isn't filterable. CreateFilter, the catalog and the search index all call
+ * this, so the filter the picker offers is the filter that gets built.
+ *
+ * Booleans are their own kind: the value list is a fixed Yes/No pair rather
+ * than derived from the data, so they get their own picker section. Checked
+ * before filter_type, which reads "options" for them.
+ *
+ * Otherwise a declared filter_type wins, but only if it's one of the three
+ * scalar kinds. Anything else becomes "options", including an invalid declared
+ * value such as "select": that really is an options field, and trusting it
+ * would build a filter no control or matcher understands.
+ */
+export function resolveFilterKind(item: ModelAttribute): FilterKind | null {
   if (!item || !item["filter"]) return null;
-  // Booleans filter as options (a baked-in Yes/No list) but are their own kind
-  // here: the value list is fixed rather than derived from the data, so they get
-  // their own picker section. Checked before filter_type, which reads "options"
-  // for them.
   if (item["type"] === "boolean") return "boolean";
 
-  // Mirrors CreateFilter's `resolvedType` exactly: a declared filter_type wins,
-  // and anything that isn't one of the three scalar kinds is an options filter.
-  // Resolving it the same way here is what keeps the catalog and the filter it
-  // creates from disagreeing — an attribute typed "select" with no filter_type
-  // builds an options filter, so it must be catalogued as one too.
   const declared = item["filter_type"] as string | undefined;
   const type = declared ?? (item["type"] as string);
   if (type === "number" || type === "datetime" || type === "string") return type;
   return "options";
 }
 
+/** The runtime filter type a kind builds: a boolean filters as options. */
+export function filterTypeFor(kind: FilterKind): FilterValue["type"] {
+  return kind === "boolean" ? "options" : kind;
+}
+
+/** Former name of resolveFilterKind, kept so existing imports keep working. */
+export const dynamicFilterKind = resolveFilterKind;
+
 /** True when the attribute renders as a numeric range filter. */
 export function isNumericFilterAttribute(item: ModelAttribute): boolean {
-  return dynamicFilterKind(item) === "number";
+  return resolveFilterKind(item) === "number";
 }
 
 /** True when the attribute renders as a datetime range filter. */
 export function isDatetimeFilterAttribute(item: ModelAttribute): boolean {
-  return dynamicFilterKind(item) === "datetime";
+  return resolveFilterKind(item) === "datetime";
 }
 
 /** True when the attribute renders as a free-text filter. */
 export function isStringFilterAttribute(item: ModelAttribute): boolean {
-  return dynamicFilterKind(item) === "string";
+  return resolveFilterKind(item) === "string";
 }
 
 /** True when the attribute renders as a Yes/No toggle. */
 export function isBooleanFilterAttribute(item: ModelAttribute): boolean {
-  return dynamicFilterKind(item) === "boolean";
+  return resolveFilterKind(item) === "boolean";
 }
 
 /**
@@ -68,7 +77,7 @@ export function isDynamicFilterAttribute(
   item: ModelAttribute,
   kinds: DynamicFilterKind[] = ["number", "datetime", "string", "boolean", "options"],
 ): boolean {
-  const kind = dynamicFilterKind(item);
+  const kind = resolveFilterKind(item);
   return !!kind && kinds.includes(kind) && !item["primaryFilter"];
 }
 
@@ -171,15 +180,16 @@ export function BuildFilterCatalog(
   for (const item of model_attributes) {
     // null now means "not filterable at all" — every filterable attribute
     // resolves to a kind, options included.
-    const kind = dynamicFilterKind(item);
+    const kind = resolveFilterKind(item);
     if (!kind) continue;
 
     const stats = datasetStats?.[item["name"]];
     const base = {
       field: item["name"],
       title: (item["title"] as string) ?? humanizeFieldName(item["name"]),
-      type: kind as FilterCatalogEntry["type"],
+      type: kind,
       usedCount: usedCounts.get(item["name"]) ?? 0,
+      attr: item,
     };
 
     if (kind === "number") {

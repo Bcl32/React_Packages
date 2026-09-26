@@ -45,6 +45,7 @@ export type {
   FilterSelection,
   FilterSourceKind,
   FilterCatalogEntry,
+  FilterKind,
   GroupedFilters,
   ChartMetadata,
   ChartDataEntry,

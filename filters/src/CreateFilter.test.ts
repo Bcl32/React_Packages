@@ -93,15 +93,36 @@ describe("CreateFilter", () => {
     });
   });
 
-  it("drops attribute keys outside its fixed list (why R4 carries the attribute)", () => {
-    const filter = CreateFilter({ ...numberAttr, unit: "g" }, {
+  it("carries the attribute by reference instead of copying more keys (R4)", () => {
+    const attr: ModelAttribute = { ...numberAttr, unit: "g" };
+    const filter = CreateFilter(attr, {
       weight_g: [
         { name: "min", value: 1 },
         { name: "max", value: 2 },
       ],
     })!;
 
+    // unit is still not copied onto the filter; it's reachable through attr.
     expect(filter).not.toHaveProperty("unit");
+    expect(filter.attr).toBe(attr);
+    expect(filter.attr!.unit).toBe("g");
+  });
+
+  it("builds an options filter for an invalid declared filter_type", () => {
+    // Trusting "select" used to produce a filter no control or matcher knew.
+    const attr: ModelAttribute = {
+      name: "material",
+      type: "select",
+      filter: true,
+      filter_type: "select",
+      filter_empty: [],
+      options: [{ value: "PLA", label: "PLA" }],
+    };
+
+    const filter = CreateFilter(attr, { material: [] })!;
+
+    expect(filter.type).toBe("options");
+    expect(filter.options).toEqual([{ value: "PLA", label: "PLA" }]);
   });
 
   it("falls back to options for an attribute with no filter_type", () => {

@@ -5,8 +5,9 @@ import { ProcessDataset } from "./ProcessDataset";
 import { InitializeFilters } from "./InitializeFilters";
 import type { DynamicFilterKind } from "./BuildFilterCatalog";
 import { CreateFilter } from "./CreateFilter";
-import { BuildFilterCatalog, baseFieldName, makeInstanceKey } from "./BuildFilterCatalog";
+import { BuildFilterCatalog, makeInstanceKey } from "./BuildFilterCatalog";
 import { BuildFilterSearchIndex, type SearchFieldEntry } from "./FilterSearch";
+import { syncEnrichedAttributes } from "./syncEnrichedAttributes";
 import type {
   Filters,
   ModelData,
@@ -108,29 +109,11 @@ export function useEntityFilters(
     }
   }, [datasetStats, enrichedModelData.model_attributes, dynamicFilters]);
 
-  // Sync newly-fetched options into existing filter state without clobbering
-  // the user's value/rule. Without this, options that arrive after filter
-  // initialization (e.g. via useOptionsEnrichment) never reach the UI.
+  // Sync newly-fetched options (and the enriched attribute they came on) into
+  // existing filter state without clobbering the user's value/rule. Without
+  // this, options that arrive after filter initialization never reach the UI.
   useEffect(() => {
-    setFilters((prev) => {
-      if (Object.keys(prev).length === 0) return prev;
-      let changed = false;
-      const next: Filters = { ...prev };
-      for (const attr of enrichedModelData.model_attributes) {
-        const newOptions = attr.options as unknown[] | undefined;
-        if (!newOptions || newOptions.length === 0) continue;
-        // Match on the resolved column, so instances (key "tags#2") pick new
-        // options up as well — not just the schema-declared entry.
-        for (const key of Object.keys(next)) {
-          const cur = next[key];
-          if ((cur.field ?? baseFieldName(key)) !== attr.name) continue;
-          if ((cur as { options?: unknown }).options === newOptions) continue;
-          next[key] = { ...cur, options: newOptions } as typeof cur;
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
+    setFilters((prev) => syncEnrichedAttributes(prev, enrichedModelData.model_attributes));
   }, [enrichedModelData.model_attributes]);
 
   // Process dataset with current filters

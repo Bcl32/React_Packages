@@ -1,3 +1,4 @@
+import { filterTypeFor, resolveFilterKind } from "./BuildFilterCatalog";
 import type {
   ModelAttribute,
   DatasetStats,
@@ -31,26 +32,24 @@ export function CreateFilter(
   item: ModelAttribute,
   datasetStats: DatasetStats,
 ): FilterValue | null {
-  if (!item || !item["filter"]) return null;
+  const kind = resolveFilterKind(item);
+  if (!kind) return null;
 
   const title = item["name"];
   const stats = datasetStats?.[title];
   if (!stats) return null;
 
-  const declaredFilterType = item["filter_type"] as FilterValue["type"] | undefined;
-  const dataType = item["type"] as string;
-  const resolvedType: FilterValue["type"] =
-    declaredFilterType ??
-    (dataType === "string" || dataType === "number" || dataType === "datetime"
-      ? dataType
-      : "options");
+  const resolvedType = filterTypeFor(kind);
 
+  // value and filter_empty are cloned because the filter mutates them; the
+  // attribute is shared by reference because nothing writes to it.
   const filter: FilterValue = {
     type: resolvedType,
     value: structuredClone(item["filter_empty"]),
     rule: item["filter_rule"],
     filter_empty: structuredClone(item["filter_empty"]),
     field: title,
+    attr: item,
   };
 
   const mutable = filter as unknown as Record<string, unknown>;

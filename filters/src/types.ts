@@ -1,5 +1,7 @@
 // Core filter types used across the package
 
+import type { ModelAttribute } from "@bcl32/data-utils";
+
 export type FilterDisplay =
   | "dropdown"
   | "combobox"
@@ -15,6 +17,15 @@ export interface FilterOption {
   value: string;
   label: string;
 }
+
+/**
+ * What kind of filter an attribute is, as the picker and search see it: one of
+ * the four runtime FilterValue types, plus "boolean". A Yes/No field gets its
+ * own picker section but filters at runtime as an options filter over a fixed
+ * Yes/No list. resolveFilterKind decides the kind; filterTypeFor turns a kind
+ * into the runtime type.
+ */
+export type FilterKind = "number" | "datetime" | "string" | "boolean" | "options";
 
 export interface FilterValue {
   type: "string" | "number" | "datetime" | "options";
@@ -47,6 +58,13 @@ export interface FilterValue {
   // outside the selected range render faded. Full-dataset (not filtered) on
   // purpose — a domain that moved while you dragged would be unusable.
   histogram?: HistogramBin[];
+  // The attribute this filter was built from, by reference rather than copied,
+  // so every key on it (unit, searchAliases, whatever is added later) reaches
+  // the controls without CreateFilter listing it. Read descriptive facts here
+  // and the live option list from `options`; useEntityFilters swaps in the
+  // enriched attribute when fetched options arrive, so the two agree. Nothing
+  // may write to it. Optional because apps can build filter maps by hand.
+  attr?: ModelAttribute;
 }
 
 export interface Filters {
@@ -62,7 +80,7 @@ export interface FilterCatalogEntry {
   // The picker's *kind*, which is not always the created filter's `type`: a
   // boolean attribute is catalogued as "boolean" (its own picker section) but
   // the filter it creates is an options filter over a fixed Yes/No list.
-  type: FilterValue["type"] | "boolean";
+  type: FilterKind;
   // Bounds are kind-specific: min/max for "number", earliest/latest (ISO
   // strings) for "datetime", a distinct-value count for "string". They're
   // absent when the column has no usable stats, in which case `disabled` is
@@ -81,6 +99,8 @@ export interface FilterCatalogEntry {
   disabled: boolean;
   reason?: string;
   usedCount: number;
+  // The attribute this row describes, by reference (see FilterValue.attr).
+  attr: ModelAttribute;
 }
 
 /** Opening value for a filter created on demand — kind-specific. A string[]
