@@ -5,7 +5,6 @@ import type {
   FilterCatalogEntry,
   FilterKind,
   Filters,
-  FilterValue,
   ModelAttribute,
 } from "./types";
 
@@ -18,30 +17,35 @@ export type DynamicFilterKind = FilterKind;
 /**
  * The one answer to "what kind of filter is this attribute?", or null when it
  * isn't filterable. CreateFilter, the catalog and the search index all call
- * this, so the filter the picker offers is the filter that gets built.
+ * this, so the filter the picker offers is the filter that gets built. The
+ * kind is the built filter's runtime type.
  *
- * Booleans are their own kind: the value list is a fixed Yes/No pair rather
- * than derived from the data, so they get their own picker section. Checked
- * before filter_type, which reads "options" for them.
+ * A boolean attribute is a boolean filter whatever its filter_type says, so
+ * metadata that still declares booleans as Yes/No options filters builds the
+ * boolean filter too.
  *
  * Otherwise a declared filter_type wins, but only if it's one of the three
  * scalar kinds. Anything else becomes "options", including an invalid declared
  * value such as "select": that really is an options field, and trusting it
  * would build a filter no control or matcher understands.
+ *
+ * Throws on an attribute that has `source_kind` but no `cell_shape`: that is
+ * ModelData generated before the rename, and reading it would silently match
+ * tag and colour lists as single values.
  */
 export function resolveFilterKind(item: ModelAttribute): FilterKind | null {
   if (!item || !item["filter"]) return null;
+  if ("source_kind" in item && !("cell_shape" in item)) {
+    throw new Error(
+      `${item["name"]}: metadata predates schema_utils 0.18 (source_kind was renamed to cell_shape) — regenerate ModelData`,
+    );
+  }
   if (item["type"] === "boolean") return "boolean";
 
   const declared = item["filter_type"] as string | undefined;
   const type = declared ?? (item["type"] as string);
   if (type === "number" || type === "datetime" || type === "string") return type;
   return "options";
-}
-
-/** The runtime filter type a kind builds: a boolean filters as options. */
-export function filterTypeFor(kind: FilterKind): FilterValue["type"] {
-  return kind === "boolean" ? "options" : kind;
 }
 
 /**
@@ -51,10 +55,10 @@ export function filterTypeFor(kind: FilterKind): FilterValue["type"] {
  * same filter a generated one would instead of throwing (B3). Returns a fresh
  * object on every call, so callers may mutate it.
  */
-export function emptyFor(type: FilterValue["type"]): unknown {
+export function emptyFor(type: FilterKind): unknown {
   // The per-kind table in predicates.ts is the one source of truth; an
   // unknown type gets the options default, as before.
-  return (PREDICATES[type as FilterKind] ?? PREDICATES.options).empty();
+  return (PREDICATES[type] ?? PREDICATES.options).empty();
 }
 
 /** Former name of resolveFilterKind, kept so existing imports keep working. */
@@ -75,7 +79,7 @@ export function isStringFilterAttribute(item: ModelAttribute): boolean {
   return resolveFilterKind(item) === "string";
 }
 
-/** True when the attribute renders as a Yes/No toggle. */
+/** True when the attribute renders as a boolean (Yes / No) filter. */
 export function isBooleanFilterAttribute(item: ModelAttribute): boolean {
   return resolveFilterKind(item) === "boolean";
 }
@@ -227,9 +231,9 @@ export function BuildFilterCatalog(
     }
 
     if (kind === "boolean") {
-      // Nothing to measure: the value list is a fixed Yes/No pair, and the
-      // column is a computed flag that always has a value. CalculateFeatureStats
-      // has no boolean branch, so there are no counts to show either.
+      // Nothing to measure: the values are fixed (Yes / No, plus Unknown on a
+      // nullable field). CalculateFeatureStats has no boolean branch, so there
+      // are no counts to show either.
       catalog.push({ ...base, disabled: false });
       continue;
     }

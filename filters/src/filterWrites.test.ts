@@ -24,9 +24,8 @@ const attrs: ModelAttribute[] = [
     name: "archived",
     type: "boolean",
     filter: true,
-    filter_type: "options",
-    filter_empty: [],
-    filter_rule: "any",
+    filter_type: "boolean",
+    filter_empty: null,
   },
   {
     name: "started_at",
@@ -58,10 +57,10 @@ describe("applyInitialValues", () => {
   it("seeds a filter that exists and creates a pinned one that doesn't", () => {
     expect(Object.keys(initial())).toEqual(["status"]); // the rest are on demand
 
-    const next = applyInitialValues(initial(), { status: ["failed"], archived: ["false"] }, attrs, stats);
+    const next = applyInitialValues(initial(), { status: ["failed"], archived: false }, attrs, stats);
 
     expect(next.status.value).toEqual(["failed"]);
-    expect(next.archived).toMatchObject({ value: ["false"], primaryFilter: true, dynamic: false });
+    expect(next.archived).toMatchObject({ value: false, primaryFilter: true, dynamic: false });
   });
 
   it("ignores an empty datetime start instead of comparing against an invalid date", () => {
@@ -79,7 +78,7 @@ describe("applyInitialValues", () => {
   });
 
   it("doesn't create a filter the value would leave inactive, or one for an unknown field", () => {
-    const next = applyInitialValues(initial(), { archived: [], nope: ["x"] }, attrs, stats);
+    const next = applyInitialValues(initial(), { archived: null, nope: ["x"] }, attrs, stats);
 
     expect(Object.keys(next)).toEqual(["status"]);
   });
@@ -110,21 +109,21 @@ describe("setFilterValueIn", () => {
   });
 
   it("creates a missing filter, pinned", () => {
-    const { filters, key } = setFilterValueIn(initial(), "archived", ["true"], attrs, stats);
+    const { filters, key } = setFilterValueIn(initial(), "archived", true, attrs, stats);
 
     expect(key).toBe("archived");
-    expect(filters.archived).toMatchObject({ value: ["true"], primaryFilter: true });
+    expect(filters.archived).toMatchObject({ value: true, primaryFilter: true });
   });
 
   it("does nothing when clearing a filter that isn't there, or for an unknown field", () => {
     const prev = initial();
 
-    expect(setFilterValueIn(prev, "archived", [], attrs, stats)).toEqual({ filters: prev, key: null });
+    expect(setFilterValueIn(prev, "archived", null, attrs, stats)).toEqual({ filters: prev, key: null });
     expect(setFilterValueIn(prev, "nope", ["x"], attrs, stats)).toEqual({ filters: prev, key: null });
   });
 
   it("creates a missing instance key from its column", () => {
-    const { key } = setFilterValueIn(initial(), "archived#2", ["true"], attrs, stats);
+    const { key } = setFilterValueIn(initial(), "archived#2", true, attrs, stats);
 
     expect(key).toBe("archived");
   });

@@ -1,4 +1,4 @@
-import { emptyFor, filterTypeFor, resolveFilterKind } from "./BuildFilterCatalog";
+import { emptyFor, resolveFilterKind } from "./BuildFilterCatalog";
 import type {
   ModelAttribute,
   DatasetStats,
@@ -9,13 +9,15 @@ import type {
 
 const OPTIONS_FIELDS = [
   "options",
-  "source_kind",
   "selection",
   "display",
   "value_key",
   "label_key",
   "colour_presets",
 ] as const;
+
+/** Displays a boolean filter can take; anything else draws the default. */
+const BOOLEAN_DISPLAYS = new Set(["segmented", "checkbox"]);
 
 /**
  * Builds one FilterValue from a model attribute plus the dataset stats.
@@ -39,16 +41,19 @@ export function CreateFilter(
   const stats = datasetStats?.[title];
   if (!stats) return null;
 
-  const resolvedType = filterTypeFor(kind);
-  // Hand-written attributes may leave filter_empty out (B3).
-  const empty = item["filter_empty"] ?? emptyFor(resolvedType);
+  const resolvedType = kind;
+  // Hand-written attributes may leave filter_empty out (B3). A boolean's empty
+  // value is always null: metadata that still describes booleans as options
+  // filters carries [] here.
+  const empty =
+    resolvedType === "boolean" ? null : (item["filter_empty"] ?? emptyFor(resolvedType));
 
   // value and filter_empty are cloned because the filter mutates them; the
   // attribute is shared by reference because nothing writes to it.
   const filter: FilterValue = {
     type: resolvedType,
     value: structuredClone(empty),
-    rule: item["filter_rule"],
+    rule: resolvedType === "boolean" ? undefined : item["filter_rule"],
     filter_empty: structuredClone(empty),
     field: title,
     attr: item,
@@ -56,11 +61,11 @@ export function CreateFilter(
 
   const mutable = filter as unknown as Record<string, unknown>;
 
-  // source_kind drives array-aware matching (options always; number when the
+  // cell_shape drives array-aware matching (options always; number when the
   // field is a scalar-array, e.g. number_list per-axis units). Copy it here so
   // ApplyFilters sees it for number filters too, not just options.
-  if (item["source_kind"] !== undefined) {
-    mutable["source_kind"] = item["source_kind"];
+  if (item["cell_shape"] !== undefined) {
+    mutable["cell_shape"] = item["cell_shape"];
   }
 
   // Carry the schema title so the filter components can render it (they fall
@@ -75,6 +80,15 @@ export function CreateFilter(
         mutable[field] = item[field];
       }
     }
+  }
+
+  if (resolvedType === "boolean") {
+    // Old metadata gives booleans display "toggle-buttons"; only the boolean
+    // controls are kept, so it falls back to the segmented default.
+    if (BOOLEAN_DISPLAYS.has(item["display"] as string)) mutable["display"] = item["display"];
+    if (typeof item["checkedValue"] === "boolean") mutable["checkedValue"] = item["checkedValue"];
+    if (typeof item["checkedLabel"] === "string") mutable["checkedLabel"] = item["checkedLabel"];
+    if (item["nullable"] === true) mutable["nullable"] = true;
   }
 
   if (item["primaryFilter"]) {

@@ -11,15 +11,11 @@ describe("PREDICATES", () => {
     expect(Object.keys(PREDICATES).sort()).toEqual([...KINDS].sort());
   });
 
-  it("filters booleans as options until they get their own runtime type", () => {
-    expect(PREDICATES.boolean).toBe(PREDICATES.options);
-  });
-
   it("hands out a fresh empty value every call", () => {
     for (const kind of KINDS) {
       const a = PREDICATES[kind].empty();
       expect(PREDICATES[kind].empty()).toEqual(a);
-      if (typeof a === "object") expect(PREDICATES[kind].empty()).not.toBe(a);
+      if (a !== null && typeof a === "object") expect(PREDICATES[kind].empty()).not.toBe(a);
     }
   });
 
@@ -28,10 +24,11 @@ describe("PREDICATES", () => {
     expect(emptyFor("datetime")).toEqual({ timespan_begin: "", timespan_end: "" });
     expect(emptyFor("string")).toBe("");
     expect(emptyFor("options")).toEqual([]);
+    expect(emptyFor("boolean")).toBeNull();
   });
 
   it("counts a filter at its empty value as inactive, for every runtime type", () => {
-    for (const type of ["string", "number", "datetime", "options"] as const) {
+    for (const type of KINDS) {
       const empty = emptyFor(type);
       const filter = { type, value: structuredClone(empty), filter_empty: empty } as FilterValue;
       expect(predicateFor(filter)!.isActive(filter)).toBe(false);

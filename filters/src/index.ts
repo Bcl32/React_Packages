@@ -2,6 +2,7 @@ export * from "./FilterElement";
 export * from "./ChartFilter";
 export * from "./FiltersSummary";
 export * from "./OptionsFilter";
+export * from "./BooleanFilter";
 export * from "./TimeFilter";
 export * from "./BarChartFilter";
 export * from "./BarChartSwitcher";
@@ -38,7 +39,8 @@ export type {
   FilterDisplay,
   FilterOption,
   FilterSelection,
-  FilterSourceKind,
+  FilterCellShape,
+  BooleanFilterValue,
   FilterCatalogEntry,
   FilterKind,
   ChartMetadata,

@@ -1,6 +1,8 @@
 import { baseFieldName, resolveFilterKind } from "./BuildFilterCatalog";
+import { parseBooleanValue } from "./predicates";
 import { humanizeFieldName } from "./utils";
 import type {
+  BooleanFilterValue,
   DatasetStats,
   FilterInitialValue,
   FilterKind,
@@ -55,6 +57,7 @@ export interface SearchFieldEntry {
 export type FilterSearchAction =
   | { type: "options-value"; field: string; value: string }
   | { type: "string-value"; field: string; value: string }
+  | { type: "boolean-value"; field: string; value: Exclude<BooleanFilterValue, null> }
   | { type: "number-range"; field: string; min?: number; max?: number }
   | { type: "add-field"; field: string };
 
@@ -171,11 +174,14 @@ export function BuildFilterSearchIndex(
     }
 
     if (kind === "boolean") {
-      // The Yes/No list is baked into the attribute's options by the schema.
-      index.push({
-        ...base,
-        values: toValueEntries(item["options"] as FilterOption[] | undefined, [], undefined),
-      });
+      // Fixed values, not read from the attribute: Yes and No, and Unknown
+      // where the field can be empty.
+      const values: SearchValueEntry[] = [
+        { value: "true", label: "Yes" },
+        { value: "false", label: "No" },
+      ];
+      if (item["nullable"] === true) values.push({ value: "unknown", label: "Unknown" });
+      index.push({ ...base, values });
       continue;
     }
 
@@ -306,6 +312,16 @@ const STARTER_SCORE: Record<SearchFieldKind, number> = {
   datetime: 10,
 };
 
+/** What picking one of a field's values does. */
+function valueAction(entry: SearchFieldEntry, value: string): FilterSearchAction {
+  if (entry.kind === "string") return { type: "string-value", field: entry.field, value };
+  if (entry.kind === "boolean") {
+    const parsed = parseBooleanValue(value);
+    if (parsed != null) return { type: "boolean-value", field: entry.field, value: parsed };
+  }
+  return { type: "options-value", field: entry.field, value };
+}
+
 function comparisonLabel(op: string): string {
   if (op === "=" || op === "==" || op === ":") return "=";
   return op;
@@ -364,10 +380,7 @@ export function SearchFilterIndex(
               70 +
               fieldScore * 3 +
               Math.min(5, Math.log2(1 + (v.count ?? 0))),
-            action:
-              entry.kind === "string"
-                ? { type: "string-value", field: entry.field, value: v.value }
-                : { type: "options-value", field: entry.field, value: v.value },
+            action: valueAction(entry, v.value),
             completion: `${rawPrefix} ${v.label}`,
           });
         }
@@ -432,7 +445,7 @@ export function SearchFilterIndex(
             label: `${entry.title}: ${v.label}`,
             detail: countDetail(v.count) ?? KIND_DETAIL[entry.kind],
             score: 85 + valueScore * 5 + fieldScore * 3,
-            action: { type: "options-value", field: entry.field, value: v.value },
+            action: valueAction(entry, v.value),
             completion: completes
               ? typedEnd.slice(0, typedEnd.length - rawValue.length) + v.label
               : undefined,
@@ -489,10 +502,7 @@ export function SearchFilterIndex(
         label: `${entry.title}: ${v.label}`,
         detail: countDetail(v.count) ?? KIND_DETAIL[entry.kind],
         score: valueScore * 20 + KIND_BOOST[entry.kind] + popularity,
-        action:
-          entry.kind === "string"
-            ? { type: "string-value", field: entry.field, value: v.value }
-            : { type: "options-value", field: entry.field, value: v.value },
+        action: valueAction(entry, v.value),
         completion: v.label.toLowerCase().startsWith(rawQuery.trim().toLowerCase())
           ? v.label
           : undefined,
@@ -562,6 +572,14 @@ export function ApplyFilterSuggestion(
         return key;
       }
       return add_filter?.(action.field, [action.value]) ?? null;
+    }
+
+    case "boolean-value": {
+      if (key) {
+        change_filters(key, "value", action.value);
+        return key;
+      }
+      return add_filter?.(action.field, action.value) ?? null;
     }
 
     case "string-value": {

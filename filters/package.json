@@ -30,6 +30,10 @@
       "types": "./dist/OptionsFilter.d.ts",
       "import": "./dist/OptionsFilter.js"
     },
+    "./BooleanFilter": {
+      "types": "./dist/BooleanFilter.d.ts",
+      "import": "./dist/BooleanFilter.js"
+    },
     "./TimeFilter": {
       "types": "./dist/TimeFilter.d.ts",
       "import": "./dist/TimeFilter.js"

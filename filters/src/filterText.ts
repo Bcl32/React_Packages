@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 
 import { humanizeFieldName, prettyOptionLabel } from "./utils";
 import type {
+  BooleanFilterValue,
   DatetimeFilterValue,
   FilterOption,
   FilterValue,
@@ -27,6 +28,25 @@ function chipOptionsLabel(value: string[], options: FilterOption[] | undefined):
   return value.map((v) => map.get(v) ?? prettyOptionLabel(v)).join(", ");
 }
 
+/**
+ * A boolean filter as a phrase: "Favourite", "Not archived", "Mirrored:
+ * unknown". A checkbox showing its checked side reads as its own label
+ * ("Hide archived").
+ */
+export function booleanPhrase(label: string, filter: FilterValue): string {
+  const value = filter.value as BooleanFilterValue;
+  if (
+    filter.display === "checkbox" &&
+    filter.checkedLabel &&
+    value === (filter.checkedValue ?? true)
+  ) {
+    return filter.checkedLabel;
+  }
+  if (value === "unknown") return `${label}: unknown`;
+  if (value === false) return `Not ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
+  return label;
+}
+
 /** The toolbar chip for one active filter, e.g. `Weight (g): 10 – 50`. */
 export function chipLabel(name: string, filter: FilterValue): string {
   // Prefer the schema title ("Size (mm)") over the raw key — a dynamic instance's
@@ -47,6 +67,8 @@ export function chipLabel(name: string, filter: FilterValue): string {
       }
       return `${label}${rule}: ${chipOptionsLabel(vals, filter.options)}`;
     }
+    case "boolean":
+      return booleanPhrase(label, filter);
     case "datetime": {
       const v = filter.value as { timespan_begin: string; timespan_end: string };
       const start = dayjs(v.timespan_begin).format("MMM D, YYYY");
@@ -78,6 +100,10 @@ export function summaryValue(filter: FilterValue): string {
   if (filter["type"] === "number") {
     const numValue = filter["value"] as NumberRange;
     return numValue["min"] + " - " + numValue["max"];
+  }
+  if (filter["type"] === "boolean") {
+    const value = filter["value"] as BooleanFilterValue;
+    return value === "unknown" ? "Unknown" : value ? "Yes" : "No";
   }
   if (filter["type"] === "options") {
     const arrValue = filter["value"] as string[];

@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   BuildFilterCatalog,
   dynamicFilterKind,
-  filterTypeFor,
   resolveFilterKind,
 } from "./BuildFilterCatalog";
 import { CreateFilter } from "./CreateFilter";
@@ -36,11 +35,16 @@ describe("resolveFilterKind", () => {
   });
 });
 
-describe("filterTypeFor", () => {
-  it("turns boolean into options and leaves the rest alone", () => {
-    expect(filterTypeFor("boolean")).toBe("options");
-    expect(filterTypeFor("number")).toBe("number");
-    expect(filterTypeFor("options")).toBe("options");
+describe("stale metadata", () => {
+  it("refuses an attribute that still says source_kind", () => {
+    expect(() => resolveFilterKind(attr({ name: "tags", type: "list", source_kind: "scalar-array" }))).toThrow(
+      /tags: metadata predates schema_utils 0\.18/,
+    );
+  });
+
+  it("accepts cell_shape, and an attribute with neither", () => {
+    expect(resolveFilterKind(attr({ type: "list", cell_shape: "scalar-array" }))).toBe("options");
+    expect(resolveFilterKind(attr({ type: "list" }))).toBe("options");
   });
 });
 
@@ -59,11 +63,11 @@ describe("the three builders agree", () => {
     material: [{ name: "count", value: [{ name: "PLA", length: 3 }] }],
   };
 
-  it("builds the runtime type the catalog's kind implies", () => {
+  it("builds a filter whose type is the catalog's kind", () => {
     const catalog = BuildFilterCatalog(attrs, stats, {});
     for (const entry of catalog) {
       const filter = CreateFilter(entry.attr, stats)!;
-      expect(filter.type).toBe(filterTypeFor(entry.type));
+      expect(filter.type).toBe(entry.type);
     }
   });
 

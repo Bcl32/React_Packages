@@ -2,14 +2,22 @@
 
 import type { ModelAttribute } from "@bcl32/data-utils";
 
+/**
+ * How a filter is drawn. Options filters use the first five; a boolean filter
+ * is drawn as "segmented" (Any / Yes / No, the default) or "checkbox" (one
+ * side only, set per field with checkedValue and checkedLabel).
+ */
 export type FilterDisplay =
   | "dropdown"
   | "combobox"
   | "chip-toggle"
   | "swatch-grid"
-  | "toggle-buttons";
+  | "toggle-buttons"
+  | "segmented"
+  | "checkbox";
 
-export type FilterSourceKind = "scalar" | "scalar-array" | "object-array";
+/** What the row's cell holds: one value, a list of values, or a list of objects. */
+export type FilterCellShape = "scalar" | "scalar-array" | "object-array";
 
 export type FilterSelection = "single" | "multi";
 
@@ -19,27 +27,38 @@ export interface FilterOption {
 }
 
 /**
- * What kind of filter an attribute is, as the picker and search see it: one of
- * the four runtime FilterValue types, plus "boolean". A Yes/No field gets its
- * own picker section but filters at runtime as an options filter over a fixed
- * Yes/No list. resolveFilterKind decides the kind; filterTypeFor turns a kind
- * into the runtime type.
+ * What a filter asks of a row: a filter's runtime `type`, which is also its
+ * picker section and search kind. resolveFilterKind decides it for an
+ * attribute.
  */
 export type FilterKind = "number" | "datetime" | "string" | "boolean" | "options";
 
+/**
+ * A boolean filter's value. null is "no filter"; "unknown" selects the rows
+ * whose cell is empty, and is only offered on a nullable field.
+ */
+export type BooleanFilterValue = true | false | "unknown" | null;
+
 export interface FilterValue {
-  type: "string" | "number" | "datetime" | "options";
+  type: FilterKind;
   value: unknown;
   rule?: string;
   filter_empty: unknown;
   options?: FilterOption[];
-  source_kind?: FilterSourceKind;
+  cell_shape?: FilterCellShape;
   selection?: FilterSelection;
   display?: FilterDisplay;
   value_key?: string;
   label_key?: string;
   colour_presets?: ColourPresetsConfig;
   primaryFilter?: boolean;
+  // Boolean filters only. The value a checkbox means when ticked (default
+  // true) and the text beside it ("Hide archived"; default the title).
+  checkedValue?: boolean;
+  checkedLabel?: string;
+  // The field can be empty (the schema allows null). A boolean filter then
+  // offers "Unknown" and never draws as a checkbox.
+  nullable?: boolean;
   // The data column this filter reads. Defaults to the Filters map key — only
   // dynamic instances (which use a synthetic key like "weight_g#2") set it to
   // something different. Everything that touches row data resolves the column
@@ -76,9 +95,7 @@ export interface Filters {
 export interface FilterCatalogEntry {
   field: string;
   title: string;
-  // The picker's *kind*, which is not always the created filter's `type`: a
-  // boolean attribute is catalogued as "boolean" (its own picker section) but
-  // the filter it creates is an options filter over a fixed Yes/No list.
+  // The picker section, which is the type of the filter the row creates.
   type: FilterKind;
   // Bounds are kind-specific: min/max for "number", earliest/latest (ISO
   // strings) for "datetime", a distinct-value count for "string". They're
@@ -103,12 +120,14 @@ export interface FilterCatalogEntry {
 }
 
 /** Opening value for a filter created on demand — kind-specific. A string[]
- * seeds an options-typed filter's selection (booleans included). */
+ * seeds an options filter's selection; a boolean filter takes true, false or
+ * "unknown" (or the same as a "true" / "false" / "unknown" token). */
 export type FilterInitialValue =
   | Partial<NumberRange>
   | Partial<DatetimeFilterValue>
   | string
-  | string[];
+  | string[]
+  | BooleanFilterValue;
 
 export interface FilterContextValue {
   filters: Filters;

@@ -888,7 +888,7 @@ interface BoardConfig<TData> {
 
 The board deliberately does **not** compute its own grouping — `@bcl32/filters` already does, for the group-cards landing view (`EntityGroupCards`). Feed it from there and a lane header *is* a group tile: same label, same visual, same `Untagged` bucket, same drill-in on click.
 
-- `getGroupableAttrs(modelData)` → the attributes worth grouping by (`filter: true` + `filter_type: "options"`).
+- `getGroupableAttrs(modelData)` → the attributes worth grouping by (`filter: true`, and an options filter or a boolean).
 - `useEntityGroups(rows, modelData, groupBy, { resolveVisual })` → the lanes.
 - `rowGroupValues(row, attr)` → `laneOf`. Both the group counts and the lane membership go through this one function, so a header can't end up saying "(12)" above nine cards.
 

@@ -92,7 +92,7 @@ describe("CreateFilter", () => {
       filter_empty: [],
       filter_rule: "any",
       options: [{ value: "PLA", label: "PLA" }],
-      source_kind: "scalar",
+      cell_shape: "scalar",
       selection: "single",
       display: "dropdown",
       primaryFilter: true,
@@ -105,7 +105,7 @@ describe("CreateFilter", () => {
       type: "options",
       value: [],
       options: [{ value: "PLA", label: "PLA" }],
-      source_kind: "scalar",
+      cell_shape: "scalar",
       selection: "single",
       display: "dropdown",
       primaryFilter: true,
@@ -145,10 +145,10 @@ describe("CreateFilter", () => {
     expect(filter.options).toEqual([{ value: "PLA", label: "PLA" }]);
   });
 
-  it("falls back to options for an attribute with no filter_type", () => {
-    const attr: ModelAttribute = { name: "is_active", type: "boolean", filter: true, filter_empty: [] };
+  it("builds a boolean filter from a boolean attribute with no filter_type", () => {
+    const attr: ModelAttribute = { name: "is_active", type: "boolean", filter: true };
 
-    expect(CreateFilter(attr, { is_active: [] })!.type).toBe("options");
+    expect(CreateFilter(attr, { is_active: [] })).toMatchObject({ type: "boolean", value: null, filter_empty: null });
   });
 
   it("bounds a datetime filter by the earliest and latest values", () => {

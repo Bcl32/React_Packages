@@ -34,14 +34,14 @@ const model = {
       filter_rule: "any",
       primaryFilter: true,
     },
-    { name: "archived", type: "boolean", filter: true, filter_type: "options", filter_empty: [], filter_rule: "any" },
+    { name: "archived", type: "boolean", filter: true, filter_type: "boolean", filter_empty: null },
   ],
 } as unknown as ModelData;
 
 const rows = [
-  { status: "done", archived: "false" },
-  { status: "failed", archived: "true" },
-  { status: "done", archived: "true" },
+  { status: "done", archived: false },
+  { status: "failed", archived: true },
+  { status: "done", archived: true },
 ];
 
 describe("useEntityFilters initialValues", () => {
@@ -50,7 +50,7 @@ describe("useEntityFilters initialValues", () => {
       ({ data }) =>
         useEntityFilters(data, model, {
           dynamicFilters: true,
-          initialValues: { status: ["done"], archived: ["true"] },
+          initialValues: { status: ["done"], archived: true },
         }),
       { initialProps: { data: undefined as typeof rows | undefined } },
     );
@@ -59,8 +59,8 @@ describe("useEntityFilters initialValues", () => {
     rerender({ data: rows });
 
     expect(result.current.filters.status.value).toEqual(["done"]);
-    expect(result.current.filters.archived).toMatchObject({ value: ["true"], primaryFilter: true });
-    expect(result.current.filteredData).toEqual([{ status: "done", archived: "true" }]);
+    expect(result.current.filters.archived).toMatchObject({ value: true, primaryFilter: true });
+    expect(result.current.filteredData).toEqual([{ status: "done", archived: true }]);
   });
 
   it("applies them only once, so a cleared filter stays cleared", () => {
@@ -85,10 +85,10 @@ describe("useEntityFilters setFilterValue", () => {
 
     let key: string | null = null;
     act(() => {
-      key = result.current.setFilterValue("archived", ["false"]);
+      key = result.current.setFilterValue("archived", false);
     });
     expect(key).toBe("archived");
-    expect(result.current.filters.archived.value).toEqual(["false"]);
+    expect(result.current.filters.archived.value).toBe(false);
 
     act(() => {
       result.current.setFilterValue("status", ["failed"]);

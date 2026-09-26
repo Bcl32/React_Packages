@@ -72,8 +72,9 @@ import type { ModelData, Filters } from "@bcl32/filters/types";
 | `FiltersSummary` | component | `({ active_filters: Filters }) => JSX.Element \| null` | Human-readable summary of active filters with per-filter Reset buttons. Reads from `FilterContext`. |
 | `DebouncedTextFilter` | component | `({ name: string }) => JSX.Element \| null` | Text input with 500ms debounce and equals/contains rule toggle. Reads/writes its filter from `FilterContext` by name. |
 | `DebouncedNumberFilter` | component | `({ name: string }) => JSX.Element \| null` | Dual-thumb Radix slider plus numeric inputs with Min/Max snap buttons and nudge controls; 500ms debounce to `FilterContext`. |
-| `OptionsFilter` | component | `({ name, options, display?, selection?, source_kind?, colour_presets? }) => JSX.Element \| null` | Multi-display options filter supporting combobox, dropdown, chip-toggle, toggle-buttons, and swatch-grid (colour picker with API fetch) display modes, with any/all rule toggle. |
+| `OptionsFilter` | component | `({ name, options, display?, selection?, cell_shape?, colour_presets? }) => JSX.Element \| null` | Multi-display options filter supporting combobox, dropdown, chip-toggle, toggle-buttons, and swatch-grid (colour picker with API fetch) display modes, with any/all rule toggle. |
 | `TimeFilter` | component | `({ name: string }) => JSX.Element \| null` | `@bcl32/utils/DateTimePicker` pair for start/end times (MUI's `MobileDateTimePicker` removed in 3.2.0), with a Reset button and Edit Shortcuts dialog. Reads/writes from `FilterContext`. |
+| `BooleanFilter` | component | `({ name, title?, onRemove? }) => JSX.Element \| null` | Yes/no filter. Segmented Any · Yes · No by default, plus Unknown on a `nullable` field; a single checkbox when the filter's `display` is `"checkbox"` (ticked = `checkedValue`, default `true`, labelled `checkedLabel`). A nullable field always gets the segmented control. |
 | `TimeEditDialog` | component | `({ filters, name, change_time_filter, change_filters }) => JSX.Element` | Dialog body for time filter shortcuts (Past Day/Week/Month/Year) and incremental +/- adjustments by a configurable unit; date/time inputs use `@bcl32/utils/DateTimePicker`. |
 
 ### Chart filter components
@@ -151,22 +152,22 @@ its entity.
 | `GetActiveFilters` | util | `(filters: Filters) => Filters` | Returns only the filters whose current value differs from `filter_empty` — the same filter objects, not copies. |
 | `GetSubkeyValues` | util | `(chart_metadata: ChartMetadata, stats: DatasetStats) => string[]` | Extracts ordered subkey names from a `DatasetStats` `count` stat entry; used to populate `subkeys` arrays for chart components. |
 | `resolveFilterKind` | util | `(attr: ModelAttribute) => FilterKind \| null` | The single answer to "what kind of filter is this attribute?", shared by `CreateFilter`, `BuildFilterCatalog` and `BuildFilterSearchIndex`. `null` = not filterable. A boolean is `"boolean"`; a declared `filter_type` is kept only if it's `number`, `datetime` or `string`; anything else is `"options"`. `dynamicFilterKind` is the same function under its former name. |
-| `filterTypeFor` | util | `(kind: FilterKind) => FilterValue["type"]` | The runtime filter type a kind builds: `"boolean"` → `"options"`, the rest unchanged. |
 | `emptyFor` | util | `(type: FilterValue["type"]) => unknown` | The default `filter_empty` for a type, matching the Python generator. `CreateFilter` uses it when a hand-written attribute declares none. |
 
 ### Types
 
 | Name | Kind | Signature / Shape | Description |
 |---|---|---|---|
-| `FilterValue` | type | `{ type, value, rule, filter_empty, options, source_kind, selection, display, value_key, label_key, colour_presets, timespan_begin, primaryFilter, attr? }` | Core per-filter state shape. `type` is `"string" \| "number" \| "datetime" \| "options"`. `attr` is the model attribute the filter was built from, held by reference, so keys `CreateFilter` doesn't copy (`unit`, `searchAliases`) are still readable. Read the live option list from `options`, not `attr.options`; `useEntityFilters` swaps in the enriched attribute when fetched options arrive, so the two agree. Never write to `attr`. |
+| `FilterValue` | type | `{ type, value, rule, filter_empty, options, cell_shape, selection, display, value_key, label_key, colour_presets, checkedValue?, checkedLabel?, nullable?, primaryFilter, attr? }` | Core per-filter state shape. `type` is a `FilterKind`: `"string" \| "number" \| "datetime" \| "options" \| "boolean"`. A boolean's `value` is a `BooleanFilterValue`. `attr` is the model attribute the filter was built from, held by reference, so keys `CreateFilter` doesn't copy (`unit`, `searchAliases`) are still readable. Read the live option list from `options`, not `attr.options`; `useEntityFilters` swaps in the enriched attribute when fetched options arrive, so the two agree. Never write to `attr`. |
 | `FilterKind` | type | `"number" \| "datetime" \| "string" \| "boolean" \| "options"` | The picker's and search's kind: the four runtime types plus `"boolean"`. `FilterCatalogEntry.type` and `SearchFieldEntry.kind` hold one; both entries also carry `attr`. |
 | `Filters` | type | `Record<string, FilterValue>` | The full filter state map. |
 | `FilterContextValue` | type | `{ filters: Filters, change_filters: (name, key, value) => void }` | Value held by `FilterContext`. |
 | `FilterData` | type | `FilterValue & { name: string }` | A filter plus its name; used when rendering filter lists. |
-| `FilterDisplay` | type | `'dropdown' \| 'combobox' \| 'chip-toggle' \| 'swatch-grid' \| 'toggle-buttons'` | Options-filter display modes. |
+| `FilterDisplay` | type | `'dropdown' \| 'combobox' \| 'chip-toggle' \| 'swatch-grid' \| 'toggle-buttons' \| 'segmented' \| 'checkbox'` | Display modes: the first five draw options filters, the last two booleans. |
+| `BooleanFilterValue` | type | `true \| false \| 'unknown' \| null` | A boolean filter's value. `null` is no filter; `'unknown'` selects empty cells and is offered only on a `nullable` field. `initialValues` / `setFilterValue` also accept `"true"` / `"false"` / `"unknown"` and a one-element array of them (a group-lane drill-in). |
 | `FilterOption` | type | `{ value: string, label: string }` | A single selectable option. |
 | `FilterSelection` | type | `'single' \| 'multi'` | Options-filter selection mode. |
-| `FilterSourceKind` | type | `'scalar' \| 'scalar-array' \| 'object-array'` | How option values are read from a row. |
+| `FilterCellShape` | type | `'scalar' \| 'scalar-array' \| 'object-array'` | What the row's cell holds (the `cell_shape` key, formerly `source_kind`). |
 | `ChartMetadata` | type | `{ name, type, subkey?, subkeys? }` | Passed to `ChartFilter` and `GetSubkeyValues`. |
 | `ChartDataEntry` | type | `{ name, length?, count?, fill?, range?, x0?, ...rest }` | A chart data row. |
 | `ModelAttribute` | type | re-exported from `@bcl32/data-utils` | Describes a single model field with filter metadata. |
@@ -236,7 +237,7 @@ A consumer must follow these to wire the package correctly:
 2. **Canonical consumer flow** (every app page uses this):
    `useEntityFilters(dataset, ModelData)` → pass `{ filters, changeFilters, activeFilters, filteredCount, totalCount }` (plus `addFilter`, `removeFilter`, `filterCatalog`, `searchIndex` for add-on-demand filters) to `useDataTableFilterBar` → hand its result to `DataTable` as `filter`, or render `toolbar` and `panel` yourself. Rows come from `filteredData`.
 
-3. **`ModelData` must conform to the `@bcl32/data-utils` shape.** Each attribute drives `filter` type, empty value, options, `source_kind`, `selection`, `display`, `primaryFilter`, and `filterOrder` — all of which flow into `InitializeFilters`.
+3. **`ModelData` must conform to the `@bcl32/data-utils` shape.** Each attribute drives `filter` type, empty value, options, `cell_shape`, `selection`, `display`, `primaryFilter`, and `filterOrder` — all of which flow into `InitializeFilters`.
 
 4. **Chart-based filters** (`ChartFilter`) expect `ChartDataEntry[]` pre-computed server-side or via `CalculateFeatureStats`. The chart `onClick` writes directly to `FilterContext` by name (for the interactive bar/pie charts).
 
@@ -261,7 +262,7 @@ const ProductModelData: ModelData = {
   model_attributes: [
     { name: "title", filter: true, filter_type: "string" },
     { name: "price", filter: true, filter_type: "number" },
-    { name: "category", filter: true, filter_type: "options", source_kind: "scalar" },
+    { name: "category", filter: true, filter_type: "options", cell_shape: "scalar" },
   ],
 } as ModelData;
 

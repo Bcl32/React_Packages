@@ -11,7 +11,7 @@ import type {
   FilterDisplay,
   FilterOption,
   FilterSelection,
-  FilterSourceKind,
+  FilterCellShape,
   ColourPresetsConfig,
 } from "./types";
 import { capitalize, humanizeFieldName, prettyOptionLabel } from "./utils";
@@ -22,7 +22,7 @@ interface OptionsFilterProps {
   options: FilterOption[];
   display?: FilterDisplay;
   selection?: FilterSelection;
-  source_kind?: FilterSourceKind;
+  cell_shape?: FilterCellShape;
   colour_presets?: ColourPresetsConfig;
   /** Supplied for user-added instances — renders the ✕ that drops the slot. */
   onRemove?: () => void;
@@ -34,7 +34,7 @@ export function OptionsFilter({
   options,
   display = "combobox",
   selection = "multi",
-  source_kind = "scalar-array",
+  cell_shape = "scalar-array",
   colour_presets,
   onRemove,
 }: OptionsFilterProps): JSX.Element | null {
@@ -46,7 +46,7 @@ export function OptionsFilter({
   }
 
   const currentValue = Array.isArray(filterData["value"]) ? (filterData["value"] as string[]) : [];
-  const ruleEligible = source_kind !== "scalar" && selection === "multi";
+  const ruleEligible = cell_shape !== "scalar" && selection === "multi";
 
   function setValue(next: string[]) {
     context!.change_filters(name, "value", next);

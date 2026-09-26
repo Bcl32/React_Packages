@@ -1,3 +1,4 @@
+import { parseBooleanValue } from "./predicates";
 import type { FilterValue } from "./types";
 
 /**
@@ -16,9 +17,11 @@ export function chartSelection(filter: FilterValue | undefined): string[] {
 
 /**
  * The value a click on category `value` writes. Clicking the active category
- * resets the filter. An options filter selects just that value; any other type
- * gets the bare string (chartClick.test.ts pins this, including for number
- * filters, where the string is not a valid range).
+ * resets the filter. An options filter selects just that value, and a boolean
+ * filter reads the category as true / false (anything else, such as an empty
+ * cell's category, as "unknown"). Any other type gets the bare string
+ * (chartClick.test.ts pins this, including for number filters, where the
+ * string is not a valid range).
  */
 export function chartClickValue(
   filter: FilterValue,
@@ -27,5 +30,6 @@ export function chartClickValue(
 ): unknown {
   if (selected.includes(value)) return structuredClone(filter.filter_empty);
   if (filter.type === "options") return [value];
+  if (filter.type === "boolean") return parseBooleanValue(value) ?? "unknown";
   return value;
 }

@@ -30,9 +30,30 @@ interface UseEntityGroupsOptions {
 export const NONE_VALUE = "_none";
 const NONE_LABEL = "Untagged";
 
+/** Lanes a boolean attribute always has, in order. */
+const BOOLEAN_LANES: FilterOption[] = [
+  { value: "true", label: "Yes" },
+  { value: "false", label: "No" },
+];
+
+/**
+ * Does the attribute hold categories, so it can be grouped by? Options fields
+ * and booleans. Booleans are asked about directly: they used to qualify only
+ * because they filtered as options.
+ */
+function isCategorical(attr: ModelAttribute): boolean {
+  return attr.type === "boolean" || attr.filter_type === "options";
+}
+
+/** The declared values a group view seeds as lanes, even at zero rows. */
+function declaredLanes(attr: ModelAttribute): FilterOption[] {
+  if (attr.type === "boolean") return BOOLEAN_LANES;
+  return Array.isArray(attr.options) ? (attr.options as FilterOption[]) : [];
+}
+
 export function getGroupableAttrs(modelData: ModelData): ModelAttribute[] {
   return modelData.model_attributes.filter(
-    (a) => a.filter === true && (a as ModelAttribute).filter_type === "options",
+    (a) => a.filter === true && isCategorical(a as ModelAttribute),
   );
 }
 
@@ -80,7 +101,7 @@ export function getDiscreteGroupableAttrs(
     if (a.filter !== true) return false;
     const attr = a as ModelAttribute;
 
-    const isOptions = attr.filter_type === "options";
+    const isOptions = isCategorical(attr);
     if (!isOptions && attr.filter_type !== "number" && attr.filter_type !== "string") {
       return false;
     }
@@ -89,13 +110,13 @@ export function getDiscreteGroupableAttrs(
     // such as per-axis lengths is `scalar-array`, and laning it would put one
     // row in three lanes — one per axis — which says nothing about the row.
     // Options attributes are legitimately multi-valued and keep their own kinds.
-    const sourceKind = attr.source_kind ?? "scalar";
-    if (!isOptions && sourceKind !== "scalar") return false;
+    const cellShape = attr.cell_shape ?? "scalar";
+    if (!isOptions && cellShape !== "scalar") return false;
 
     // Declared options are seeded as lanes by useEntityGroups even at zero
     // count — an unused status is a fact worth showing — so they count towards
     // the total independently of what the rows contain.
-    const seeded = isOptions && Array.isArray(attr.options) ? attr.options.length : 0;
+    const seeded = isOptions ? declaredLanes(attr).length : 0;
 
     const distinct = new Set<string>();
     for (const row of dataset) {
@@ -156,12 +177,12 @@ export function rowGroupValues(
   row: Record<string, unknown>,
   attr: ModelAttribute,
 ): RowGroupValue[] {
-  const sourceKind = attr.source_kind ?? "scalar";
+  const cellShape = attr.cell_shape ?? "scalar";
   const valueKey = (attr.value_key as string) ?? "value";
   const labelKey = (attr.label_key as string) ?? "label";
   const raw = row[attr.name];
 
-  if (sourceKind === "scalar-array") {
+  if (cellShape === "scalar-array") {
     const arr = Array.isArray(raw) ? raw : [];
     if (arr.length === 0) return [{ value: NONE_VALUE }];
     return arr
@@ -169,7 +190,7 @@ export function rowGroupValues(
       .map((v) => ({ value: String(v) }));
   }
 
-  if (sourceKind === "object-array") {
+  if (cellShape === "object-array") {
     const arr = Array.isArray(raw) ? raw : [];
     if (arr.length === 0) return [{ value: NONE_VALUE }];
     const out: RowGroupValue[] = [];
@@ -202,7 +223,7 @@ export function useEntityGroups(
     if (!attr) return [];
     const rows = Array.isArray(dataset) ? dataset : [];
 
-    const sourceKind = (attr as ModelAttribute).source_kind ?? "scalar";
+    const cellShape = (attr as ModelAttribute).cell_shape ?? "scalar";
 
     const buckets = new Map<string, GroupAccumulator>();
     const seed = (value: string, label?: string) => {
@@ -210,8 +231,8 @@ export function useEntityGroups(
     };
 
     // Seed enum buckets up-front so zero-count options still appear.
-    if (sourceKind === "scalar" && Array.isArray(attr.options)) {
-      for (const opt of attr.options as FilterOption[]) {
+    if (cellShape === "scalar") {
+      for (const opt of declaredLanes(attr)) {
         seed(String(opt.value), opt.label);
       }
     }

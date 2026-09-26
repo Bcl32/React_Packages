@@ -1,4 +1,5 @@
 import type {
+  BooleanFilterValue,
   DatetimeFilterValue,
   FilterInitialValue,
   FilterKind,
@@ -15,10 +16,8 @@ import type {
  *   rowTest  — a test for one row, or null to leave the rows untouched
  *   seed     — write an opening value into a freshly built filter
  *
- * Keyed by FilterKind so "boolean" has its own slot. Until booleans get their
- * own runtime type it shares the options predicate, which is how a boolean
- * filters today (a Yes/No options list). Lookups go through predicateFor,
- * which reads the filter's runtime type.
+ * Keyed by FilterKind, which is also the filter's runtime type. Lookups go
+ * through predicateFor.
  *
  * rowTest keeps each kind's own rules, including the ones that look like
  * quirks: an empty string or options filter skips, but number and datetime
@@ -39,10 +38,10 @@ export type Row = Record<string, unknown>;
 
 function extractRowValues(
   raw: unknown,
-  source_kind: string | undefined,
+  cell_shape: string | undefined,
   value_key: string,
 ): string[] {
-  switch (source_kind) {
+  switch (cell_shape) {
     case "object-array":
       return Array.isArray(raw)
         ? raw
@@ -109,7 +108,7 @@ const numberPredicate: Predicate = {
   },
   rowTest(f, column) {
     const { min, max } = f.value as NumberRange;
-    const isArray = f.source_kind === "scalar-array";
+    const isArray = f.cell_shape === "scalar-array";
     return (row) => {
       const raw = row?.[column];
       if (raw == null) return false;
@@ -149,7 +148,7 @@ const optionsPredicate: Predicate = {
     // filter's own column as before.
     const matchField = f.colour_presets?.match_field;
     return (row) => {
-      const rowValues = extractRowValues(row?.[column], f.source_kind, value_key);
+      const rowValues = extractRowValues(row?.[column], f.cell_shape, value_key);
       const rowHexes = rowValues.map(normHex);
       const rowIds = matchField
         ? extractRowValues(row?.[matchField], "scalar-array", value_key)
@@ -201,12 +200,55 @@ const datetimePredicate: Predicate = {
   },
 };
 
+/**
+ * A boolean filter value from a token: true / false / "unknown" themselves,
+ * their string spellings (a chart category, a search value, a group lane),
+ * or a one-element array of either (a drill-in written for options filters).
+ * Anything else is undefined. The group lane for an empty cell ("_none")
+ * reads as "unknown".
+ */
+export function parseBooleanValue(token: unknown): BooleanFilterValue | undefined {
+  const t = Array.isArray(token) && token.length === 1 ? token[0] : token;
+  if (t === true || t === "true") return true;
+  if (t === false || t === "false") return false;
+  if (t === "unknown" || t === "_none") return "unknown";
+  if (t === null) return null;
+  return undefined;
+}
+
+/** A cell as a boolean; null for an empty or unreadable one. */
+function cellBoolean(cell: unknown): boolean | null {
+  if (cell === true || cell === "true") return true;
+  if (cell === false || cell === "false") return false;
+  return null;
+}
+
+/**
+ * Yes means true and No means false. An empty cell matches neither: it is
+ * "unknown", which only a nullable field offers (a NULL there means nobody
+ * knows, not no).
+ */
+const booleanPredicate: Predicate = {
+  empty: () => null,
+  isActive: (f) => f.value != null,
+  rowTest(f, column) {
+    const want = f.value as BooleanFilterValue;
+    if (want == null) return null;
+    if (want === "unknown") return (row) => cellBoolean(row?.[column]) === null;
+    return (row) => cellBoolean(row?.[column]) === want;
+  },
+  seed(f, initial) {
+    const value = parseBooleanValue(initial);
+    if (value !== undefined) f.value = value;
+  },
+};
+
 export const PREDICATES: Record<FilterKind, Predicate> = {
   string: stringPredicate,
   number: numberPredicate,
   datetime: datetimePredicate,
   options: optionsPredicate,
-  boolean: optionsPredicate,
+  boolean: booleanPredicate,
 };
 
 /** The predicate for a filter's runtime type, or undefined for an unknown one. */

@@ -3,9 +3,10 @@ import { FilterContext } from "./FilterContext";
 import { DebouncedTextFilter } from "./DebouncedTextFilter";
 import { DebouncedNumberFilter } from "./DebouncedNumberFilter";
 import { OptionsFilter } from "./OptionsFilter";
+import { BooleanFilter } from "./BooleanFilter";
 import { TimeFilter } from "./TimeFilter";
 import { FILTER_FIELD_ATTR } from "./FilterTargeting";
-import type { FilterContextValue, FilterData, FilterDisplay, FilterOption, FilterSelection, FilterSourceKind, ColourPresetsConfig } from "./types";
+import type { FilterContextValue, FilterData, FilterDisplay, FilterOption, FilterSelection, FilterCellShape, ColourPresetsConfig } from "./types";
 
 interface FilterElementProps {
   filter_data: FilterData;
@@ -74,8 +75,16 @@ function get_chart_type(filter_data: FilterData, onRemove?: () => void): JSX.Ele
           options={(filter_data["options"] as FilterOption[]) || []}
           display={filter_data["display"] as FilterDisplay | undefined}
           selection={filter_data["selection"] as FilterSelection | undefined}
-          source_kind={filter_data["source_kind"] as FilterSourceKind | undefined}
+          cell_shape={filter_data["cell_shape"] as FilterCellShape | undefined}
           colour_presets={filter_data["colour_presets"] as ColourPresetsConfig | undefined}
+          onRemove={onRemove}
+        />
+      );
+    case "boolean":
+      return (
+        <BooleanFilter
+          name={filter_data["name"]}
+          title={title}
           onRemove={onRemove}
         />
       );

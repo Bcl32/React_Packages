@@ -10,14 +10,16 @@ import type { FilterInitialValue, FilterValue } from "./types";
  * of each predicate in predicates.ts):
  *   number   — a finite min and/or max
  *   string   — a string
- *   options  — an array (the search bar seeding a boolean/options instance)
+ *   options  — an array (the search bar seeding an options instance)
+ *   boolean  — true, false or "unknown", or a token for one
  *   datetime — a non-empty timespan_begin and/or timespan_end
  * Anything else leaves the filter at its full range.
  *
  * Internal to the package: not re-exported from the barrel.
  */
 export function seedFilter(filter: FilterValue, initial?: FilterInitialValue): FilterValue {
-  if (!initial) return filter;
+  // Only a missing value is skipped: false is a real boolean seed.
+  if (initial === undefined) return filter;
   predicateFor(filter)?.seed(filter, initial);
   return filter;
 }

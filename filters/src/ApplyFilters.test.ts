@@ -65,7 +65,7 @@ describe("ApplyFilters", () => {
 
   it("matches a scalar-array number filter when any element is in range", () => {
     const rows = [{ axes: [1, 9] }, { axes: [20] }, { axes: 5 }];
-    const filter = numberFilter(8, 10, { source_kind: "scalar-array" });
+    const filter = numberFilter(8, 10, { cell_shape: "scalar-array" });
 
     expect(ApplyFilters(rows, { axes: filter })).toEqual([{ axes: [1, 9] }]);
   });
@@ -78,7 +78,7 @@ describe("ApplyFilters", () => {
 
   it("applies any / all / equals rules to options", () => {
     const rows = [{ tags: ["a", "b"] }, { tags: ["a"] }, { tags: ["c"] }];
-    const base = { source_kind: "scalar-array" as const };
+    const base = { cell_shape: "scalar-array" as const };
 
     expect(ApplyFilters(rows, { tags: optionsFilter(["a", "c"], base) })).toHaveLength(3);
     expect(ApplyFilters(rows, { tags: optionsFilter(["a", "b"], { ...base, rule: "all" }) })).toEqual([
@@ -89,7 +89,7 @@ describe("ApplyFilters", () => {
 
   it("matches object-array options by value_key", () => {
     const rows = [{ systems: [{ id: "s1" }, { id: "s2" }] }, { systems: [{ id: "s3" }] }];
-    const filter = optionsFilter(["s2"], { source_kind: "object-array", value_key: "id" });
+    const filter = optionsFilter(["s2"], { cell_shape: "object-array", value_key: "id" });
 
     expect(ApplyFilters(rows, { systems: filter })).toEqual([rows[0]]);
   });
