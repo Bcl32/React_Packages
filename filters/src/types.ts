@@ -39,7 +39,6 @@ export interface FilterValue {
   value_key?: string;
   label_key?: string;
   colour_presets?: ColourPresetsConfig;
-  timespan_begin?: string;
   primaryFilter?: boolean;
   // The data column this filter reads. Defaults to the Filters map key — only
   // dynamic instances (which use a synthetic key like "weight_g#2") set it to

@@ -19,7 +19,8 @@ describe("GetActiveFilters", () => {
     expect(Object.keys(GetActiveFilters(filters))).toEqual(["note", "h", "kind"]);
   });
 
-  it("marks a moved datetime start with timespan_begin: 'filter'", () => {
+  it("returns the same filter objects, with no marker on a moved datetime start", () => {
+    // It used to return a copy tagged timespan_begin: "filter", which nothing read.
     const empty = { timespan_begin: "2026-01-01", timespan_end: "2026-02-01" };
     const filters: Record<string, FilterValue> = {
       start: { type: "datetime", value: { ...empty, timespan_begin: "2026-01-10" }, filter_empty: empty },
@@ -30,8 +31,16 @@ describe("GetActiveFilters", () => {
     const active = GetActiveFilters(filters);
 
     expect(Object.keys(active)).toEqual(["start", "end"]);
-    expect(active.start.timespan_begin).toBe("filter");
-    expect(active.end.timespan_begin).toBeUndefined();
+    expect(active.start).toBe(filters.start);
+    expect(active.start).not.toHaveProperty("timespan_begin");
+  });
+
+  it("never counts a filter of an unknown type as active", () => {
+    const filters = {
+      odd: { type: "select", value: ["x"], filter_empty: [] },
+    } as unknown as Record<string, FilterValue>;
+
+    expect(GetActiveFilters(filters)).toEqual({});
   });
 
   it("treats two unparseable timestamps as equal", () => {

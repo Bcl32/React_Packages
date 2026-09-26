@@ -1,4 +1,5 @@
 import { humanizeFieldName } from "./utils";
+import { PREDICATES } from "./predicates";
 import type {
   DatasetStats,
   FilterCatalogEntry,
@@ -51,16 +52,9 @@ export function filterTypeFor(kind: FilterKind): FilterValue["type"] {
  * object on every call, so callers may mutate it.
  */
 export function emptyFor(type: FilterValue["type"]): unknown {
-  switch (type) {
-    case "string":
-      return "";
-    case "number":
-      return { min: "", max: "" };
-    case "datetime":
-      return { timespan_begin: "", timespan_end: "" };
-    default:
-      return [];
-  }
+  // The per-kind table in predicates.ts is the one source of truth; an
+  // unknown type gets the options default, as before.
+  return (PREDICATES[type as FilterKind] ?? PREDICATES.options).empty();
 }
 
 /** Former name of resolveFilterKind, kept so existing imports keep working. */

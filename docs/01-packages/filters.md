@@ -16,10 +16,10 @@ See the [packages overview](../00-OVERVIEW.md) for how this package fits into th
 
 `@bcl32/filters` provides an end-to-end filtering layer for tabular/list datasets:
 
-- **React context** for sharing filter state across a component tree (`FilterProvider`, `useFilterContext`, `FilterContext`).
+- **React context** for sharing filter state across a component tree (`FilterProvider`, `useFilterContext`).
 - **UI filter controls** — text (`DebouncedTextFilter`), number range (`DebouncedNumberFilter`), options (`OptionsFilter`), and datetime (`TimeFilter`).
 - **Chart-based drill-down filters** — bar, line, pie, stacked bar, and histogram via `ChartFilter` and its leaf chart components.
-- **Pure data utilities** — initialize, apply, group, and process filters (`InitializeFilters`, `ApplyFilters`, `GroupFilters`, `ProcessDataset`, etc.).
+- **Pure data utilities** — build, apply and resolve filters (`CreateFilter`, `ApplyFilters`, `GetActiveFilters`, `resolveFilterKind`, etc.). Building the initial filter map and processing the dataset are internal to `useEntityFilters`.
 - **Orchestration hooks** — `useEntityFilters` (top-level wiring) and `useDataTableFilterBar` (the bar: search, add-picker, chips, card panel — folding inside a table toolbar, or always open via `collapsible: false`), with `PageFilterBar` laying the always-open form out at the top of a page.
 
 A dataset is described by a `ModelData` schema (re-exported from `@bcl32/data-utils`); each `ModelAttribute` drives the filter type, empty value, options, source kind, selection mode, display, primary-filter routing, and sort order.
@@ -43,12 +43,11 @@ Import from the barrel (`.`) or from a per-export subpath:
 
 ```ts
 // Barrel import (covers all exports, including EntityGroupCards / useEntityGroups)
-import { useEntityFilters, FilterProvider, AllFilters } from "@bcl32/filters";
+import { useEntityFilters, useDataTableFilterBar } from "@bcl32/filters";
 
 // Subpath imports (better tree-shaking; available for most exports)
 import { useEntityFilters } from "@bcl32/filters/useEntityFilters";
 import { FilterProvider } from "@bcl32/filters/FilterProvider";
-import { AllFilters } from "@bcl32/filters/AllFilters";
 import type { ModelData, Filters } from "@bcl32/filters/types";
 ```
 
@@ -62,7 +61,6 @@ import type { ModelData, Filters } from "@bcl32/filters/types";
 
 | Name | Kind | Signature / Props | Description |
 |---|---|---|---|
-| `FilterContext` | context | `React.Context<FilterContextValue \| null>` | Raw React context holding `{ filters, change_filters }`. Prefer `FilterProvider` + `useFilterContext` over consuming this directly. |
 | `FilterProvider` | component | `({ filters: Filters, changeFilters: (name, key, value) => void, children }) => JSX.Element` | Context provider wrapping children with `FilterContext`. Memoises the context value. |
 | `useFilterContext` | hook | `() => FilterContextValue` | Returns `{ filters, change_filters }`. **Throws** if called outside a `FilterProvider`. |
 
@@ -70,7 +68,6 @@ import type { ModelData, Filters } from "@bcl32/filters/types";
 
 | Name | Kind | Signature / Props | Description |
 |---|---|---|---|
-| `AllFilters` | component | `() => JSX.Element` | Renders every filter in one responsive grid (1/2/3 columns), preceded by the `AddFilterPicker` when the context supplies a catalog. Reads from `FilterContext`. |
 | `FilterElement` | component | `({ filter_data: FilterData }) => JSX.Element` | Dispatcher rendering the correct leaf filter (`DebouncedTextFilter`, `DebouncedNumberFilter`, `OptionsFilter`, or `TimeFilter`) based on `filter_data.type`. |
 | `FiltersSummary` | component | `({ active_filters: Filters }) => JSX.Element \| null` | Human-readable summary of active filters with per-filter Reset buttons. Reads from `FilterContext`. |
 | `DebouncedTextFilter` | component | `({ name: string }) => JSX.Element \| null` | Text input with 500ms debounce and equals/contains rule toggle. Reads/writes its filter from `FilterContext` by name. |
@@ -150,11 +147,8 @@ its entity.
 
 | Name | Kind | Signature / Props | Description |
 |---|---|---|---|
-| `InitializeFilters` | util | `(model_data: ModelAttribute[], datasetStats: DatasetStats) => Filters` | Builds the initial `Filters` object from `ModelData.model_attributes` and `DatasetStats`, setting number bounds and datetime bounds from computed stats. |
-| `ApplyFilters` | util | `(data: unknown[], filters: Filters) => DataEntry[]` | Applies a `Filters` map to a dataset; supports string (equals/contains), number (range), options (any/all/equals over scalar / scalar-array / object-array), and datetime filters. |
-| `GetActiveFilters` | util | `(filters: Filters) => Filters` | Returns only the filters whose current value differs from `filter_empty`. |
-| `GroupFilters` | util | `(filters: Filters) => GroupedFilters` | Partitions a `Filters` map into `{ primary_filters, string_filters, numeric_filters, options_filters, time_filters }`; primary filters are sorted by `filterOrder`. |
-| `ProcessDataset` | util | `(dataset, filters, ModelData) => ProcessedDataset` | One-call pipeline: `GetActiveFilters` → `ApplyFilters` → `CalculateFeatureStats` for both full and filtered data. |
+| `ApplyFilters` | util | `(data: unknown[], filters: Filters) => Row[]` | Applies a `Filters` map to a dataset (AND); supports string (equals/contains; no rule means contains), number (range), options (any/all/equals over scalar / scalar-array / object-array), and datetime filters. Each kind's matching lives in one internal table (`src/predicates.ts`), shared with `GetActiveFilters`, `emptyFor` and `addFilter` seeding. |
+| `GetActiveFilters` | util | `(filters: Filters) => Filters` | Returns only the filters whose current value differs from `filter_empty` — the same filter objects, not copies. |
 | `GetSubkeyValues` | util | `(chart_metadata: ChartMetadata, stats: DatasetStats) => string[]` | Extracts ordered subkey names from a `DatasetStats` `count` stat entry; used to populate `subkeys` arrays for chart components. |
 | `resolveFilterKind` | util | `(attr: ModelAttribute) => FilterKind \| null` | The single answer to "what kind of filter is this attribute?", shared by `CreateFilter`, `BuildFilterCatalog` and `BuildFilterSearchIndex`. `null` = not filterable. A boolean is `"boolean"`; a declared `filter_type` is kept only if it's `number`, `datetime` or `string`; anything else is `"options"`. `dynamicFilterKind` is the same function under its former name. |
 | `filterTypeFor` | util | `(kind: FilterKind) => FilterValue["type"]` | The runtime filter type a kind builds: `"boolean"` → `"options"`, the rest unchanged. |
@@ -173,14 +167,13 @@ its entity.
 | `FilterOption` | type | `{ value: string, label: string }` | A single selectable option. |
 | `FilterSelection` | type | `'single' \| 'multi'` | Options-filter selection mode. |
 | `FilterSourceKind` | type | `'scalar' \| 'scalar-array' \| 'object-array'` | How option values are read from a row. |
-| `GroupedFilters` | type | `{ primary_filters, string_filters, numeric_filters, options_filters, time_filters }` | Output of `GroupFilters`. |
 | `ChartMetadata` | type | `{ name, type, subkey?, subkeys? }` | Passed to `ChartFilter` and `GetSubkeyValues`. |
 | `ChartDataEntry` | type | `{ name, length?, count?, fill?, range?, x0?, ...rest }` | A chart data row. |
 | `ModelAttribute` | type | re-exported from `@bcl32/data-utils` | Describes a single model field with filter metadata. |
 | `ModelData` | type | `{ model_attributes: ModelAttribute[], set_name? }` (re-exported from `@bcl32/data-utils`) | Schema describing a dataset. |
 | `StatValue` | type | `{ name: string, value: unknown }` | One stat entry. |
 | `DatasetStats` | type | `Record<string, StatValue[]>` | Per-field stats from `CalculateFeatureStats`. |
-| `ProcessedDataset` | type | `{ active_filters, filteredData, datasetStats, filteredStats }` | Return shape of `ProcessDataset`. |
+| `ProcessedDataset` | type | `{ active_filters, filteredData, datasetStats, filteredStats }` | Filtering results (`activeFilters`, `filteredData`, `datasetStats`, `filteredStats` on `useEntityFilters`' return). |
 | `DatetimeFilterValue` | type | `{ timespan_begin: string, timespan_end: string }` | Datetime filter value. |
 | `NumberRange` | type | `{ min: number, max: number }` | Numeric range bounds. |
 | `ColourPresetsConfig` | type | `{ get_api_url: string, group_by?: string, subgroup_by? }` | Config for the swatch-grid colour fetch. |
@@ -238,10 +231,10 @@ _(`@mui/material`, `@mui/icons-material`, and `@mui/x-date-pickers` were removed
 
 A consumer must follow these to wire the package correctly:
 
-1. **Wrap the tree in `FilterProvider` before rendering any filter UI.** Every leaf component reads `FilterContext` and returns `null` if it is absent. Pass `filters` and `changeFilters` from `useEntityFilters`.
+1. **Filter controls need a `FilterProvider` above them.** Every leaf component reads `FilterContext` and returns `null` if it is absent. `useDataTableFilterBar` mounts one for its own panel, so a page only mounts its own provider for controls outside the bar (for example chart filters).
 
-2. **Canonical consumer flow:**
-   `useEntityFilters(dataset, ModelData)` → destructure `{ filters, changeFilters, filteredData, activeFilters, ... }` → wrap with `<FilterProvider>` → render `<AllFilters />` or `<FilterElement />` children.
+2. **Canonical consumer flow** (every app page uses this):
+   `useEntityFilters(dataset, ModelData)` → pass `{ filters, changeFilters, activeFilters, filteredCount, totalCount }` (plus `addFilter`, `removeFilter`, `filterCatalog`, `searchIndex` for add-on-demand filters) to `useDataTableFilterBar` → hand its result to `DataTable` as `filter`, or render `toolbar` and `panel` yourself. Rows come from `filteredData`.
 
 3. **`ModelData` must conform to the `@bcl32/data-utils` shape.** Each attribute drives `filter` type, empty value, options, `source_kind`, `selection`, `display`, `primaryFilter`, and `filterOrder` — all of which flow into `InitializeFilters`.
 
@@ -260,12 +253,7 @@ A consumer must follow these to wire the package correctly:
 ## Minimal Usage Example
 
 ```tsx
-import {
-  useEntityFilters,
-  FilterProvider,
-  AllFilters,
-  FiltersSummary,
-} from "@bcl32/filters";
+import { useEntityFilters, useDataTableFilterBar } from "@bcl32/filters";
 import type { ModelData } from "@bcl32/filters";
 
 const ProductModelData: ModelData = {
@@ -287,11 +275,19 @@ function ProductFilters({ products }: { products: unknown[] }) {
     totalCount,
   } = useEntityFilters(products, ProductModelData);
 
-  return (
-    <FilterProvider filters={filters} changeFilters={changeFilters}>
-      <FiltersSummary active_filters={activeFilters} />
-      <AllFilters />
+  // The bar mounts its own FilterProvider for the cards; don't wrap it again.
+  const bar = useDataTableFilterBar({
+    filters,
+    changeFilters,
+    activeFilters,
+    filteredCount,
+    totalCount,
+  });
 
+  return (
+    <>
+      {bar.toolbar}
+      {bar.panel}
       <p>
         Showing {filteredCount} of {totalCount}
       </p>
@@ -300,7 +296,7 @@ function ProductFilters({ products }: { products: unknown[] }) {
           <li key={i}>{String((row as { title?: unknown }).title)}</li>
         ))}
       </ul>
-    </FilterProvider>
+    </>
   );
 }
 ```
@@ -314,11 +310,10 @@ These are documented quirks in the current source — be aware of them when rely
 | Area | Caveat |
 |---|---|
 | `OptionsFilter` (`src/OptionsFilter.tsx` ~L83-89) | **Dead display branch:** the `'dropdown'` and `'combobox'` cases render identical `ComboboxView` JSX (only the placeholder differs); one branch is redundant. |
-| `GetActiveFilters` (`src/GetActiveFilters.ts` ~L37) | **Spurious mutation:** when the datetime begin time is active, the returned object is spread and then a stale debug property `timespan_begin: 'filter'` is added, corrupting the `ActiveFilters` entry type. |
 | `BarChartSwitcher` (`src/BarChartSwitcher.tsx` ~L18) | **Unused `name` prop** — declared and destructured but never referenced in the component body. |
 | `StackedBarChart` (`src/StackedBarChart.tsx` ~L19) | **Unused `name` prop** — declared, passed by `ChartFilter`, never used. |
 | `Histogram` (`src/Histogram.tsx` ~L17) | **Unused `name` prop** — same pattern. |
-| `AllFilters` / `FiltersSummary` | **Inconsistent context access:** both call `React.useContext(FilterContext)` directly with an unsafe cast instead of using the guarded `useFilterContext` hook (`AllFilters.tsx` L11, `FiltersSummary.tsx` L24, L93). |
+| `FiltersSummary` | **Inconsistent context access:** calls `React.useContext(FilterContext)` directly with an unsafe cast instead of using the guarded `useFilterContext` hook (`FiltersSummary.tsx`, in the component and in `FiltersEntry`). |
 | Exports map | `EntityGroupCards`, `useEntityGroups`, `getGroupableAttrs`, and `useDataTableFilterBar` have **no dedicated subpath entries** in `package.json` exports or `tsup.config.ts`; only the `.` barrel reaches them, blocking tree-shaking for subpath importers. |
 | `src/utils.ts` | Not listed in `tsup.config.ts` entries or `package.json` exports. It is an internal helper (`capitalize`, `buildChartConfig`, `extractLabels`, `prettyOptionLabel`). |
 | Mixed UI primitives (**resolved in 3.2.0**) | `DebouncedNumberFilter` used `@radix-ui/react-slider` while `TimeFilter` / `TimeEditDialog` used `@mui/x-date-pickers` + MUI `IconButton` — no single UI-primitive strategy within the same component family. As of 3.2.0, `TimeFilter`/`TimeEditDialog` use `@bcl32/utils/DateTimePicker` and lucide icons, closing the MUI half of this gap (Radix vs. the package's own `@bcl32/utils` primitives is a separate, still-open question). |
