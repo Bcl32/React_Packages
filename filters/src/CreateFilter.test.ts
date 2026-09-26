@@ -152,22 +152,56 @@ describe("CreateFilter", () => {
     });
   });
 
-  it("leaves a date field's datetime filter unbounded (B9)", () => {
-    // The bounds branch checks item.type, not the resolved filter type.
-    const attr: ModelAttribute = {
+  describe("bounds follow the resolved filter type (B9)", () => {
+    const dateAttr: ModelAttribute = {
       name: "due_on",
       type: "date",
       filter: true,
       filter_type: "datetime",
       filter_empty: { timespan_begin: "", timespan_end: "" },
     };
-    const stats: DatasetStats = {
-      due_on: [
-        { name: "earliest", value: "2026-01-01" },
-        { name: "latest", value: "2026-02-01" },
-      ],
-    };
 
-    expect(CreateFilter(attr, stats)!.value).toEqual({ timespan_begin: "", timespan_end: "" });
+    it("bounds a date field declared as a datetime filter", () => {
+      const stats: DatasetStats = {
+        due_on: [
+          { name: "earliest", value: "2026-01-01" },
+          { name: "latest", value: "2026-02-01" },
+        ],
+      };
+
+      expect(CreateFilter(dateAttr, stats)!.value).toEqual({
+        timespan_begin: "2026-01-01",
+        timespan_end: "2026-02-01",
+      });
+    });
+
+    it("keeps the placeholder when the stats have no bounds", () => {
+      // CalculateFeatureStats only measures type "datetime", so a date field
+      // gets count stats, not earliest/latest.
+      const filter = CreateFilter(dateAttr, { due_on: [{ name: "count", value: [] }] })!;
+
+      expect(filter.value).toEqual({ timespan_begin: "", timespan_end: "" });
+    });
+
+    it("builds a datetime field declared as a string filter without throwing", () => {
+      const attr: ModelAttribute = {
+        name: "time_created",
+        type: "datetime",
+        filter: true,
+        filter_type: "string",
+        filter_empty: "",
+      };
+      const stats: DatasetStats = {
+        time_created: [
+          { name: "earliest", value: "2026-01-01T00:00:00Z" },
+          { name: "latest", value: "2026-02-01T00:00:00Z" },
+        ],
+      };
+
+      const filter = CreateFilter(attr, stats)!;
+
+      expect(filter.type).toBe("string");
+      expect(filter.value).toBe("");
+    });
   });
 });

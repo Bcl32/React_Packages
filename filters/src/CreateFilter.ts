@@ -120,18 +120,25 @@ export function CreateFilter(
     }
   }
 
-  if (item["type"] === "datetime") {
-    const earliest = stats.find((obj) => obj.name === "earliest")?.["value"] as string;
-    const latest = stats.find((obj) => obj.name === "latest")?.["value"] as string;
+  // Keyed on the resolved type, not item.type: a date field declared as a
+  // datetime filter needs its bounds, and a datetime field declared as a string
+  // filter must not have timespan keys written onto its "" value (B9).
+  if (resolvedType === "datetime") {
+    const earliest = stats.find((obj) => obj.name === "earliest")?.["value"] as string | undefined;
+    const latest = stats.find((obj) => obj.name === "latest")?.["value"] as string | undefined;
 
-    const filterEmpty = filter["filter_empty"] as DatetimeFilterValue;
-    const filterValue = filter["value"] as DatetimeFilterValue;
+    // CalculateFeatureStats only measures item.type "datetime". Without bounds,
+    // keep the authored placeholder rather than writing undefined.
+    if (earliest != null && latest != null) {
+      const filterEmpty = filter["filter_empty"] as DatetimeFilterValue;
+      const filterValue = filter["value"] as DatetimeFilterValue;
 
-    filterEmpty["timespan_begin"] = earliest;
-    filterValue["timespan_begin"] = earliest;
+      filterEmpty["timespan_begin"] = earliest;
+      filterValue["timespan_begin"] = earliest;
 
-    filterEmpty["timespan_end"] = latest;
-    filterValue["timespan_end"] = latest;
+      filterEmpty["timespan_end"] = latest;
+      filterValue["timespan_end"] = latest;
+    }
   }
 
   return filter;
