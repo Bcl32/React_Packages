@@ -1,5 +1,6 @@
 import * as React from "react";
 import { FilterContext } from "./FilterContext";
+import { chartClickValue, chartSelection } from "./chartClick";
 
 import {
   BarChart,
@@ -50,11 +51,7 @@ export function BarChartFilter({
   const context = React.useContext(FilterContext) as FilterContextValue | null;
 
   const filter = context?.filters?.[name];
-  const selected: string[] = React.useMemo(() => {
-    if (!filter) return [];
-    if (JSON.stringify(filter.value) === JSON.stringify(filter.filter_empty)) return [];
-    return Array.isArray(filter.value) ? filter.value.map(String) : [String(filter.value)];
-  }, [filter]);
+  const selected: string[] = React.useMemo(() => chartSelection(filter), [filter]);
 
   function reset() {
     if (!filter) return;
@@ -62,15 +59,12 @@ export function BarChartFilter({
   }
 
   function bar_click(value: string) {
-    if (selected.includes(value)) {
-      reset(); // clicking the active bar toggles the filter off
-      return;
-    }
-    if (filter?.type === "options") {
-      context?.change_filters(name, "value", [value]);
-    } else {
-      context?.change_filters(name, "value", value);
-    }
+    // Clicking the active bar toggles the filter off (see chartClickValue).
+    context?.change_filters(
+      name,
+      "value",
+      filter ? chartClickValue(filter, value, selected) : value,
+    );
   }
 
   const chartConfig = {

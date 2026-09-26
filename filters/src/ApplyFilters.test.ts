@@ -42,6 +42,15 @@ describe("ApplyFilters", () => {
     expect(ApplyFilters(rows, { name: filter })).toEqual(rows);
   });
 
+  it("a string filter with no rule filters nothing", () => {
+    // Pinned as-is: GetActiveFilters still counts it as active, so it shows a
+    // chip that has no effect. F2 gives a rule-less string filter "contains".
+    const rows = [{ name: "Oak" }, { name: "Pine" }];
+    const filter: FilterValue = { type: "string", value: "oak", filter_empty: "" };
+
+    expect(ApplyFilters(rows, { name: filter })).toEqual(rows);
+  });
+
   it("keeps numbers inside the range, inclusive", () => {
     const rows = [{ w: 1 }, { w: 5 }, { w: 10 }, { w: 11 }, { w: "7" }];
 

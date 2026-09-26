@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import * as React from "react";
-import dayjs from "dayjs";
 import { FilterProvider } from "./FilterProvider";
 import { OrderFilters } from "./OrderFilters";
 import { FilterElement } from "./FilterElement";
@@ -9,51 +8,13 @@ import { FilterSearchBar } from "./FilterSearchBar";
 import { baseFieldName } from "./BuildFilterCatalog";
 import { pumpFilterRequests, registerFilterBar } from "./FilterTargeting";
 import type { SearchFieldEntry } from "./FilterSearch";
-import { humanizeFieldName, prettyOptionLabel } from "./utils";
-import type { Filters, FilterValue, FilterOption, FilterCatalogEntry, FilterInitialValue } from "./types";
+import { chipLabel } from "./filterText";
+import type { Filters, FilterCatalogEntry, FilterInitialValue } from "./types";
 import { ListFilter, X } from "lucide-react";
 import { CustomTooltip } from "@bcl32/utils/Tooltip";
 
 /** Characters a chip shows before it ellipsises; the tooltip carries the rest. */
 const CHIP_LABEL_CAP = { default: 28, large: 40 } as const;
-
-function formatOptionsLabel(value: string[], options: FilterOption[] | undefined): string {
-  // Same prettifying the control itself applies, so the summary chip and the
-  // dropdown never disagree about how a status is spelled.
-  if (!options || options.length === 0) return value.map(prettyOptionLabel).join(", ");
-  const map = new Map(options.map((o) => [o.value, prettyOptionLabel(o.label)]));
-  return value.map((v) => map.get(v) ?? prettyOptionLabel(v)).join(", ");
-}
-
-function formatFilterLabel(name: string, filter: FilterValue): string {
-  // Prefer the schema title ("Size (mm)") over the raw key — a dynamic instance's
-  // key is synthetic ("weight_g#2"), so the key alone reads badly in a chip.
-  const label = filter.title ?? humanizeFieldName(filter.field ?? name);
-  switch (filter.type) {
-    case "string":
-      return `${label} ${filter.rule} "${filter.value}"`;
-    case "number": {
-      const v = filter.value as { min: number; max: number };
-      return `${label}: ${v.min} – ${v.max}`;
-    }
-    case "options": {
-      const vals = filter.value as string[];
-      const rule = filter.rule === "all" ? " (all)" : "";
-      if (filter.display === "swatch-grid") {
-        return `${label}: ${vals.length} colour${vals.length !== 1 ? "s" : ""}`;
-      }
-      return `${label}${rule}: ${formatOptionsLabel(vals, filter.options)}`;
-    }
-    case "datetime": {
-      const v = filter.value as { timespan_begin: string; timespan_end: string };
-      const start = dayjs(v.timespan_begin).format("MMM D, YYYY");
-      const end = dayjs(v.timespan_end).format("MMM D, YYYY");
-      return `${label}: ${start} → ${end}`;
-    }
-    default:
-      return label;
-  }
-}
 
 /** How many table columns may be auto-pinned before it stops being a hint. */
 const MAX_DEFAULT_FILTERS = 6;
@@ -386,7 +347,7 @@ export function useDataTableFilterBar({
   const chips =
     activeCount > 0
       ? Object.entries(activeFilters).map(([key, entry]) => {
-          const label = formatFilterLabel(key, entry);
+          const label = chipLabel(key, entry);
           const cap = CHIP_LABEL_CAP[size];
           const chip = (
           <span

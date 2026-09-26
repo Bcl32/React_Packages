@@ -8,6 +8,7 @@ import { CreateFilter } from "./CreateFilter";
 import { BuildFilterCatalog, makeInstanceKey } from "./BuildFilterCatalog";
 import { BuildFilterSearchIndex, type SearchFieldEntry } from "./FilterSearch";
 import { syncEnrichedAttributes } from "./syncEnrichedAttributes";
+import { seedFilter } from "./seedFilter";
 import type {
   Filters,
   ModelData,
@@ -16,8 +17,6 @@ import type {
   DatasetStats,
   FilterCatalogEntry,
   FilterInitialValue,
-  NumberRange,
-  DatetimeFilterValue,
 } from "./types";
 
 export interface AddFilterOptions {
@@ -161,32 +160,9 @@ export function useEntityFilters(
     ): string | null => {
       const attr = attributesByName.get(field);
       if (!attr) return null;
-      const filter = CreateFilter(attr, datasetStats);
-      if (!filter) return null;
-
-      if (initial && filter.type === "number") {
-        const seed = initial as Partial<NumberRange>;
-        const value = filter.value as NumberRange;
-        if (typeof seed.min === "number") value.min = seed.min;
-        if (typeof seed.max === "number") value.max = seed.max;
-      }
-
-      if (initial && filter.type === "string" && typeof initial === "string") {
-        filter.value = initial;
-      }
-
-      // Seed an options-typed filter's selection (the search bar creating a
-      // boolean/options instance with a value already chosen).
-      if (initial && filter.type === "options" && Array.isArray(initial)) {
-        filter.value = [...initial];
-      }
-
-      if (initial && filter.type === "datetime") {
-        const seed = initial as Partial<DatetimeFilterValue>;
-        const value = filter.value as DatetimeFilterValue;
-        if (seed.timespan_begin) value.timespan_begin = seed.timespan_begin;
-        if (seed.timespan_end) value.timespan_end = seed.timespan_end;
-      }
+      const built = CreateFilter(attr, datasetStats);
+      if (!built) return null;
+      const filter = seedFilter(built, initial);
 
       // Pick the key from current state so it can be returned synchronously
       // (the updater below runs later, on React's schedule). The updater still

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { FilterContext } from "./FilterContext";
+import { chartClickValue, chartSelection } from "./chartClick";
 
 import { Cell, Label, Pie, PieChart } from "recharts";
 
@@ -63,11 +64,7 @@ export function PieChartFilter({
   const filter = context?.filters?.[name];
   // Active selection: anything different from the filter's empty value. Drives
   // the dim-others treatment so the chart shows what is currently filtering.
-  const selected: string[] = React.useMemo(() => {
-    if (!filter) return [];
-    if (JSON.stringify(filter.value) === JSON.stringify(filter.filter_empty)) return [];
-    return Array.isArray(filter.value) ? filter.value.map(String) : [String(filter.value)];
-  }, [filter]);
+  const selected: string[] = React.useMemo(() => chartSelection(filter), [filter]);
 
   function reset() {
     if (!filter) return;
@@ -76,15 +73,12 @@ export function PieChartFilter({
 
   function filter_on_click(value: string) {
     if (value === OTHER_KEY) return; // a fold, not a real category
-    if (selected.includes(value)) {
-      reset(); // clicking the active slice toggles the filter off
-      return;
-    }
-    if (filter?.type === "options") {
-      context?.change_filters(name, "value", [value]);
-    } else {
-      context?.change_filters(name, "value", value);
-    }
+    // Clicking the active slice toggles the filter off (see chartClickValue).
+    context?.change_filters(
+      name,
+      "value",
+      filter ? chartClickValue(filter, value, selected) : value,
+    );
   }
 
   const { entries } = foldChartData(chart_data);

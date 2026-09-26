@@ -1,21 +1,18 @@
 import * as React from "react";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
+// Registered here historically; kept so nothing that relies on the plugin
+// being loaded by this module changes.
 dayjs.extend(duration);
 
 import { Button } from "@bcl32/utils/Button";
 import { FilterContext } from "./FilterContext";
-import type { Filters, FilterContextValue, FilterOption, DatetimeFilterValue, NumberRange } from "./types";
+import { summaryValue } from "./filterText";
+import type { Filters, FilterContextValue } from "./types";
 import { capitalize } from "./utils";
 
 interface FiltersSummaryProps {
   active_filters: Filters;
-}
-
-function formatOptionsValue(value: string[], options: FilterOption[] | undefined): string {
-  if (!options || options.length === 0) return value.join(", ");
-  const map = new Map(options.map((o) => [o.value, o.label]));
-  return value.map((v) => map.get(v) ?? v).join(", ");
 }
 
 export function FiltersSummary({ active_filters }: FiltersSummaryProps): JSX.Element | null {
@@ -39,44 +36,13 @@ export function FiltersSummary({ active_filters }: FiltersSummaryProps): JSX.Ele
 
       {hasActiveFilters && (
         <>
-          {Object.entries(active_filters).map(([key, entry]) => {
+          {Object.keys(active_filters).map((key) => {
             // Safety check: ensure filter exists before accessing
             if (!context.filters[key]) {
               return null;
             }
 
-            let filter_value: string;
-            if (entry["type"] === "datetime") {
-              const dtValue = context.filters[key]["value"] as DatetimeFilterValue;
-              const start = dtValue["timespan_begin"];
-              const end = dtValue["timespan_end"];
-
-              filter_value =
-                "Start: " +
-                dayjs(start).format("MMM, D YYYY - h:mma") +
-                "\n End: " +
-                dayjs(end).format("MMM, D YYYY - h:mma");
-            } else if (entry["type"] === "number") {
-              const numValue = context.filters[key]["value"] as NumberRange;
-              filter_value = numValue["min"] + " - " + numValue["max"];
-            } else if (entry["type"] === "options") {
-              const arrValue = context.filters[key]["value"] as string[];
-              const rule = context.filters[key]["rule"];
-              const ruleHint = rule === "all" ? " (all)" : "";
-              if (context.filters[key]["display"] === "swatch-grid") {
-                // Swatch picks may be stored as option ids (see `match_field`),
-                // and this panel has no preset list to resolve them against —
-                // a raw id list is worse than a count. Matches the toolbar chip.
-                const n = arrValue.length;
-                filter_value = `${ruleHint}${n} colour${n === 1 ? "" : "s"}`;
-              } else {
-                filter_value =
-                  ruleHint + formatOptionsValue(arrValue, context.filters[key]["options"]);
-              }
-            } else {
-              filter_value =
-                context.filters[key]["rule"] + " " + context.filters[key]["value"];
-            }
+            const filter_value = summaryValue(context.filters[key]);
 
             return (
               <FiltersEntry
