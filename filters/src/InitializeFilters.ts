@@ -44,6 +44,10 @@ export function resolveDynamicKinds(
   return [];
 }
 
+/**
+ * Builds the eager (mount-time) filters for useEntityFilters. Internal to the
+ * package: not exported; apps call useEntityFilters.
+ */
 export function InitializeFilters(
   model_data: ModelAttribute[],
   datasetStats: DatasetStats,

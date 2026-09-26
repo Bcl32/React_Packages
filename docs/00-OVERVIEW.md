@@ -138,8 +138,8 @@ Per-package API reference (key exports, peer deps, usage) lives in [`./01-packag
 | `@bcl32/navigation` | `NavigationProvider`, `useNavigation`, `NavigationBreadcrumb`, type `NavigationEntry` (4 total) |
 | `@bcl32/themes` | `ThemeProvider`, `useTheme`, `ThemeDropdownSelect`, `ThemeGenerator`, `ThemePanel`, `ColourConverter`, `ColourPicker`, `isLightTheme`, `LIGHT_THEMES`, plus the `./tailwind-preset` and `./themes.json` non-JS exports, types `HSLColor`/`RGBColor` (32 total) |
 | `@bcl32/forms` | `AddModelForm`, `EditModelForm`, `BulkEditModelForm`, `DeleteModelForm`, `FormElement`, `ColourField`, `RelationCollectionField` (14 total — `ButtonDatePicker` removed in 3.0.0) |
-| `@bcl32/datatable` | `DataTable`, `ColumnGenerator`, `RowActions`, `DataTablePagination`, `KeyValueTable`, `StatsTable`, plus low-level `Table*` primitives (16 total) |
-| `@bcl32/filters` | `FilterProvider`, `useFilterContext`, `AllFilters`, `DebouncedTextFilter`, `OptionsFilter`, `TimeFilter`, `ChartFilter`, `BarChartFilter` (54 total) |
+| `@bcl32/datatable` | `DataTable`, `ColumnGenerator`, `RowActions`, `DataTablePagination`, `KeyValueTable`, plus low-level `Table*` primitives (16 total) |
+| `@bcl32/filters` | `useEntityFilters`, `useDataTableFilterBar`, `FilterProvider`, `useFilterContext`, `DebouncedTextFilter`, `OptionsFilter`, `TimeFilter`, `ChartFilter`, `BarChartFilter` (54 total) |
 | `@bcl32/command-palette` | `CommandPalette`, `EntitySearchPage`, `flattenNavItems`, `useThemeCommands`, `buildShortcutTrie`, `useShortcutSequencer`, `SequenceHUD`, `LeaderGrid` |
 | `@bcl32/account` | `UserProvider`, `useCurrentUser`, `useUserDirectory`, `Avatar`, `UserBadge`, `AccountPanel`, `SidebarUserSection`, `ActivityFeed`, `ActivityTimeline`, `useAccountCommands` |
 

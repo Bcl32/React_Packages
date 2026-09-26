@@ -54,10 +54,6 @@
       "types": "./dist/KeyValueTable.d.ts",
       "import": "./dist/KeyValueTable.js"
     },
-    "./StatsTable": {
-      "types": "./dist/StatsTable.d.ts",
-      "import": "./dist/StatsTable.js"
-    },
     "./ColumnGenerator": {
       "types": "./dist/ColumnGenerator.d.ts",
       "import": "./dist/ColumnGenerator.js"

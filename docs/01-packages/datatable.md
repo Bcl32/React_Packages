@@ -114,7 +114,6 @@ import { DataTable, ColumnGenerator } from "@bcl32/datatable";
 import { DataTable } from "@bcl32/datatable/DataTable";
 import { ColumnGenerator } from "@bcl32/datatable/ColumnGenerator";
 import { KeyValueTable } from "@bcl32/datatable/KeyValueTable";
-import { StatsTable } from "@bcl32/datatable/StatsTable";
 import { RowActions } from "@bcl32/datatable/RowActions";
 import { DataTablePagination } from "@bcl32/datatable/TablePagination";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@bcl32/datatable/Table";
@@ -122,7 +121,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 
 > **Note:** Subpath exports require the consumer's TypeScript config to use `moduleResolution: "bundler"` (or `"node16"`). Under `"node"` resolution the subpaths will not resolve.
 
-Available subpaths: `./DataTable`, `./TableView`, `./CardView`, `./BoardView`, `./RowCard`, `./GalleryCard`, `./DetailPaneView`, `./Table`, `./KeyValueTable`, `./StatsTable`, `./ColumnGenerator`, `./RowActions`, `./TablePagination`.
+Available subpaths: `./DataTable`, `./TableView`, `./CardView`, `./BoardView`, `./RowCard`, `./GalleryCard`, `./DetailPaneView`, `./Table`, `./KeyValueTable`, `./ColumnGenerator`, `./RowActions`, `./TablePagination`.
 
 ## Public Exports
 
@@ -144,7 +143,6 @@ Available subpaths: `./DataTable`, `./TableView`, `./CardView`, `./BoardView`, `
 | `RowActions` | component | Per-row dropdown menu (three-dot icon) containing an Edit dialog (opens `EditModelForm`) plus Copy ID and Copy Row clipboard actions. Handles focus restoration after dialog close. |
 | `DataTablePagination` | component | Pagination control bar: selected-row count, a page-number input, and first / prev / next / last navigation buttons. Accepts a TanStack Table instance directly. *(Exported from the `./TablePagination` subpath.)* |
 | `KeyValueTable` | component | Simple two-column (Key / Value) read-only table for flat key-value pairs. Values are coerced to string. |
-| `StatsTable` | component | Nested stats display table. Outer table maps group keys to a `StatsCell`; the inner cell renders per-stat rows with type-aware formatting. |
 
 ### HTML table primitives (`./Table`)
 
@@ -282,26 +280,6 @@ KeyValueTable({
   table_data: Array<{ key: string; value: string | number | boolean }>;
 }) => JSX.Element
 ```
-
-### `StatsTable`
-
-```ts
-StatsTable({
-  table_data: Record<string, Array<{ name: string; value: unknown; type: string }>>;
-}) => JSX.Element
-```
-
-`StatsCell` renders per-stat rows with type-aware formatting:
-
-| `type` | Rendering |
-| --- | --- |
-| `number` | numeric value |
-| `datetime` | formatted via dayjs |
-| `boolean` | green / red coloured text |
-| `list` | inline list |
-| `object` / `bins` | JSON `<pre>` block |
-| `count` | inline paragraphs |
-| `children`, `id_list` | **silently skipped** (no output, no warning) |
 
 ### `ToolbarAction`
 
@@ -1000,8 +978,7 @@ _(`@mui/material` and `@mui/icons-material` were removed in 2.8.0.)_
 - **`action_column` always appended but needs `update_api_url`.** `ColumnGenerator` always appends the `RowActions` dropdown column, which requires `update_api_url` (typed as required on its `ModelData` prop), yet `ColumnGenerator` only checks for `update_api_url` on the `EditCell` column, not the action column. Passing a `ModelData` without `update_api_url` satisfies `ColumnGenerator`'s type but causes a mismatch inside `RowActions` at runtime. *(`src/ColumnGenerator.tsx:88-99, 179-184`)*
 - **Dead emoji fallback.** The `expand_column` cell renders the literal `🔵` when `row.getCanExpand()` is false (`src/ColumnGenerator.tsx:147`). Since `DataTable` sets `getRowCanExpand: () => true` unconditionally (`src/DataTable.tsx:122`), this branch is dead code when used through `DataTable` — but would appear if `Table` were used standalone.
 - **Hardcoded default sort.** `DataTable`'s default sort is `time_created` desc (`src/DataTable.tsx:106-109`). If you pass columns without a `time_created` column the table starts with an invalid sort id; TanStack Table ignores it, but it can confuse consumers.
-- **`StatsTable` silently drops `children` / `id_list`.** Those `type` values hit empty `case` blocks (`src/StatsTable.tsx:165-166`) with no placeholder or warning, making unsupported types invisible.
-- **Array-index React keys.** `KeyValueTable` (`src/KeyValueTable.tsx:31`) and `StatsTable` (`src/StatsTable.tsx:51, 76`) use array index as the React key, which is fragile if rows are reordered or removed.
+- **Array-index React keys.** `KeyValueTable` (`src/KeyValueTable.tsx:31`) uses array index as the React key, which is fragile if rows are reordered or removed.
 - **Unused declared dependency.** `@bcl32/hooks` is listed in `package.json` but never imported in `src/`.
 - **Sticky table headers do not stick.** `TableHeader` carries `sticky top-0`, but the `Table` primitive wraps the `<table>` in a `div.overflow-x-auto` (`src/Table.tsx:9`). Per CSS, one non-`visible` overflow axis makes the other compute to `auto`, so that div becomes the nearest scrollport — and it never scrolls vertically, so the header has nowhere to stick. Long-standing, and not caused by the toolbar. Fixing it means collapsing to a single scroll container, which changes a primitive used by every table in three apps; note also that on a wide table (Print-Tracker's Parts Bin) *that wrapper* is currently the element providing horizontal scrolling, so it cannot simply be deleted. The cost is now mostly cosmetic: [`SortControl`](#sorting) put sorting in the toolbar, which was the main thing a pinned header was needed for.
 

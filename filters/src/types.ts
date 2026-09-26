@@ -143,14 +143,6 @@ export interface ColourPresetsConfig {
   match_field?: string;
 }
 
-export interface GroupedFilters {
-  primary_filters: FilterData[];
-  string_filters: FilterData[];
-  numeric_filters: FilterData[];
-  options_filters: FilterData[];
-  time_filters: FilterData[];
-}
-
 export interface ChartMetadata {
   name: string;
   type: string;

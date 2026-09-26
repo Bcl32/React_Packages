@@ -3,6 +3,10 @@ import { ApplyFilters } from "./ApplyFilters";
 import { CalculateFeatureStats } from "@bcl32/data-utils/CalculateFeatureStats";
 import type { DatasetStats, Filters, ModelData, ProcessedDataset } from "./types";
 
+/**
+ * Active filters → filtered rows → stats, for useEntityFilters. Internal to
+ * the package: not exported.
+ */
 export function ProcessDataset(
   dataset: Record<string, unknown>[],
   filters: Filters,

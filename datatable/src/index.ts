@@ -28,7 +28,6 @@ export * from "./CompletionCell";
 export * from "./CardActions";
 export * from "./Table";
 export * from "./KeyValueTable";
-export * from "./StatsTable";
 export * from "./ColumnGenerator";
 export * from "./AttributionContext";
 export * from "./RowActions";

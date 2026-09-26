@@ -14,10 +14,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./AllFilters": {
-      "types": "./dist/AllFilters.d.ts",
-      "import": "./dist/AllFilters.js"
-    },
     "./FilterElement": {
       "types": "./dist/FilterElement.d.ts",
       "import": "./dist/FilterElement.js"
@@ -37,10 +33,6 @@
     "./TimeFilter": {
       "types": "./dist/TimeFilter.d.ts",
       "import": "./dist/TimeFilter.js"
-    },
-    "./FilterContext": {
-      "types": "./dist/FilterContext.d.ts",
-      "import": "./dist/FilterContext.js"
     },
     "./BarChartFilter": {
       "types": "./dist/BarChartFilter.d.ts",
@@ -90,10 +82,6 @@
       "types": "./dist/GetActiveFilters.d.ts",
       "import": "./dist/GetActiveFilters.js"
     },
-    "./InitializeFilters": {
-      "types": "./dist/InitializeFilters.d.ts",
-      "import": "./dist/InitializeFilters.js"
-    },
     "./CreateFilter": {
       "types": "./dist/CreateFilter.d.ts",
       "import": "./dist/CreateFilter.js"
@@ -110,17 +98,9 @@
       "types": "./dist/FilterSearchBar.d.ts",
       "import": "./dist/FilterSearchBar.js"
     },
-    "./GroupFilters": {
-      "types": "./dist/GroupFilters.d.ts",
-      "import": "./dist/GroupFilters.js"
-    },
     "./OrderFilters": {
       "types": "./dist/OrderFilters.d.ts",
       "import": "./dist/OrderFilters.js"
-    },
-    "./ProcessDataset": {
-      "types": "./dist/ProcessDataset.d.ts",
-      "import": "./dist/ProcessDataset.js"
     },
     "./useEntityFilters": {
       "types": "./dist/useEntityFilters.d.ts",
