@@ -9,6 +9,7 @@ import { BuildFilterCatalog, makeInstanceKey } from "./BuildFilterCatalog";
 import { BuildFilterSearchIndex, type SearchFieldEntry } from "./FilterSearch";
 import { syncEnrichedAttributes } from "./syncEnrichedAttributes";
 import { seedFilter } from "./seedFilter";
+import { applyInitialValues, setFilterValueIn } from "./filterWrites";
 import type {
   Filters,
   ModelData,
@@ -36,6 +37,15 @@ export interface UseEntityFiltersOptions {
    * addFilter / removeFilter / filterCatalog to their filter UI.
    */
   dynamicFilters?: boolean | DynamicFilterKind[];
+  /**
+   * Opening values, keyed by field: a URL drill-through or a page default
+   * ("Archived: No"). Applied once, when the filters are first built — no
+   * need to wait for them in an effect. A field whose filter is created on
+   * demand is added pinned. Values take the same shape as addFilter's
+   * `initial` and go through the same per-kind checks. Read once per mount;
+   * later changes to this option are ignored.
+   */
+  initialValues?: Record<string, FilterInitialValue>;
 }
 
 export interface UseEntityFiltersReturn {
@@ -47,6 +57,14 @@ export interface UseEntityFiltersReturn {
     options?: AddFilterOptions,
   ) => string | null;
   removeFilter: (name: string) => void;
+  /**
+   * Set filter `key` to `value` — change it, or create it pinned when it
+   * doesn't exist yet (add-on-demand filters). Same value shapes and checks
+   * as addFilter's `initial`; an "empty" value (`[]`, `""`) clears it, and
+   * clearing a filter that isn't there does nothing. Returns the key written,
+   * or null when nothing changed.
+   */
+  setFilterValue: (key: string, value: FilterInitialValue) => string | null;
   filterCatalog: FilterCatalogEntry[];
   /**
    * Whether the entity declares any primaryFilter at all. Read from the model
@@ -85,11 +103,21 @@ export function useEntityFilters(
     return CalculateFeatureStats(enrichedModelData.model_attributes, safeDataset);
   }, [safeDataset, enrichedModelData]);
 
+  // Opening values are read once per mount (drill-through semantics).
+  const initialValuesRef = useRef(options.initialValues);
+
+  // Build the filters: the eager ones, then the page's opening values.
+  const buildFilters = (attrs: ModelAttribute[], stats: DatasetStats): Filters =>
+    applyInitialValues(
+      InitializeFilters(attrs, stats, { dynamicFilters }),
+      initialValuesRef.current,
+      attrs,
+      stats,
+    );
+
   // Initialize filters synchronously
   const [filters, setFilters] = useState<Filters>(() =>
-    InitializeFilters(enrichedModelData.model_attributes, datasetStats, {
-      dynamicFilters,
-    })
+    buildFilters(enrichedModelData.model_attributes, datasetStats)
   );
 
   // Re-initialize when data arrives (the useState initializer only runs once).
@@ -99,13 +127,11 @@ export function useEntityFilters(
   const initializedRef = useRef(Object.keys(filters).length > 0);
   useEffect(() => {
     if (!initializedRef.current && Object.keys(datasetStats).length > 0) {
-      setFilters(
-        InitializeFilters(enrichedModelData.model_attributes, datasetStats, {
-          dynamicFilters,
-        })
-      );
+      setFilters(buildFilters(enrichedModelData.model_attributes, datasetStats));
       initializedRef.current = true;
     }
+    // buildFilters reads only dynamicFilters and a ref besides its arguments.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [datasetStats, enrichedModelData.model_attributes, dynamicFilters]);
 
   // Sync newly-fetched options (and the enriched attribute they came on) into
@@ -184,6 +210,19 @@ export function useEntityFilters(
     [attributesByName, datasetStats, filters]
   );
 
+  const setFilterValue = useCallback(
+    (key: string, value: FilterInitialValue): string | null => {
+      const attrs = enrichedModelData.model_attributes;
+      // Resolve the key against current state so it can be returned
+      // synchronously; the updater re-applies the write against `prev`.
+      const { key: written } = setFilterValueIn(filters, key, value, attrs, datasetStats);
+      if (written === null) return null;
+      setFilters((prev) => setFilterValueIn(prev, key, value, attrs, datasetStats).filters);
+      return written;
+    },
+    [enrichedModelData.model_attributes, datasetStats, filters]
+  );
+
   const removeFilter = useCallback((name: string) => {
     setFilters((prev) => {
       if (!prev[name]) return prev;
@@ -218,6 +257,7 @@ export function useEntityFilters(
     changeFilters,
     addFilter,
     removeFilter,
+    setFilterValue,
     filterCatalog,
     hasPrimaryFilters,
     searchIndex,
