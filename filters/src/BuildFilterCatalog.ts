@@ -43,6 +43,26 @@ export function filterTypeFor(kind: FilterKind): FilterValue["type"] {
   return kind === "boolean" ? "options" : kind;
 }
 
+/**
+ * The "no filter" value for a runtime type, used when an attribute declares no
+ * filter_empty. Matches what the Python generator emits (schema_utils
+ * filters.py `_define_empty_filter`), so a hand-written attribute builds the
+ * same filter a generated one would instead of throwing (B3). Returns a fresh
+ * object on every call, so callers may mutate it.
+ */
+export function emptyFor(type: FilterValue["type"]): unknown {
+  switch (type) {
+    case "string":
+      return "";
+    case "number":
+      return { min: "", max: "" };
+    case "datetime":
+      return { timespan_begin: "", timespan_end: "" };
+    default:
+      return [];
+  }
+}
+
 /** Former name of resolveFilterKind, kept so existing imports keep working. */
 export const dynamicFilterKind = resolveFilterKind;
 

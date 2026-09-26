@@ -1,4 +1,4 @@
-import { filterTypeFor, resolveFilterKind } from "./BuildFilterCatalog";
+import { emptyFor, filterTypeFor, resolveFilterKind } from "./BuildFilterCatalog";
 import type {
   ModelAttribute,
   DatasetStats,
@@ -40,14 +40,16 @@ export function CreateFilter(
   if (!stats) return null;
 
   const resolvedType = filterTypeFor(kind);
+  // Hand-written attributes may leave filter_empty out (B3).
+  const empty = item["filter_empty"] ?? emptyFor(resolvedType);
 
   // value and filter_empty are cloned because the filter mutates them; the
   // attribute is shared by reference because nothing writes to it.
   const filter: FilterValue = {
     type: resolvedType,
-    value: structuredClone(item["filter_empty"]),
+    value: structuredClone(empty),
     rule: item["filter_rule"],
-    filter_empty: structuredClone(item["filter_empty"]),
+    filter_empty: structuredClone(empty),
     field: title,
     attr: item,
   };

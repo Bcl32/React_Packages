@@ -55,12 +55,32 @@ describe("CreateFilter", () => {
     expect((filter.filter_empty as NumberRange).min).toBe(1);
   });
 
-  it("throws on a number attribute with no filter_empty (B3)", () => {
+  it("builds a number attribute with no filter_empty like a generated one (B3)", () => {
     // Security-Benchmarks' hand-built judge_score attributes have this shape.
     const { filter_empty: _omit, ...bare } = numberAttr;
-    const stats: DatasetStats = { weight_g: [{ name: "min", value: 0 }] };
+    const stats: DatasetStats = {
+      weight_g: [
+        { name: "min", value: 0 },
+        { name: "max", value: 10 },
+      ],
+    };
 
-    expect(() => CreateFilter(bare, stats)).toThrow(TypeError);
+    const filter = CreateFilter(bare, stats)!;
+
+    expect(filter.value).toEqual({ min: 0, max: 10 });
+    expect(filter.filter_empty).toEqual({ min: 0, max: 10 });
+    // Separate objects: moving the slider must not move the reset point.
+    expect(filter.value).not.toBe(filter.filter_empty);
+  });
+
+  it.each([
+    ["string", { name: "note", type: "string", filter: true }, ""],
+    ["options", { name: "tags", type: "list", filter: true }, []],
+  ] as const)("defaults a missing filter_empty for a %s filter", (_type, attr, expected) => {
+    const filter = CreateFilter(attr as ModelAttribute, { [attr.name]: [] })!;
+
+    expect(filter.value).toEqual(expected);
+    expect(filter.filter_empty).toEqual(expected);
   });
 
   it("copies the options config keys onto an options filter", () => {
