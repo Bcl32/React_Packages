@@ -4,6 +4,7 @@ export * from "./FiltersSummary";
 export * from "./OptionsFilter";
 export * from "./BooleanFilter";
 export * from "./TimeFilter";
+export * from "./DateFilter";
 export * from "./BarChartFilter";
 export * from "./BarChartSwitcher";
 export * from "./StackedBarChart";
@@ -53,6 +54,8 @@ export type {
   DatasetStats,
   ProcessedDataset,
   DatetimeFilterValue,
+  DateFilterValue,
+  DatePreset,
   NumberRange,
   ColourPresetsConfig,
   ClickPayload,

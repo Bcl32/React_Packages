@@ -34,10 +34,13 @@ interface AddFilterPickerProps {
 const DATE_FORMAT = "MMM D 'YY";
 
 /** Section order and headings when one picker offers several kinds. */
-const KIND_ORDER = ["number", "datetime", "string", "boolean", "options"] as const;
+const KIND_ORDER = ["number", "date", "datetime", "string", "boolean", "options"] as const;
 const KIND_LABEL: Record<string, string> = {
   number: "Numeric",
-  datetime: "Date",
+  // A calendar day (due, purchased) and an instant (created, updated) are
+  // different controls, so they are different sections.
+  date: "Date",
+  datetime: "Date & time",
   string: "Text",
   boolean: "Flags",
   options: "Options",
@@ -82,6 +85,11 @@ function formatRange(entry: FilterCatalogEntry): string {
       return entry.type === "options" ? "options" : "text";
     }
     return `${entry.distinct} value${entry.distinct === 1 ? "" : "s"}`;
+  }
+  if (entry.type === "date") {
+    // Days, formatted by dayjs, which reads `YYYY-MM-DD` as a local day.
+    if (!entry.earliest || !entry.latest) return "no dates yet";
+    return `${dayjs(entry.earliest).format(DATE_FORMAT)} – ${dayjs(entry.latest).format(DATE_FORMAT)}`;
   }
   if (entry.type === "datetime") {
     if (!entry.earliest || !entry.latest) return "—";

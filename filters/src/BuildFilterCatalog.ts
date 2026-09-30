@@ -24,8 +24,10 @@ export type DynamicFilterKind = FilterKind;
  * metadata that still declares booleans as Yes/No options filters builds the
  * boolean filter too.
  *
- * Otherwise a declared filter_type wins, but only if it's one of the three
- * scalar kinds. Anything else becomes "options", including an invalid declared
+ * Otherwise a declared filter_type wins, but only if it's one of the four
+ * scalar kinds. A `date` field is a "date" filter only when its metadata says
+ * so: metadata generated before schema_utils gave dates their own kind declares
+ * them "string", and keeps the text box until it is regenerated. Anything else becomes "options", including an invalid declared
  * value such as "select": that really is an options field, and trusting it
  * would build a filter no control or matcher understands.
  *
@@ -44,7 +46,7 @@ export function resolveFilterKind(item: ModelAttribute): FilterKind | null {
 
   const declared = item["filter_type"] as string | undefined;
   const type = declared ?? (item["type"] as string);
-  if (type === "number" || type === "datetime" || type === "string") return type;
+  if (type === "number" || type === "datetime" || type === "date" || type === "string") return type;
   return "options";
 }
 
@@ -74,6 +76,11 @@ export function isDatetimeFilterAttribute(item: ModelAttribute): boolean {
   return resolveFilterKind(item) === "datetime";
 }
 
+/** True when the attribute renders as a calendar-day filter. */
+export function isDateFilterAttribute(item: ModelAttribute): boolean {
+  return resolveFilterKind(item) === "date";
+}
+
 /** True when the attribute renders as a free-text filter. */
 export function isStringFilterAttribute(item: ModelAttribute): boolean {
   return resolveFilterKind(item) === "string";
@@ -93,7 +100,7 @@ export function isBooleanFilterAttribute(item: ModelAttribute): boolean {
  */
 export function isDynamicFilterAttribute(
   item: ModelAttribute,
-  kinds: DynamicFilterKind[] = ["number", "datetime", "string", "boolean", "options"],
+  kinds: DynamicFilterKind[] = ["number", "datetime", "date", "string", "boolean", "options"],
 ): boolean {
   const kind = resolveFilterKind(item);
   return !!kind && kinds.includes(kind) && !item["primaryFilter"];
@@ -235,6 +242,24 @@ export function BuildFilterCatalog(
       // nullable field). CalculateFeatureStats has no boolean branch, so there
       // are no counts to show either.
       catalog.push({ ...base, disabled: false });
+      continue;
+    }
+
+    if (kind === "date") {
+      // CalculateFeatureStats groups a date column into its distinct days (the
+      // stat it gave dates while they filtered as text), which is enough for a
+      // span and a count. A column with no days still takes "No date".
+      const days = (stats?.find((s) => s.name === "count")?.value ?? []) as { name?: unknown }[];
+      const named = Array.isArray(days)
+        ? days.map((d) => String(d?.name ?? "")).filter((d) => /^\d{4}-\d{2}-\d{2}/.test(d)).sort()
+        : [];
+      catalog.push({
+        ...base,
+        earliest: named[0],
+        latest: named[named.length - 1],
+        distinct: named.length,
+        disabled: false,
+      });
       continue;
     }
 

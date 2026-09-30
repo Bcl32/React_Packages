@@ -1,8 +1,10 @@
 import dayjs from "dayjs";
 
+import { DATE_PRESET_LABEL, isDay } from "./dateOnly";
 import { humanizeFieldName, prettyOptionLabel } from "./utils";
 import type {
   BooleanFilterValue,
+  DateFilterValue,
   DatetimeFilterValue,
   FilterOption,
   FilterValue,
@@ -47,6 +49,23 @@ export function booleanPhrase(label: string, filter: FilterValue): string {
   return label;
 }
 
+/**
+ * A date filter's value as words: "Before today", "Jun 15, 2026 → Jun 30,
+ * 2026", "From Jun 15, 2026". Days are formatted by dayjs, which reads a bare
+ * `YYYY-MM-DD` as a LOCAL day (unlike `new Date`), so the label never shows
+ * the day before.
+ */
+export function datePhrase(value: DateFilterValue): string {
+  if (value.preset) return DATE_PRESET_LABEL[value.preset] ?? value.preset;
+  const fmt = (day: string) => dayjs(day).format("MMM D, YYYY");
+  const from = isDay(value.from) ? value.from : "";
+  const to = isDay(value.to) ? value.to : "";
+  if (from && to) return from === to ? fmt(from) : `${fmt(from)} → ${fmt(to)}`;
+  if (from) return `From ${fmt(from)}`;
+  if (to) return `Until ${fmt(to)}`;
+  return "Any";
+}
+
 /** The toolbar chip for one active filter, e.g. `Weight (g): 10 – 50`. */
 export function chipLabel(name: string, filter: FilterValue): string {
   // Prefer the schema title ("Size (mm)") over the raw key — a dynamic instance's
@@ -69,6 +88,8 @@ export function chipLabel(name: string, filter: FilterValue): string {
     }
     case "boolean":
       return booleanPhrase(label, filter);
+    case "date":
+      return `${label}: ${datePhrase(filter.value as DateFilterValue)}`;
     case "datetime": {
       const v = filter.value as { timespan_begin: string; timespan_end: string };
       const start = dayjs(v.timespan_begin).format("MMM D, YYYY");
@@ -96,6 +117,9 @@ export function summaryValue(filter: FilterValue): string {
       "\n End: " +
       dayjs(dtValue["timespan_end"]).format("MMM, D YYYY - h:mma")
     );
+  }
+  if (filter["type"] === "date") {
+    return datePhrase(filter["value"] as DateFilterValue);
   }
   if (filter["type"] === "number") {
     const numValue = filter["value"] as NumberRange;

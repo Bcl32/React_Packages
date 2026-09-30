@@ -38,6 +38,10 @@
       "types": "./dist/TimeFilter.d.ts",
       "import": "./dist/TimeFilter.js"
     },
+    "./DateFilter": {
+      "types": "./dist/DateFilter.d.ts",
+      "import": "./dist/DateFilter.js"
+    },
     "./BarChartFilter": {
       "types": "./dist/BarChartFilter.d.ts",
       "import": "./dist/BarChartFilter.js"

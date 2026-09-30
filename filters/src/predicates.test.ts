@@ -4,7 +4,7 @@ import { emptyFor } from "./BuildFilterCatalog";
 import { PREDICATES, predicateFor } from "./predicates";
 import type { FilterKind, FilterValue } from "./types";
 
-const KINDS: FilterKind[] = ["string", "number", "datetime", "options", "boolean"];
+const KINDS: FilterKind[] = ["string", "number", "datetime", "date", "options", "boolean"];
 
 describe("PREDICATES", () => {
   it("has a predicate for every filter kind", () => {
@@ -22,6 +22,7 @@ describe("PREDICATES", () => {
   it("is where emptyFor gets its values", () => {
     expect(emptyFor("number")).toEqual({ min: "", max: "" });
     expect(emptyFor("datetime")).toEqual({ timespan_begin: "", timespan_end: "" });
+    expect(emptyFor("date")).toEqual({ preset: null, from: "", to: "" });
     expect(emptyFor("string")).toBe("");
     expect(emptyFor("options")).toEqual([]);
     expect(emptyFor("boolean")).toBeNull();

@@ -31,6 +31,7 @@ export interface InitializeFiltersOptions {
 const ALL_DYNAMIC_KINDS: DynamicFilterKind[] = [
   "number",
   "datetime",
+  "date",
   "string",
   "boolean",
   "options",

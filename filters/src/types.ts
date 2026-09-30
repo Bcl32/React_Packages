@@ -31,13 +31,28 @@ export interface FilterOption {
  * picker section and search kind. resolveFilterKind decides it for an
  * attribute.
  */
-export type FilterKind = "number" | "datetime" | "string" | "boolean" | "options";
+export type FilterKind = "number" | "datetime" | "date" | "string" | "boolean" | "options";
 
 /**
  * A boolean filter's value. null is "no filter"; "unknown" selects the rows
  * whose cell is empty, and is only offered on a nullable field.
  */
 export type BooleanFilterValue = true | false | "unknown" | null;
+
+/** A date filter's relative choices; see dateOnly.ts DATE_PRESETS. */
+export type DatePreset = "past" | "today" | "next7" | "has" | "none";
+
+/**
+ * A `date` field's filter: a relative preset, or an inclusive range of
+ * calendar days (`YYYY-MM-DD`, either end may be ""). A preset is stored as
+ * its token and never as the days it resolved to, so "Today" still means today
+ * tomorrow. Empty is `{ preset: null, from: "", to: "" }`.
+ */
+export interface DateFilterValue {
+  preset: DatePreset | null;
+  from: string;
+  to: string;
+}
 
 export interface FilterValue {
   type: FilterKind;
@@ -98,7 +113,7 @@ export interface FilterCatalogEntry {
   // The picker section, which is the type of the filter the row creates.
   type: FilterKind;
   // Bounds are kind-specific: min/max for "number", earliest/latest (ISO
-  // strings) for "datetime", a distinct-value count for "string". They're
+  // strings) for "datetime" and "date", a distinct-value count for "string". They're
   // absent when the column has no usable stats, in which case `disabled` is
   // set and `reason` says why.
   min?: number;
@@ -125,6 +140,7 @@ export interface FilterCatalogEntry {
 export type FilterInitialValue =
   | Partial<NumberRange>
   | Partial<DatetimeFilterValue>
+  | Partial<DateFilterValue>
   | string
   | string[]
   | BooleanFilterValue;

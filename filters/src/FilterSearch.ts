@@ -1,9 +1,11 @@
 import { baseFieldName, resolveFilterKind } from "./BuildFilterCatalog";
+import { DATE_PRESETS, isDatePreset } from "./dateOnly";
 import { parseBooleanValue } from "./predicates";
 import { humanizeFieldName } from "./utils";
 import type {
   BooleanFilterValue,
   DatasetStats,
+  DatePreset,
   FilterInitialValue,
   FilterKind,
   FilterOption,
@@ -58,6 +60,7 @@ export type FilterSearchAction =
   | { type: "options-value"; field: string; value: string }
   | { type: "string-value"; field: string; value: string }
   | { type: "boolean-value"; field: string; value: Exclude<BooleanFilterValue, null> }
+  | { type: "date-preset"; field: string; value: DatePreset }
   | { type: "number-range"; field: string; min?: number; max?: number }
   | { type: "add-field"; field: string };
 
@@ -173,6 +176,13 @@ export function BuildFilterSearchIndex(
       continue;
     }
 
+    if (kind === "date") {
+      // The presets are the values: "due: before today" and a bare "today"
+      // both resolve without the user knowing the control's shape.
+      index.push({ ...base, values: DATE_PRESETS.map((p) => ({ value: p.value, label: p.label })) });
+      continue;
+    }
+
     if (kind === "boolean") {
       // Fixed values, not read from the attribute: Yes and No, and Unknown
       // where the field can be empty.
@@ -235,6 +245,7 @@ function fieldMatchScore(entry: SearchFieldEntry, query: string): number {
 const KIND_DETAIL: Record<SearchFieldKind, string> = {
   number: "numeric range",
   datetime: "date range",
+  date: "day",
   string: "text search",
   boolean: "yes / no",
   options: "options",
@@ -276,6 +287,7 @@ const KIND_BOOST: Record<SearchFieldKind, number> = {
   string: 5,
   number: 0,
   datetime: 0,
+  date: 0,
 };
 
 function countDetail(count: number | undefined): string | undefined {
@@ -309,12 +321,16 @@ const STARTER_SCORE: Record<SearchFieldKind, number> = {
   boolean: 40,
   string: 30,
   number: 20,
+  date: 15,
   datetime: 10,
 };
 
 /** What picking one of a field's values does. */
 function valueAction(entry: SearchFieldEntry, value: string): FilterSearchAction {
   if (entry.kind === "string") return { type: "string-value", field: entry.field, value };
+  if (entry.kind === "date" && isDatePreset(value)) {
+    return { type: "date-preset", field: entry.field, value };
+  }
   if (entry.kind === "boolean") {
     const parsed = parseBooleanValue(value);
     if (parsed != null) return { type: "boolean-value", field: entry.field, value: parsed };
@@ -428,7 +444,7 @@ export function SearchFilterIndex(
 
       if (op !== ":" && op !== "=" && op !== "==") continue;
 
-      if (entry.kind === "options" || entry.kind === "boolean") {
+      if (entry.kind === "options" || entry.kind === "boolean" || entry.kind === "date") {
         const typedEnd = rawQuery.trimEnd();
         for (const v of entry.values) {
           const valueScore = Math.max(
@@ -577,6 +593,14 @@ export function ApplyFilterSuggestion(
     case "boolean-value": {
       if (key) {
         change_filters(key, "value", action.value);
+        return key;
+      }
+      return add_filter?.(action.field, action.value) ?? null;
+    }
+
+    case "date-preset": {
+      if (key) {
+        change_filters(key, "value", { preset: action.value, from: "", to: "" });
         return key;
       }
       return add_filter?.(action.field, action.value) ?? null;

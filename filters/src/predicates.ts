@@ -1,5 +1,7 @@
+import { cellDay, dayTest, isDatePreset, isDay, localDay } from "./dateOnly";
 import type {
   BooleanFilterValue,
+  DateFilterValue,
   DatetimeFilterValue,
   FilterInitialValue,
   FilterKind,
@@ -208,6 +210,45 @@ const datetimePredicate: Predicate = {
 };
 
 /**
+ * A `date` field, compared as calendar days (see dateOnly.ts). "Today" is read
+ * from the clock each time a test is built — ApplyFilters builds one per pass —
+ * so a relative preset never goes stale inside a saved value. An empty cell
+ * matches only "No date", as an empty cell fails a number or datetime range.
+ */
+const datePredicate: Predicate = {
+  empty: () => ({ preset: null, from: "", to: "" }),
+  isActive(f) {
+    const v = f.value as DateFilterValue | null | undefined;
+    return !!v && (v.preset != null || isDay(v.from) || isDay(v.to));
+  },
+  rowTest(f, column) {
+    const v = f.value as DateFilterValue | null | undefined;
+    if (!v) return null;
+    const test = dayTest(v, localDay(new Date()));
+    if (!test) return null;
+    return (row) => test(cellDay(row?.[column]));
+  },
+  seed(f, initial) {
+    // A preset token ("past"), or a partial range. Anything else — including
+    // "" — leaves the filter empty, which is how a page clears one.
+    if (isDatePreset(initial)) {
+      f.value = { preset: initial, from: "", to: "" };
+      return;
+    }
+    if (initial && typeof initial === "object" && !Array.isArray(initial)) {
+      const seed = initial as Partial<DateFilterValue>;
+      if (isDatePreset(seed.preset)) {
+        f.value = { preset: seed.preset, from: "", to: "" };
+        return;
+      }
+      const from = isDay(seed.from) ? seed.from : "";
+      const to = isDay(seed.to) ? seed.to : "";
+      if (from || to) f.value = { preset: null, from, to };
+    }
+  },
+};
+
+/**
  * A boolean filter value from a token: true / false / "unknown" themselves,
  * their string spellings (a chart category, a search value, a group lane),
  * or a one-element array of either (a drill-in written for options filters).
@@ -254,6 +295,7 @@ export const PREDICATES: Record<FilterKind, Predicate> = {
   string: stringPredicate,
   number: numberPredicate,
   datetime: datetimePredicate,
+  date: datePredicate,
   options: optionsPredicate,
   boolean: booleanPredicate,
 };

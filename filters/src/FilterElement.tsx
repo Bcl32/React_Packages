@@ -5,6 +5,7 @@ import { DebouncedNumberFilter } from "./DebouncedNumberFilter";
 import { OptionsFilter } from "./OptionsFilter";
 import { BooleanFilter } from "./BooleanFilter";
 import { TimeFilter } from "./TimeFilter";
+import { DateFilter } from "./DateFilter";
 import { FILTER_FIELD_ATTR } from "./FilterTargeting";
 import type { FilterContextValue, FilterData, FilterDisplay, FilterOption, FilterSelection, FilterCellShape, ColourPresetsConfig } from "./types";
 
@@ -54,6 +55,14 @@ function get_chart_type(filter_data: FilterData, onRemove?: () => void): JSX.Ele
     case "datetime":
       return (
         <TimeFilter
+          name={filter_data["name"]}
+          title={title}
+          onRemove={onRemove}
+        />
+      );
+    case "date":
+      return (
+        <DateFilter
           name={filter_data["name"]}
           title={title}
           onRemove={onRemove}
