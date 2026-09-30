@@ -32,7 +32,14 @@ import type {
 } from "./CardView";
 import { resolveViewDefs } from "./ViewDefs";
 import { BoardView } from "./BoardView";
-import type { BoardConfig, BoardLane, GroupingLevel } from "./BoardView";
+import type {
+  BoardConfig,
+  BoardLane,
+  GroupingLevel,
+  LaneWrapperInfo,
+  LaneWrapperProps,
+  RenderLaneWrapper,
+} from "./BoardView";
 import { SectionsView } from "./SectionsView";
 import type {
   RenderSectionWrapper,
@@ -54,7 +61,16 @@ import { cn } from "@bcl32/utils/cn";
 import { useIsMobile } from "@bcl32/utils/useIsMobile";
 import type { ModelData, RowData } from "@bcl32/data-utils";
 
-export type { ToolbarAction, DataTableFilter, BoardConfig, BoardLane, GroupingLevel };
+export type {
+  ToolbarAction,
+  DataTableFilter,
+  BoardConfig,
+  BoardLane,
+  GroupingLevel,
+  LaneWrapperInfo,
+  LaneWrapperProps,
+  RenderLaneWrapper,
+};
 
 interface DataTableProps<TData extends RowData> {
   /**
@@ -181,6 +197,11 @@ interface DataTableProps<TData extends RowData> {
     wrapperProps: CardWrapperProps,
     children: React.ReactNode
   ) => React.ReactNode;
+  /**
+   * Board view: take over each lane's element — the drop seam that pairs with
+   * `renderCardWrapper` to make a board draggable. See `RenderLaneWrapper`.
+   */
+  renderLaneWrapper?: RenderLaneWrapper;
   /**
    * Sections view: take over each section's outermost grid element — the
    * card seam one rung up, for making sections droppable and the section
@@ -445,6 +466,7 @@ export function DataTable<TData extends RowData>(
   const renderCard = activeView.renderCard ?? props.renderCard;
   const renderCardWrapper = activeView.renderCardWrapper ?? props.renderCardWrapper;
   const renderSectionWrapper = activeView.renderSectionWrapper ?? props.renderSectionWrapper;
+  const renderLaneWrapper = activeView.renderLaneWrapper ?? props.renderLaneWrapper;
   const sectionHeaderActions = activeView.sectionHeaderActions ?? props.sectionHeaderActions;
   const sectionHeaderLeading = activeView.sectionHeaderLeading ?? props.sectionHeaderLeading;
   const sectionTone = activeView.sectionTone ?? props.sectionTone;
@@ -588,6 +610,7 @@ export function DataTable<TData extends RowData>(
                 renderSubComponent={renderSubComponent}
                 renderCard={renderCard}
                 renderCardWrapper={renderCardWrapper}
+                renderLaneWrapper={renderLaneWrapper}
                 cardActions={cardActions}
                 cardSlots={activeView.cardSlots}
                 {...rowEdit}

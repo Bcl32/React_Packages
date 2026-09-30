@@ -19,6 +19,7 @@ export { SectionsView } from "./SectionsView";
 export * from "./GroupSections";
 export * from "./TreeBoard";
 export * from "./SectionNesting";
+export * from "./BoardDrop";
 export { RowCard, BOARD_POS_ATTR, rowEditNode } from "./RowCard";
 export * from "./RowEditButton";
 export * from "./DetailPaneView";

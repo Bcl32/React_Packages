@@ -22,6 +22,9 @@ import type {
   RenderCardContext,
 } from "./RowCard";
 import { GALLERY_SIZE_WIDTHS } from "./GalleryCard";
+// Type-only: BoardView imports values from this module, so a value import back
+// would be a cycle. Types are erased and cost nothing.
+import type { RenderLaneWrapper } from "./BoardView";
 import type {
   RenderSectionWrapper,
   SectionTone,
@@ -104,6 +107,8 @@ export interface DataTableViewDef<TData extends RowData = RowData> {
     wrapperProps: CardWrapperProps,
     children: React.ReactNode
   ) => React.ReactNode;
+  /** Per-view lane drop seam (board base only). See `RenderLaneWrapper`. */
+  renderLaneWrapper?: RenderLaneWrapper;
   /** Per-view section-level drag seam (sections base only). See
    *  `RenderSectionWrapper` for the contract. */
   renderSectionWrapper?: RenderSectionWrapper;

@@ -82,6 +82,10 @@
       "types": "./dist/TablePagination.d.ts",
       "import": "./dist/TablePagination.js"
     },
+    "./BoardDrop": {
+      "types": "./dist/BoardDrop.d.ts",
+      "import": "./dist/BoardDrop.js"
+    },
     "./SectionNesting": {
       "types": "./dist/SectionNesting.d.ts",
       "import": "./dist/SectionNesting.js"

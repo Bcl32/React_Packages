@@ -114,6 +114,13 @@ export interface BoardConfig<TData extends RowData> {
   /** Offering this is what puts the "then by" choice in the group picker.
    *  Called with `null` to clear the nesting. */
   onSubGroupByChange?: (attrName: string | null) => void;
+  /**
+   * Keep the "no value" lane on screen even while it is empty. It is hidden
+   * then because a lane that exists to catch rows and holds none is noise —
+   * until a card is being dragged, when "No project" is exactly where somebody
+   * may want to put one. A page that drags sets this for the drag's duration.
+   */
+  showEmptyNoneLane?: boolean;
   /** Clicking a lane header. The group-cards view uses this to pin the value as
    *  a filter and drop into the table; without it headers are inert. */
   onLaneClick?: (value: string, isNone: boolean) => void;
@@ -131,6 +138,46 @@ export interface BoardConfig<TData extends RowData> {
   onGroupByChange?: (attrName: string) => void;
 }
 
+/** What a lane wrapper is told about the lane it wraps. */
+export interface LaneWrapperInfo {
+  lane: BoardLane;
+  /** Cards the lane holds right now, as drawn in its header. */
+  count: number;
+}
+
+/**
+ * The props `BoardView` would have put on the lane's own element, handed to a
+ * `renderLaneWrapper` consumer to spread onto the element it renders instead.
+ * `role` / `aria-label` are the grid's row semantics and `style` carries the
+ * lane width — merge into `className` and `style`, never replace them.
+ */
+export type LaneWrapperProps = React.ComponentPropsWithoutRef<"div">;
+
+/**
+ * The lane-level drag seam — `renderCardWrapper`'s partner on the board, and
+ * `RenderSectionWrapper`'s twin one layout over. Takes over each lane's
+ * outermost element so a consumer can make lanes droppable; the header and the
+ * cards stay package-rendered as `children`.
+ *
+ * The board stays agnostic about what a drop MEANS: the wrapper is handed the
+ * lane, a drop resolves to its `value`, and the page decides what to write (or
+ * to refuse). The contract mirrors the section seam:
+ * - Render exactly ONE outermost element and spread `laneProps` onto it,
+ *   merging `className` and `style`.
+ * - A drop ring must be inset (`ring-inset`): a ring that grows the element
+ *   moves the rects the drop is being resolved against, mid-drag.
+ * - Callbacks can't call hooks — return a component instance and let it own
+ *   `useDroppable`.
+ * - Lanes are as tall as their cards. Add `self-stretch` to make the whole
+ *   column a target; the board lays lanes out `items-start` for the read-only
+ *   case, where a stretched lane would only be empty space.
+ */
+export type RenderLaneWrapper = (
+  info: LaneWrapperInfo,
+  laneProps: LaneWrapperProps,
+  children: React.ReactNode
+) => React.ReactNode;
+
 export interface BoardViewProps<TData extends RowData> extends CardRenderOptions<TData> {
   table: TanstackTable<TData>;
   scrollRef: React.RefObject<HTMLDivElement>;
@@ -142,6 +189,8 @@ export interface BoardViewProps<TData extends RowData> extends CardRenderOptions
   restoreRowIndex?: ScrollRestoreRef;
   /** Enter/exit + reflow animation on the cards. */
   animate?: boolean;
+  /** Take over each lane's element — the drop seam. See `RenderLaneWrapper`. */
+  renderLaneWrapper?: RenderLaneWrapper;
 }
 
 interface LaneItem<TData extends RowData> {
@@ -171,10 +220,12 @@ function posKey(lane: number, pos: number): string {
  * expansion and filtering all carry over — cards within a lane follow the
  * table's current sort.
  *
- * Read-only by design: there is no drag. The two entities this ships for group
+ * Read-only unless a page opts in. The first entities this shipped for group
  * by multi-valued attributes (a part is in several systems) or by a derived
- * status the API refuses to accept a write for, so a drop would have nowhere
- * to land. Adding drag later is a per-entity opt-in, not a rewrite of this.
+ * status the API refuses to accept a write for, so a drop had nowhere to land.
+ * Drag is therefore two seams and no drag library: `renderCardWrapper` makes
+ * cards draggable, `renderLaneWrapper` makes lanes droppable, and the page owns
+ * the drag context and decides what a drop onto a lane writes.
  *
  * Not virtualized. Every list page loads its whole collection client-side and
  * a lane holds a fraction of it; the grid's chunk virtualizer is shaped around
@@ -182,7 +233,7 @@ function posKey(lane: number, pos: number): string {
  */
 export function BoardView<TData extends RowData>(props: BoardViewProps<TData>): JSX.Element {
   const rows = props.table.getRowModel().rows;
-  const { lanes, laneOf, onLaneClick } = props.board;
+  const { lanes, laneOf, onLaneClick, showEmptyNoneLane } = props.board;
   const laneWidth = props.laneWidth ?? CARD_SIZE_WIDTHS[DEFAULT_CARD_SIZE];
 
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -206,8 +257,8 @@ export function BoardView<TData extends RowData>(props: BoardViewProps<TData>): 
   // are none. Every other empty lane stays: a status with nothing in it is a
   // fact worth showing, and is the whole reason enum buckets get seeded.
   const visible = React.useMemo(
-    () => buckets.filter((b) => !b.lane.isNone || b.items.length > 0),
-    [buckets]
+    () => buckets.filter((b) => !b.lane.isNone || b.items.length > 0 || showEmptyNoneLane),
+    [buckets, showEmptyNoneLane]
   );
 
   const reduceMotion = useReducedMotion();
@@ -368,14 +419,15 @@ export function BoardView<TData extends RowData>(props: BoardViewProps<TData>): 
       className="flex items-start gap-3 pb-3"
       {...{ [ROW_SCOPE_ATTR]: "" }}
     >
-      {visible.map((bucket, laneIndex) => (
-        <div
-          key={bucket.lane.value}
-          role="row"
-          aria-label={bucket.lane.label}
-          className="flex shrink-0 flex-col"
-          style={{ width: laneWidth }}
-        >
+      {visible.map((bucket, laneIndex) => {
+        const laneProps: LaneWrapperProps = {
+          role: "row",
+          "aria-label": bucket.lane.label,
+          className: "flex shrink-0 flex-col",
+          style: { width: laneWidth },
+        };
+        const body = (
+          <>
           <LaneHeader
             lane={bucket.lane}
             count={bucket.items.length}
@@ -422,8 +474,18 @@ export function BoardView<TData extends RowData>(props: BoardViewProps<TData>): 
               </div>
             )}
           </div>
-        </div>
-      ))}
+          </>
+        );
+        return (
+          <React.Fragment key={bucket.lane.value}>
+            {props.renderLaneWrapper ? (
+              props.renderLaneWrapper({ lane: bucket.lane, count: bucket.items.length }, laneProps, body)
+            ) : (
+              <div {...laneProps}>{body}</div>
+            )}
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 }

@@ -228,6 +228,7 @@ DataTable<TData extends RowData>(props: {
   renderCard?: (row: Row<TData>, ctx: RenderCardContext) => ReactNode;  // card view: replace the default card
   renderCardWrapper?: (row, wrapperProps, children) => ReactNode;  // card-shaped views: take over the outer wrapper — the drag seam
   renderSectionWrapper?: (section, sectionProps, children) => ReactNode;  // sections view: take over each section's grid element — the section drag seam
+  renderLaneWrapper?: (info, laneProps, children) => ReactNode;  // board view: take over each lane's element — the lane drop seam
   sectionHeaderActions?: (section) => ReactNode; // sections view: trailing header furniture (⋯ menu, edit affordances)
   sectionHeaderLeading?: (section) => ReactNode; // sections view: leading header furniture, before the chevron (drag grip)
   sectionTone?: SectionTone;                     // sections view: per-group backdrop from the theme card palette (default "none")
@@ -493,6 +494,7 @@ interface DataTableViewDef<TData extends RowData = RowData> {
   renderCard?: (row, ctx) => React.ReactNode;
   renderCardWrapper?: (row, wrapperProps, children) => React.ReactNode; // drag seam — see below
   renderSectionWrapper?: (section, sectionProps, children) => React.ReactNode; // section drag seam (sections base) — see below
+  renderLaneWrapper?: (info, laneProps, children) => React.ReactNode; // lane drop seam (board base) — see below
   sectionHeaderActions?: (section) => React.ReactNode; // trailing section header furniture (sections base)
   sectionHeaderLeading?: (section) => React.ReactNode; // leading section header furniture (sections base)
   sectionTone?: SectionTone;   // per-group backdrop palette (sections base) — see below
@@ -881,6 +883,7 @@ interface BoardConfig<TData> {
   laneOf: (row: TData) => string[];   // array — a row can sit in several lanes
   onLaneClick?: (value: string, isNone: boolean) => void;
   groupLabel?: string;                // e.g. "Status", for the empty state
+  showEmptyNoneLane?: boolean;        // keep an empty isNone lane on screen (set it while a drag is held)
 }
 ```
 
@@ -899,9 +902,14 @@ Two contracts worth stating outright:
 
 Empty lanes still render, with an `Empty` placeholder: `useEntityGroups` seeds enum buckets from `attr.options` up front, and a status with nothing in it is a fact worth showing. The `isNone` lane is the exception — an empty "Untagged" is noise, so it is dropped.
 
-### Read-only by design
+### Drag between lanes is an opt-in (`renderLaneWrapper`)
 
-There is no drag. Grouping attributes are frequently multi-valued (a part in two systems is genuinely in both, so a drop has no single meaning) or derived (Print-Tracker's `Project.status` is computed from item progress and the API rejects a write to it outright). Adding drag is a per-entity opt-in for entities with a writable scalar enum and a rank column — not a rewrite of this layout.
+Read-only by default, and still with no drag library: grouping attributes are frequently multi-valued (a part in two systems is genuinely in both, so a drop has no single meaning) or derived (Print-Tracker's `Project.status` is computed from item progress and the API rejects a write to it outright). A page whose grouping IS writable opts in with two seams and owns the `DndContext` itself:
+
+- `renderCardWrapper` makes each card draggable (the card seam above; spread `wrapperProps` **after** dnd-kit's `attributes`, so the card's own `role` and roving `tabIndex` win).
+- `renderLaneWrapper(info, laneProps, children)` makes each lane a drop target. `info` is `{ lane, count }`; a drop resolves to `lane.value` and **the page decides what that means** — the package never writes. The contract is the section seam's: one outermost element, `laneProps` spread onto it with `className` and `style` merged (`role`, `aria-label` and the lane width ride there), any ring `ring-inset`, and a component instance that owns `useDroppable`. Lanes are as tall as their cards; add `self-stretch` to make the whole column a target.
+
+Set `board.showEmptyNoneLane` for the length of a drag, or an empty "No project" lane is hidden exactly when somebody wants to drop on it. What a drop onto a lane writes is `laneDropWrite(attr, lane)` from `@bcl32/datatable/BoardDrop` — `SectionNesting`'s sibling for boards: pure, no drag library — which decides it from the grouping attribute's metadata and returns a sentence when the answer is "nothing" — call it per lane to colour the ring before the drop, and again on the drop. A grouping with no single meaning for a drop should still let the card move and refuse **visibly** on the lane under the pointer (Home Helper's Tasks board turns it red and says why) rather than ignore the drop. Use `MeasuringStrategy.Always`: lanes change height mid-drag. Per-view overridable, so only the board view of a page need carry it.
 
 ### Layout & keyboard
 
