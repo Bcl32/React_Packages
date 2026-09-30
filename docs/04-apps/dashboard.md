@@ -80,7 +80,6 @@ All UI is hand-rolled against raw Tailwind classes. Components live in `src/comp
 | `LaunchBar` | `components/release/LaunchBar.tsx` | Release pipeline launcher: project/preset selects with a pre-flight validation banner and a Start Run button that fires a POST mutation. |
 | `StageStepper` | `components/release/StageStepper.tsx` | Vertical pipeline stage list rendered from SSE-streamed `PipelineRun` data, delegating each stage to `StageCard`. |
 | `DriftApprovalCard` | `components/release/DriftApprovalCard.tsx` | Approval-gate widget shown when a run reaches `awaiting-approval`; renders a per-project dep-bump table with Approve/Cancel buttons. |
-| `DriftStatusList` | `components/release/DriftStatusList.tsx` | Per-project shared-package drift inspector with expand/collapse bump tables and an Apply Locally mutation. |
 
 > `StageCard` and `GitHubLink` are additional internal components in the same folders; the table above lists the audited primitives.
 
