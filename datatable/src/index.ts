@@ -20,6 +20,7 @@ export * from "./GroupSections";
 export * from "./TreeBoard";
 export * from "./SectionNesting";
 export * from "./BoardDrop";
+export * from "./DragAffordances";
 export { RowCard, BOARD_POS_ATTR, rowEditNode } from "./RowCard";
 export * from "./RowEditButton";
 export * from "./DetailPaneView";

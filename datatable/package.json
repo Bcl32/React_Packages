@@ -82,6 +82,10 @@
       "types": "./dist/TablePagination.d.ts",
       "import": "./dist/TablePagination.js"
     },
+    "./DragAffordances": {
+      "types": "./dist/DragAffordances.d.ts",
+      "import": "./dist/DragAffordances.js"
+    },
     "./BoardDrop": {
       "types": "./dist/BoardDrop.d.ts",
       "import": "./dist/BoardDrop.js"

@@ -119,6 +119,7 @@ export interface BoardConfig<TData extends RowData> {
    * then because a lane that exists to catch rows and holds none is noise —
    * until a card is being dragged, when "No project" is exactly where somebody
    * may want to put one. A page that drags sets this for the drag's duration.
+   * The sections layout honours it too, for its top-level "No …" section.
    */
   showEmptyNoneLane?: boolean;
   /** Clicking a lane header. The group-cards view uses this to pin the value as

@@ -290,7 +290,7 @@ export function SectionsView<TData extends RowData>(
   props: SectionsViewProps<TData>
 ): JSX.Element {
   const rows = props.table.getRowModel().rows;
-  const { lanes, laneOf, subGroups, onLaneClick } = props.board;
+  const { lanes, laneOf, subGroups, onLaneClick, showEmptyNoneLane } = props.board;
   const cardWidth = props.cardMinWidth ?? CARD_SIZE_WIDTHS[DEFAULT_CARD_SIZE];
   // A lane may pin its own tile size. Resolved against the ACTIVE VARIANT's
   // preset table, so "large" is a large gallery tile in a photo view and a
@@ -332,7 +332,11 @@ export function SectionsView<TData extends RowData>(
         // sub-section renders inside its declaring parent, and only there,
         // because an empty section that never renders can never be a drop
         // target.
-        if (items.length === 0 && (dropEmpty || lane.isNone)) {
+        // `showEmptyNoneLane` (a drag is being held) keeps the empty top-level
+        // "No …" section, exactly as the board keeps its lane: it is the one
+        // moment an empty "no value" group is somewhere somebody wants to be.
+        const keepNone = lane.isNone && depth === 0 && showEmptyNoneLane;
+        if (items.length === 0 && (dropEmpty || (lane.isNone && !keepNone))) {
           if (lane.parentValue === undefined || lane.parentValue !== parentValue) continue;
         }
         const path = parentPath ? `${parentPath}∕${lane.value}` : lane.value;
@@ -357,7 +361,7 @@ export function SectionsView<TData extends RowData>(
       false,
       null
     );
-  }, [rows, lanes, laneOf, subGroups]);
+  }, [rows, lanes, laneOf, subGroups, showEmptyNoneLane]);
 
   // ---- Collapse ------------------------------------------------------------
   // Keyed by value-path rather than index so a filter that removes a section
