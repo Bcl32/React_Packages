@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.4.1
+
+### Patch Changes
+
+- 99d2a85: fix: dropdowns carry ids, so same-named records can be picked
+- Updated dependencies [99d2a85]
+  - @bcl32/utils@2.10.4
+  - @bcl32/data-utils@2.6.4
+  - @bcl32/hooks@4.2.2
+
 ## 3.4.0
 
 ### Minor Changes

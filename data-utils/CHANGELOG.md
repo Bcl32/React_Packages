@@ -1,5 +1,11 @@
 # @bcl32/data-utils
 
+## 2.6.4
+
+### Patch Changes
+
+- 99d2a85: fix: dropdowns carry ids, so same-named records can be picked
+
 ## 2.6.3
 
 ### Patch Changes

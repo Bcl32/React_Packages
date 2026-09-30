@@ -1,5 +1,11 @@
 # @bcl32/hooks
 
+## 4.2.2
+
+### Patch Changes
+
+- 99d2a85: fix: dropdowns carry ids, so same-named records can be picked
+
 ## 4.2.1
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/filters",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "description": "Custom filters for data pulled from servers",
   "author": "",
   "license": "ISC",
@@ -174,9 +174,9 @@
     "@radix-ui/react-slider": "^1.2.1"
   },
   "dependencies": {
-    "@bcl32/utils": "workspace:^2.10.3",
-    "@bcl32/hooks": "workspace:^4.2.1",
-    "@bcl32/data-utils": "workspace:^2.6.2",
+    "@bcl32/utils": "workspace:^2.10.4",
+    "@bcl32/hooks": "workspace:^4.2.2",
+    "@bcl32/data-utils": "workspace:^2.6.4",
     "@bcl32/charts": "workspace:^3.2.1",
     "lucide-react": "^0.447.0"
   },
