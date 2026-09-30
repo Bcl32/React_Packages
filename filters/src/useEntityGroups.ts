@@ -250,10 +250,21 @@ export function useEntityGroups(
       }
     }
 
+    // A reference attribute's options are the rows of the table it points
+    // at, so a value with no option is a dangling id — a deleted project. Its
+    // uuid is not a label anyone can read.
+    const isReference = Boolean(
+      (attr as ModelAttribute & { options_source?: { label_key?: string } }).options_source?.label_key,
+    );
+
     const result: EntityGroup[] = [];
     for (const [value, acc] of buckets.entries()) {
       const isNone = value === NONE_VALUE;
-      const label = isNone ? NONE_LABEL : (acc.label ?? value);
+      // The seeded label wins for the none bucket too: a reference filter
+      // declares its own ("No project"), which reads better than "Untagged".
+      const label = isNone
+        ? (acc.label ?? NONE_LABEL)
+        : (acc.label ?? (isReference ? "Unknown" : value));
       const visual =
         resolveVisual && !isNone
           ? resolveVisual(attr, value, acc.sampleRow, acc.rows)

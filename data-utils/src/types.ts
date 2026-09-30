@@ -2,6 +2,8 @@
 export interface ReferenceInfo {
   get_api_url: string;
   display_field: string;
+  /** A second field that tells two same-named rows apart (a room's floor). */
+  detail_field?: string;
 }
 
 /** Base attribute definition for a model field */

@@ -3,8 +3,32 @@ import { X } from "lucide-react";
 import { Input } from "./Input";
 import { cn } from "./cn";
 
+/**
+ * One choice. A plain string is its own value and its own label — the tags
+ * and free-text suggestion fields, where the text IS what gets stored. A pair
+ * separates the two: the label is only shown and searched, and the value is
+ * what `value` holds and `onChange` reports.
+ *
+ * The pair exists because the string form was being used for linked records.
+ * A caller that needed an id had to hand over names, get a name back, and
+ * look the id up by name — so two rooms both called "Hall" were one entry,
+ * and picking either saved whichever came first. With pairs there is no name
+ * lookup anywhere: the id travels with the row it belongs to, which is what
+ * the filament swatch picker (ColourPickerPopover) has always done.
+ */
+export type ComboboxOption = string | { value: string; label: string };
+
+function valueOf(option: ComboboxOption): string {
+  return typeof option === "string" ? option : option.value;
+}
+
+function labelOf(option: ComboboxOption): string {
+  return typeof option === "string" ? option : option.label;
+}
+
 export interface ComboboxProps {
-  options?: string[];
+  options?: ComboboxOption[];
+  /** Selected VALUES — option values, or free text under `freeSolo`. */
   value: string[];
   onChange: (value: string[]) => void;
   placeholder?: string;
@@ -37,15 +61,22 @@ export function Combobox({
   const containerRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
+  // What a selected value is called. A value with no option behind it — free
+  // text, or an id whose record is gone — is shown as itself.
+  const labelFor = React.useMemo(() => {
+    const byValue = new Map(options.map((o) => [valueOf(o), labelOf(o)]));
+    return (v: string) => byValue.get(v) ?? v;
+  }, [options]);
+
   const filteredOptions = options.filter(
     (o) =>
-      (!multiple || !value.includes(o)) &&
-      (!input || o.toLowerCase().includes(input.toLowerCase())),
+      (!multiple || !value.includes(valueOf(o))) &&
+      (!input || labelOf(o).toLowerCase().includes(input.toLowerCase())),
   );
 
   // Single-select: show selected label in input when not focused
   const displayInput = !multiple && !open && value.length > 0 && !input
-    ? value[0]
+    ? labelFor(value[0])
     : input;
 
   function select(item: string) {
@@ -69,10 +100,10 @@ export function Combobox({
     if (e.key === "Enter" && input.trim()) {
       e.preventDefault();
       const exact = options.find(
-        (o) => o.toLowerCase() === input.trim().toLowerCase(),
+        (o) => labelOf(o).toLowerCase() === input.trim().toLowerCase(),
       );
       if (exact) {
-        select(exact);
+        select(valueOf(exact));
       } else if (freeSolo) {
         select(input.trim());
       }
@@ -104,14 +135,16 @@ export function Combobox({
           {value.map((item) => (
             <span
               key={item}
+              title={labelFor(item)}
               className={cn(
                 "inline-flex items-center rounded-full bg-primary text-primary-foreground",
                 compact ? "gap-0.5 px-1.5 text-[10px] leading-4" : "gap-1 px-2 py-0.5 text-xs",
               )}
             >
-              {item}
+              {labelFor(item)}
               <button
                 type="button"
+                aria-label={`Remove ${labelFor(item)}`}
                 onClick={() => remove(item)}
                 className="hover:text-primary-foreground/70"
               >
@@ -146,19 +179,19 @@ export function Combobox({
         <div className="absolute z-50 mt-1 w-full bg-card border rounded-md shadow-lg max-h-48 overflow-auto">
           {filteredOptions.map((opt) => (
             <button
-              key={opt}
+              key={valueOf(opt)}
               type="button"
               onPointerDown={(e) => {
                 // Prevent input blur from closing before selection
                 e.preventDefault();
               }}
-              onClick={() => select(opt)}
+              onClick={() => select(valueOf(opt))}
               className={cn(
                 "w-full text-left hover:bg-accent transition-colors",
                 compact ? "px-2 py-1 text-xs" : "px-3 py-1.5 text-sm",
               )}
             >
-              {opt}
+              {labelOf(opt)}
             </button>
           ))}
         </div>
@@ -166,12 +199,13 @@ export function Combobox({
       {showBadges && options.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-2">
           {options.map((opt) => {
-            const selected = value.includes(opt);
+            const v = valueOf(opt);
+            const selected = value.includes(v);
             return (
               <button
-                key={opt}
+                key={v}
                 type="button"
-                onClick={() => (selected ? remove(opt) : select(opt))}
+                onClick={() => (selected ? remove(v) : select(v))}
                 className={cn(
                   "px-2.5 py-1 rounded-full text-xs font-medium transition-colors border",
                   selected
@@ -179,7 +213,7 @@ export function Combobox({
                     : "bg-card text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground",
                 )}
               >
-                {opt}
+                {labelOf(opt)}
               </button>
             );
           })}

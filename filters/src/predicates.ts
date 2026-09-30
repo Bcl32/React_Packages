@@ -6,6 +6,7 @@ import type {
   FilterValue,
   NumberRange,
 } from "./types";
+import { NONE_VALUE } from "./useEntityGroups";
 
 /**
  * What each kind of filter means, in one table instead of a switch per
@@ -154,7 +155,13 @@ const optionsPredicate: Predicate = {
         ? extractRowValues(row?.[matchField], "scalar-array", value_key)
         : [];
       const hit = (token: string) =>
-        matchField && !isColourToken(token)
+        // "No project": the choice that matches an EMPTY cell. A null FK yields
+        // no row values at all, so without this no selection could ever reach
+        // those rows. Same token as the grouping's "Untagged" lane, so a lane
+        // drill-in and a filter mean the same rows.
+        token === NONE_VALUE
+          ? rowValues.length === 0
+          : matchField && !isColourToken(token)
           ? rowIds.includes(token)
           : isColourToken(token)
             ? rowHexes.includes(normHex(token))

@@ -137,33 +137,24 @@ interface ComboboxViewProps {
 }
 
 function ComboboxView({ options, value, multiple, placeholder, onChange }: ComboboxViewProps): JSX.Element {
-  // The combobox is a list of strings, so the displayed text is the key we get
-  // back on select — both maps are built from the *pretty* label, never the raw
-  // one, or an enum-backed option round-trips to a value nothing matches.
-  const labels = React.useMemo(() => options.map((o) => prettyOptionLabel(o.label)), [options]);
-  const labelToValue = React.useMemo(() => {
-    const m = new Map<string, string>();
-    options.forEach((o) => m.set(prettyOptionLabel(o.label), o.value));
-    return m;
-  }, [options]);
-  const valueToLabel = React.useMemo(() => {
-    const m = new Map<string, string>();
-    options.forEach((o) => m.set(o.value, prettyOptionLabel(o.label)));
-    return m;
-  }, [options]);
-
-  const currentLabels = value.map((v) => valueToLabel.get(v) ?? v);
+  // Pairs straight through: the combobox shows the pretty label and reports
+  // the option's VALUE. It used to be handed labels alone and map the pick
+  // back through a label→value table, which kept only one of two options that
+  // share a label — two rooms called "Hall" filtered as one.
+  const pairs = React.useMemo(
+    () => options.map((o) => ({ value: String(o.value), label: prettyOptionLabel(o.label) })),
+    [options],
+  );
 
   return (
     <Combobox
       multiple={multiple}
       freeSolo
       size="sm"
-      options={labels}
-      value={currentLabels}
+      options={pairs}
+      value={value}
       onChange={(next: string | string[]) => {
-        const arr = Array.isArray(next) ? next : next ? [next] : [];
-        onChange(arr.map((lbl) => labelToValue.get(lbl) ?? lbl));
+        onChange(Array.isArray(next) ? next : next ? [next] : []);
       }}
       placeholder={placeholder}
     />

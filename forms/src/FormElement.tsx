@@ -14,6 +14,7 @@ import { CustomTooltip } from "@bcl32/utils/Tooltip";
 import { DateTimePicker } from "@bcl32/utils/DateTimePicker";
 
 import { useGetRequest } from "@bcl32/hooks/useGetRequest";
+import { optionsFromSource } from "@bcl32/hooks/useOptionsEnrichment";
 import { Combobox } from "@bcl32/utils/Combobox";
 import type { ModelAttribute, ReferenceInfo } from "@bcl32/data-utils";
 import { ColourField } from "./ColourField";
@@ -83,10 +84,6 @@ export interface FormElementProps {
   change_datetime: (value: Dayjs | null, name: string) => void;
 }
 
-interface ReferenceOption {
-  id: string;
-  label: string;
-}
 
 function IdReferenceField({
   entry_data,
@@ -107,29 +104,36 @@ function IdReferenceField({
     { staleTime: 5 * 60 * 1000 }
   );
 
-  const options: ReferenceOption[] = React.useMemo(() => {
-    if (!data?.items) return [];
-    return data.items.map((item) => ({
-      id: String(item.id),
-      label: String(item[reference.display_field] ?? item.id),
-    }));
-  }, [data, reference.display_field]);
-
-  const selectedOption = options.find((opt) => opt.id === formData[name]) ?? null;
+  // The SAME option builder the filter bar uses, so a room reads "Hall ·
+  // 2nd Floor" in this form and in the filter above the table, and no two
+  // options ever share a label. The registry's `detail_field` on the target
+  // table is what the tie-break reads.
+  const options = React.useMemo(
+    () =>
+      optionsFromSource(data, {
+        value_key: "id",
+        label_key: reference.display_field,
+        detail_key: reference.detail_field,
+      }) as { value: string; label: string }[],
+    [data, reference.display_field, reference.detail_field],
+  );
+  const current = formData[name] ? String(formData[name]) : "";
 
   return (
     <div className="py-2">
       <LabelWithHelp htmlFor={name} helpText={helpText}>
         {label}:
       </LabelWithHelp>
+      {/* Pairs, so the pick IS the record's id. This used to hand the
+          combobox names and look the id up by name afterwards, which saved
+          the FIRST of two same-named records whichever one was clicked. */}
       <Combobox
-        options={options.map((o) => o.label)}
-        value={selectedOption ? [selectedOption.label] : []}
+        options={options}
+        value={current ? [current] : []}
         onChange={(val) => {
-          const match = options.find((o) => o.label === val[0]);
           setFormData((prev) => ({
             ...prev,
-            [name]: match?.id ?? "",
+            [name]: val[0] ?? "",
           }));
         }}
         placeholder={`Select ${name.replace(/_id$/, "").replace(/_/g, " ")}...`}
@@ -299,14 +303,13 @@ export function FormElement({
       const labelKey = (entry_data.label_key as string) || "label";
       const options =
         (entry_data.options as Array<Record<string, unknown>>) || [];
-      const optionLabels = options.map((o) => String(o[labelKey]));
-      const currentValues = (formData[name] as Array<string>) || [];
-      const selectedLabels = currentValues
-        .map((v) => {
-          const match = options.find((o) => o[valueKey] === v);
-          return match ? String(match[labelKey]) : null;
-        })
-        .filter((l): l is string => l != null);
+      // Pairs: the combobox holds the ids themselves, so two options that
+      // share a name stay two options.
+      const pairs = options.map((o) => ({
+        value: String(o[valueKey]),
+        label: String(o[labelKey]),
+      }));
+      const currentValues = ((formData[name] as Array<string>) || []).map(String);
       return (
         <div className="py-2">
           <LabelWithHelp htmlFor={name} helpText={helpText}>
@@ -315,17 +318,9 @@ export function FormElement({
           <Combobox
             multiple
             showBadges
-            options={optionLabels}
-            value={selectedLabels}
-            onChange={(newLabels) => {
-              const newValues = newLabels
-                .map((lbl) => {
-                  const match = options.find(
-                    (o) => String(o[labelKey]) === lbl,
-                  );
-                  return match ? (match[valueKey] as string) : null;
-                })
-                .filter((v): v is string => v != null);
+            options={pairs}
+            value={currentValues}
+            onChange={(newValues) => {
               setFormData((prev) => ({ ...prev, [name]: newValues }));
             }}
             placeholder={`Add ${name.replace(/_/g, " ")}...`}
