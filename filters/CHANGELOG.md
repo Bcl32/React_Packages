@@ -1,5 +1,16 @@
 # @bcl32/filters
 
+## 5.1.0
+
+### Minor Changes
+
+- cc323e0: A `date` filter kind for calendar-day fields: relative presets (Before today, Today, Next 7 days, Has a date, No date) stored as tokens, or an inclusive YYYY-MM-DD range, compared as days rather than instants so "from June 15" keeps June 15 west of UTC. Driven by `filter_type: "date"` from bcl32-schema-utils; metadata still declaring `string` keeps its text box.
+
+### Patch Changes
+
+- Updated dependencies [9920c6f]
+  - @bcl32/hooks@4.2.3
+
 ## 5.0.1
 
 ### Patch Changes

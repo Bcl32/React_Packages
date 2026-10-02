@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.1.0
+
+### Minor Changes
+
+- d9ff821: Board lanes can take drops. `renderLaneWrapper` (table prop and per-view) hands each lane's element to the page, the pair of `renderCardWrapper`; `BoardConfig.showEmptyNoneLane` keeps an empty "No …" lane on screen during a drag; and `@bcl32/datatable/BoardDrop`'s `laneDropWrite(attr, lane)` decides from the grouping attribute's metadata what a drop writes, or returns the sentence explaining why it writes nothing. The package still ships no drag library and writes nothing on a drop.
+- 47e780c: `@bcl32/datatable/DragAffordances`: the shared look of a drag, still with no drag library. `DragGrip` (and its `strip` layout, the card's full-height right-edge handle, with `GRIP_GUTTER_CLASS` / `GRIP_GUTTER_CHILD_CLASS`), `DragPill`, the `pillAtCursor` overlay modifier, `DROP_ANIMATION`, and `DROP_HIGHLIGHT` / `REFUSE_HIGHLIGHT` — drop rings drawn as an `::after` overlay, because an inset box-shadow ring is painted under a tinted section's children and was invisible. The sections layout now honours `board.showEmptyNoneLane` for its top-level "No …" section.
+
+### Patch Changes
+
+- Updated dependencies [9920c6f]
+  - @bcl32/hooks@4.2.3
+  - @bcl32/forms@3.4.2
+
 ## 3.0.0
 
 ### Major Changes

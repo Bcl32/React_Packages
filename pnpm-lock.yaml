@@ -166,10 +166,10 @@ importers:
         specifier: workspace:^2.6.2
         version: link:../data-utils
       '@bcl32/forms':
-        specifier: workspace:^3.3.2
+        specifier: workspace:^3.4.2
         version: link:../forms
       '@bcl32/hooks':
-        specifier: workspace:^4.2.1
+        specifier: workspace:^4.2.3
         version: link:../hooks
       '@bcl32/utils':
         specifier: workspace:^2.10.3
@@ -221,7 +221,7 @@ importers:
         specifier: workspace:^2.6.4
         version: link:../data-utils
       '@bcl32/hooks':
-        specifier: workspace:^4.2.2
+        specifier: workspace:^4.2.3
         version: link:../hooks
       '@bcl32/utils':
         specifier: workspace:^2.10.4
@@ -267,7 +267,7 @@ importers:
         specifier: workspace:^2.6.4
         version: link:../data-utils
       '@bcl32/hooks':
-        specifier: workspace:^4.2.2
+        specifier: workspace:^4.2.3
         version: link:../hooks
       '@bcl32/utils':
         specifier: workspace:^2.10.4

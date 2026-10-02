@@ -1,5 +1,11 @@
 # @bcl32/hooks
 
+## 4.2.3
+
+### Patch Changes
+
+- 9920c6f: fix(hooks,forms): invalidate each listed url as its own query key
+
 ## 4.2.2
 
 ### Patch Changes

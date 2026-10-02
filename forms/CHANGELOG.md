@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.4.2
+
+### Patch Changes
+
+- 9920c6f: fix(hooks,forms): invalidate each listed url as its own query key
+- Updated dependencies [9920c6f]
+  - @bcl32/hooks@4.2.3
+
 ## 3.4.1
 
 ### Patch Changes
