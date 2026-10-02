@@ -287,7 +287,9 @@ export function DeleteModelForm({
   const mutation = useMutation<{ deleted: number }, ApiError, DeleteVariables>({
     mutationFn: (vars) => postDelete(delete_api_url, vars),
     onSuccess: (data, vars) => {
-      queryClient.invalidateQueries({ queryKey: query_invalidation });
+      // One key per url (see @bcl32/hooks' _invalidateEach); empty still means all.
+      if (query_invalidation.length === 0) queryClient.invalidateQueries({ queryKey: [] });
+      for (const key of query_invalidation) queryClient.invalidateQueries({ queryKey: [key] });
       const count = data?.deleted ?? vars.ids.length;
       toast.success(`${count} ${count === 1 ? "entry" : "entries"} deleted`);
       setRowSelection({});

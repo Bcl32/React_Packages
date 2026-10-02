@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useMutation, useQueryClient, UseMutationResult } from "@tanstack/react-query";
 import { buildRequestBody } from "./_buildRequestBody";
+import { invalidateEach } from "./_invalidateEach";
 import { ApiError } from "./ApiError";
 import { apiFetch } from "./apiFetch";
 
@@ -20,7 +21,7 @@ const post_api = async <TData, TResponse>(
   return res.json() as Promise<TResponse>;
 };
 
-// key_to_invalidate must be sent in as an array
+// key_to_invalidate is a list of read urls; each is invalidated as its own key.
 export const useDatabaseMutation = <TData = unknown, TResponse = unknown>(
   url: string,
   formData: TData,
@@ -34,7 +35,7 @@ export const useDatabaseMutation = <TData = unknown, TResponse = unknown>(
   return useMutation<TResponse, ApiError, void>({
     mutationFn: () => post_api<TData, TResponse>(url, formDataRef.current, method),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: key_to_invalidate });
+      invalidateEach(queryClient, key_to_invalidate);
     },
   });
 };

@@ -1,10 +1,13 @@
 import { useMutation, useQueryClient, UseMutationResult } from "@tanstack/react-query";
 import { buildRequestBody } from "./_buildRequestBody";
+import { invalidateEach } from "./_invalidateEach";
 import { ApiError } from "./ApiError";
 import { apiFetch } from "./apiFetch";
 
 interface UseApiMutationOptions<TResponse = unknown, TData = unknown> {
   method?: "POST" | "PUT" | "PATCH" | "DELETE";
+  /** Query keys to refresh on success, one per entry: `["a", "b"]` refreshes
+   * `["a"]` and `["b"]`. */
   invalidateKeys?: string[];
   /** Hook-level error handler. Its presence also opts this mutation out of an
    * app-wide `MutationCache.onError` default toast — global handlers check
@@ -42,7 +45,7 @@ export const useApiMutation = <TData = unknown, TResponse = unknown>(
     onError: options?.onError,
     onSuccess: (data, variables, context) => {
       if (options?.invalidateKeys) {
-        queryClient.invalidateQueries({ queryKey: options.invalidateKeys });
+        invalidateEach(queryClient, options.invalidateKeys);
       }
       options?.onSuccess?.(data, variables, context);
     },
