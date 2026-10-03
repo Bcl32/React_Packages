@@ -19,6 +19,7 @@ import { apiFetch, useGetRequest } from "@bcl32/hooks";
 import type { ModelAttribute } from "@bcl32/data-utils";
 
 import { FieldInput } from "./FieldInput";
+import { NoteMarkdown, isLongNote } from "./NoteMarkdown";
 import { useDebouncedCallback } from "./useDebouncedCallback";
 import type { FormData } from "./FormElement";
 
@@ -198,7 +199,7 @@ export function RelationCollectionField({
       : ((row[f.name] as string) ?? "");
     const placeholder =
       f.type === "textarea"
-        ? "Add a note…"
+        ? "Add a note… (Markdown supported)"
         : f.name === "url"
           ? "https://…"
           : f.type === "string"
@@ -516,7 +517,9 @@ export function RelationCollectionField({
             return (
               <div
                 key={row.id}
-                className="bg-card rounded-lg border p-3 flex gap-3"
+                className={`bg-card rounded-lg border p-3 flex gap-3${
+                  isLongNote(note) ? " md:col-span-2 lg:col-span-3" : ""
+                }`}
               >
                 {showThumbnail && renderThumb(row, Icon, false)}
                 <div className="flex flex-col gap-1.5 min-w-0 flex-1">
@@ -554,9 +557,9 @@ export function RelationCollectionField({
                     )}
                   </div>
                   {note && (
-                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                    <NoteMarkdown className="text-sm text-muted-foreground break-words">
                       {note}
-                    </p>
+                    </NoteMarkdown>
                   )}
                 </div>
               </div>

@@ -90,7 +90,8 @@
     "@bcl32/data-utils": "workspace:^2.6.4",
     "@bcl32/hooks": "workspace:^4.2.3",
     "@bcl32/utils": "workspace:^2.10.4",
-    "lucide-react": "^0.447.0"
+    "lucide-react": "^0.447.0",
+    "markdown-to-jsx": "^7.7.17"
   },
   "devDependencies": {
     "@tanstack/react-query": "^5.18.1",
