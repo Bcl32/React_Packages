@@ -9,6 +9,7 @@ import type { ModelData, RowData } from "@bcl32/data-utils";
 import { columnCardLabel, getCardMeta } from "./ColumnLabels";
 import type { CardSlotOverrides } from "./ColumnLabels";
 import { partitionCells, renderCell } from "./CardCells";
+import { ROW_ID_ATTR, applySelectionGesture, preventShiftTextSelection } from "./RowSelectGesture";
 import type { PartitionedCells } from "./CardCells";
 import { applicableCardActions, CardQuickActions } from "./CardActions";
 import { RowEditButton } from "./RowEditButton";
@@ -400,6 +401,8 @@ export function RowCard<TData extends RowData>(props: {
   const onClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     if (target.closest("a, input, button, label")) return;
+    // Shift / Ctrl / Cmd select rather than open (RowSelectGesture).
+    if (applySelectionGesture(row, e)) return;
     if (view.expandOnRowClick) row.toggleExpanded();
     view.rowClickFunction?.(row.original);
   };
@@ -432,7 +435,9 @@ export function RowCard<TData extends RowData>(props: {
     tabIndex: props.tabIndex,
     onFocus: props.onFocus,
     onClick,
+    onMouseDown: preventShiftTextSelection,
     "data-state": row.getIsSelected() ? "selected" : undefined,
+    [ROW_ID_ATTR]: row.id,
     [ROW_INDEX_ATTR]: props.index,
     ...(props.posAttr ? { [BOARD_POS_ATTR]: props.posAttr } : {}),
     className: cn(

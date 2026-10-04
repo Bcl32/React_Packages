@@ -7,10 +7,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@bcl32/utils/Dropdown";
-import { Plus, Pencil, Columns3, Trash2, X } from "lucide-react";
-import { ToggleGroup, ToggleGroupItem } from "@bcl32/utils/ToggleGroup";
+import { ChevronDown, Plus, Pencil, Columns3, Trash2, X } from "lucide-react";
 import { DialogButton } from "@bcl32/utils/DialogButton";
 import { Button } from "@bcl32/utils/Button";
 import { cn } from "@bcl32/utils/cn";
@@ -28,13 +29,36 @@ import type { CardSize, DataTableViewDef } from "./CardView";
 import type { BoardConfig } from "./BoardView";
 import type { ToolbarAction } from "./ToolbarAction";
 
+/** How long a mouse must rest on the trigger before the View menu opens —
+ *  short enough to feel immediate, long enough that a pointer crossing the
+ *  toolbar does not flash it open. */
+const HOVER_OPEN_MS = 120;
+/** How long the menu survives the pointer leaving trigger or menu: the gap
+ *  between them (`sideOffset`) is crossed in this time. */
+const HOVER_CLOSE_MS = 200;
+
 /**
- * The layout toggle, as a piece both toolbars can draw.
+ * The layout picker, as a piece both toolbars can draw.
+ *
+ * A dropdown rather than a row of icon buttons: a catalogue that runs to six
+ * or seven shapes (a page's own declared views beside the built-ins) made the
+ * segmented control the widest thing in the toolbar and pushed the row to wrap.
+ * The trigger names the current view — icon and label — so what is showing is
+ * readable without hovering, and the menu lists every view with its icon.
+ *
+ * It opens on a quick HOVER as well as a click. A mouse resting on the trigger
+ * for `HOVER_OPEN_MS` opens it; leaving trigger and menu for `HOVER_CLOSE_MS`
+ * closes it, so the pointer can cross the gap between them. Only a mouse
+ * hovers — touch and pen pointers keep tap-to-open — and the keyboard path
+ * (Enter, Space, ArrowDown) is Radix's own. The trigger's pointer-down is taken
+ * over because Radix TOGGLES there, which would shut a menu the hover had just
+ * opened; a click now always opens it. `modal={false}` keeps a hover-opened
+ * menu from freezing the page under it.
  *
  * Built from the resolved view defs rather than a fixed icon table, so a
- * consumer-declared shape gets a button on the same terms as a built-in layout.
- * Renders nothing when there is only one view — a segmented control with one
- * segment is a label.
+ * consumer-declared shape gets an entry on the same terms as a built-in layout.
+ * Renders nothing when there is only one view — a picker with one choice is a
+ * label.
  */
 function ViewToggle<TData extends RowData>(props: {
   views: DataTableViewDef<TData>[];
@@ -42,27 +66,94 @@ function ViewToggle<TData extends RowData>(props: {
   onChange: (key: string) => void;
   hidden?: boolean;
 }): JSX.Element | null {
+  const [open, setOpen] = React.useState(false);
+  const triggerRef = React.useRef<HTMLButtonElement | null>(null);
+  const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Set when hover closed the menu, so focus is not thrown back onto the
+  // trigger (a focus ring appearing under a pointer that merely moved away).
+  const closedByHover = React.useRef(false);
+  const clear = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+  };
+  React.useEffect(() => clear, []);
+  const hoverOpen = (e: React.PointerEvent) => {
+    if (e.pointerType !== "mouse") return;
+    clear();
+    if (!open) timer.current = setTimeout(() => setOpen(true), HOVER_OPEN_MS);
+  };
+  const hoverClose = (e: React.PointerEvent) => {
+    if (e.pointerType !== "mouse") return;
+    clear();
+    timer.current = setTimeout(() => {
+      closedByHover.current = true;
+      setOpen(false);
+    }, HOVER_CLOSE_MS);
+  };
+
   if (props.hidden || props.views.length <= 1) return null;
+  const current = props.views.find((def) => def.key === props.value) ?? props.views[0];
   return (
-    <ToggleGroup
-      type="single"
-      size="sm"
-      variant="outline"
-      value={props.value}
-      // Radix emits "" when the active item is re-clicked — ignore it.
-      onValueChange={(v) => {
-        if (v) props.onChange(v);
+    <DropdownMenu
+      open={open}
+      onOpenChange={(next) => {
+        clear();
+        if (next) closedByHover.current = false;
+        setOpen(next);
       }}
-      // A catalogue can run to five or six shapes; keep it whole and let the
-      // toolbar row wrap around it rather than letting flex crush the buttons.
-      className="shrink-0"
+      modal={false}
     >
-      {props.views.map((def) => (
-        <ToggleGroupItem key={def.key} value={def.key} aria-label={def.label} title={def.label}>
-          {def.icon}
-        </ToggleGroupItem>
-      ))}
-    </ToggleGroup>
+      <DropdownMenuTrigger asChild>
+        <Button
+          ref={triggerRef}
+          variant="outline"
+          size="sm"
+          title={`View: ${current.label}`}
+          aria-label={`View: ${current.label}`}
+          className="shrink-0 gap-1.5"
+          onPointerEnter={hoverOpen}
+          onPointerLeave={hoverClose}
+          onPointerDown={(e) => {
+            // Radix toggles on pointer-down; a menu hover just opened would
+            // close under the click. Opening is the only thing a click means.
+            if (e.button !== 0 || e.ctrlKey) return;
+            e.preventDefault();
+            clear();
+            closedByHover.current = false;
+            setOpen(true);
+          }}
+        >
+          {current.icon}
+          <span className="hidden sm:inline">{current.label}</span>
+          <ChevronDown size={14} className="opacity-60" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        onPointerEnter={(e) => e.pointerType === "mouse" && clear()}
+        onPointerLeave={hoverClose}
+        // The trigger is "outside" the menu as far as Radix's dismiss layer is
+        // concerned, so a click on it would close the menu the click just
+        // asked for. Clicks on the trigger are the trigger's business.
+        onPointerDownOutside={(e) => {
+          if (triggerRef.current?.contains(e.target as Node)) e.preventDefault();
+        }}
+        onCloseAutoFocus={(e) => {
+          if (closedByHover.current) e.preventDefault();
+        }}
+      >
+        <DropdownMenuLabel>View</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuRadioGroup value={current.key} onValueChange={(key) => key && props.onChange(key)}>
+          {props.views.map((def) => (
+            <DropdownMenuRadioItem key={def.key} value={def.key} className="gap-2">
+              {def.icon}
+              {def.label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

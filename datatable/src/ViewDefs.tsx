@@ -31,19 +31,20 @@ import type {
  */
 
 /** Icon and wording per built-in layout — the defaults a declaration inherits
- *  when it doesn't supply its own. Kept beside the normaliser rather than in
+ *  when it doesn't supply its own. Plain nouns: they are read in the toolbar's
+ *  "View" menu and on its trigger, beside page-declared names ("Outline").  Kept beside the normaliser rather than in
  *  the toolbar because normalisation is what needs them; the toolbar is handed
  *  finished defs. */
 export const VIEW_TOGGLE_DEFAULTS: Record<
   DataTableView,
   { icon: React.ReactNode; label: string }
 > = {
-  table: { icon: <Table2 size={16} />, label: "Table view" },
-  cards: { icon: <LayoutGrid size={16} />, label: "Card view" },
-  gallery: { icon: <Images size={16} />, label: "Gallery view" },
-  detail: { icon: <PanelRight size={16} />, label: "Detail pane view" },
-  board: { icon: <SquareKanban size={16} />, label: "Board view" },
-  sections: { icon: <LayoutDashboard size={16} />, label: "Grouped sections view" },
+  table: { icon: <Table2 size={16} />, label: "Table" },
+  cards: { icon: <LayoutGrid size={16} />, label: "Cards" },
+  gallery: { icon: <Images size={16} />, label: "Gallery" },
+  detail: { icon: <PanelRight size={16} />, label: "Detail" },
+  board: { icon: <SquareKanban size={16} />, label: "Board" },
+  sections: { icon: <LayoutDashboard size={16} />, label: "Sections" },
 };
 
 function isBuiltInView(value: unknown): value is DataTableView {

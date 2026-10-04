@@ -4,6 +4,7 @@ import { Checkbox } from "@bcl32/utils/Checkbox";
 
 import dayjs from "dayjs";
 
+import { applySelectionGesture, noteSelectionAnchor } from "./RowSelectGesture";
 import { RowActions } from "./RowActions";
 import { RowEditButton } from "./RowEditButton";
 
@@ -97,7 +98,15 @@ export function ColumnGenerator({
         <Checkbox
           name={"checkbox" + row.id}
           checked={row.getIsSelected()}
-          onCheckedChange={() => row.toggleSelected()}
+          // Shift-click ranges from the last ticked row; preventDefault stops
+          // the checkbox's own toggle so the range is the only write.
+          onClick={(e) => {
+            if (e.shiftKey && applySelectionGesture(row, e)) e.preventDefault();
+          }}
+          onCheckedChange={() => {
+            row.toggleSelected();
+            noteSelectionAnchor(row);
+          }}
           className="w-5 h-5"
         />
       </label>

@@ -12,6 +12,7 @@ import {
   firstVisibleRowIndex,
   scrollRenderedRowToTop,
 } from "./ViewScroll";
+import { ROW_ID_ATTR, applySelectionGesture, preventShiftTextSelection } from "./RowSelectGesture";
 import type { ScrollRestoreRef, ViewScrollHandle } from "./ViewScroll";
 
 import {
@@ -192,9 +193,13 @@ export function TableView<TData extends RowData>(
                     }}
                     ref={props.virtualized ? virtualizer.measureElement : undefined}
                     className={props.expandOnRowClick ? "cursor-pointer" : undefined}
+                    {...{ [ROW_ID_ATTR]: row.id }}
+                    onMouseDown={preventShiftTextSelection}
                     onClick={(e) => {
                       const target = e.target as HTMLElement;
                       if (target.closest("a, input, button, label")) return;
+                      // Shift / Ctrl / Cmd select rather than open.
+                      if (applySelectionGesture(row, e)) return;
                       if (props.expandOnRowClick) {
                         row.toggleExpanded();
                       }

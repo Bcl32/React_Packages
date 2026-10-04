@@ -97,6 +97,18 @@
     "./TreeBoard": {
       "types": "./dist/TreeBoard.d.ts",
       "import": "./dist/TreeBoard.js"
+    },
+    "./Outline": {
+      "types": "./dist/Outline.d.ts",
+      "import": "./dist/Outline.js"
+    },
+    "./OutlineCard": {
+      "types": "./dist/OutlineCard.d.ts",
+      "import": "./dist/OutlineCard.js"
+    },
+    "./RowSelectGesture": {
+      "types": "./dist/RowSelectGesture.d.ts",
+      "import": "./dist/RowSelectGesture.js"
     }
   },
   "bcl32": {

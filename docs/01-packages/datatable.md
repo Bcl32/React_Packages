@@ -129,7 +129,7 @@ Available subpaths: `./DataTable`, `./TableView`, `./CardView`, `./BoardView`, `
 
 | Name | Kind | Description |
 | --- | --- | --- |
-| `DataTable` | component | Primary full-featured table. Wraps TanStack Table with a sticky-header scrollable body, toolbar (title, filter slot, then a right-aligned button group: bulk-edit / custom toolbar actions / delete, create dialog, layout toggle, column-visibility dropdown), optional row virtualization via TanStack Virtual, expandable sub-rows, and a row-click handler. A pagination bar renders automatically when page count > 1. |
+| `DataTable` | component | Primary full-featured table. Wraps TanStack Table with a sticky-header scrollable body, toolbar (title, filter slot, then a right-aligned button group: bulk-edit / custom toolbar actions / delete, create dialog, the View menu, column-visibility dropdown), optional row virtualization via TanStack Virtual, expandable sub-rows, and a row-click handler. A pagination bar renders automatically when page count > 1. |
 | `TableView` | component | The `<table>` layout of a DataTable's rows, extracted so it can sit beside the card-based layouts as one of several renderings of the same TanStack table instance. Rarely used directly — `DataTable` renders it when `view === "table"`. |
 | `CardView` | component | Card-grid layout of a DataTable's rows over the same table instance (sorting / selection / expansion / filtering all carry over). Card content derives from the visible column cells via `meta.card` slot hints. Rarely used directly — `DataTable` renders it when `view === "cards"`, and again with `variant="gallery"` when `view === "gallery"`. |
 | `GalleryTile` | component | The media-only tile `CardView` draws under `variant="gallery"`: the media cell at size, the title clamped to a two-line caption, select + row-actions overlaid on hover. See [Gallery view](#gallery-view). |
@@ -142,6 +142,9 @@ Available subpaths: `./DataTable`, `./TableView`, `./CardView`, `./BoardView`, `
 | `ColumnGenerator` | util | Factory that prepends standard control columns (select checkbox, expand toggle, optional edit button) and appends standard timestamp columns (`time_created`, `time_updated`) plus a `RowActions` dropdown to a caller-supplied `custom_columns` array. Returns a complete `ColumnDef<RowData, unknown>[]` ready to pass to `DataTable`. |
 | `RowActions` | component | Per-row dropdown menu (three-dot icon) containing an Edit dialog (opens `EditModelForm`) plus Copy ID and Copy Row clipboard actions. Handles focus restoration after dialog close. |
 | `DataTablePagination` | component | Pagination control bar: selected-row count, a page-number input, and first / prev / next / last navigation buttons. Accepts a TanStack Table instance directly. *(Exported from the `./TablePagination` subpath.)* |
+| `buildRowTree` / `outlineRoots` / `outlineLines` / `rollupTree` | util | Row-tree helpers for an Outline view (`./Outline`). See [Outlines](#outlines-outline--outlinecard). |
+| `applySelectionGesture` / `noteSelectionAnchor` / `ROW_ID_ATTR` | util | Shift / Ctrl / Cmd-click selection, wired into every layout (`./RowSelectGesture`). See [Row selection](#row-selection). |
+| `OutlineCard` | component | The card of an Outline view: one top-level row and its tree, with folding, indentation and match fading (`./OutlineCard`). |
 | `KeyValueTable` | component | Simple two-column (Key / Value) read-only table for flat key-value pairs. Values are coerced to string. |
 
 ### HTML table primitives (`./Table`)
@@ -371,7 +374,9 @@ where to place those two nodes, so the zone split needs nothing from consumers.
 | `"quiet"` | **Nothing at rest.** Once rows are selected, one slim bar in the toolbar's place: `N selected` · `CardSelectAllControl` · `Edit (n)` · the `toolbarActions` as buttons · `Delete (n)` · `Clear`. No title, filters, sort, view toggle or card-size control. |
 | `"none"` | No toolbar at all. |
 
-Orthogonal to all four: **`hideViewToggle`** suppresses the layout toggle wherever the toolbar would have drawn it, for a consumer that renders the switch itself. The table still owns the shape through `view` / `onViewChange` — only the control moves. Print-Tracker's section headers do this, so a wall of section cards carries one folded-away trigger each instead of five permanent icon buttons.
+The layout picker is a **View dropdown**: the trigger shows the current view's icon and label (label hidden below `sm`), and the menu lists every view — built-in and page-declared — as radio items with their icons. It replaced a row of icon buttons that grew to six or seven segments and made the toolbar wrap. Built-in labels are plain nouns (Table, Cards, Gallery, Detail, Board, Sections). It renders nothing when a table offers one view. It opens on a **quick hover** as well as a click: a mouse resting 120 ms on the trigger opens it, and leaving trigger and menu for 200 ms closes it (time to cross the gap). Only `pointerType === "mouse"` hovers — touch and pen keep tap-to-open — and keyboard opening is Radix's own. The trigger's pointer-down is taken over (Radix toggles there, which would shut a hover-opened menu), the trigger is exempted from the dismiss layer's outside-click, and the menu is `modal={false}` so a hover never freezes the page.
+
+Orthogonal to all four: **`hideViewToggle`** suppresses the View menu wherever the toolbar would have drawn it, for a consumer that renders the switch itself. The table still owns the shape through `view` / `onViewChange` — only the control moves. Print-Tracker's section headers do this, so a wall of section cards carries one folded-away trigger each instead of a permanent View menu.
 
 `"quiet"` and `"none"` exist for tables that are a **section of a page rather
 than the page** — a stack of them down one screen, where the title, filters,
@@ -461,6 +466,8 @@ count. Every internal writer (the header and card checkboxes, select-all, the
 bulk edit / delete forms, the quiet bar's Clear) goes through one resolved
 setter, so all of them work identically in both modes.
 
+**Shift / Ctrl / Cmd-click** (`RowSelectGesture`) work on every layout — a card, a table row or the select checkbox — with the file manager's grammar: Ctrl/Cmd-click toggles one row and makes it the anchor (so does a plain checkbox tick); Shift-click selects everything from the anchor to the clicked row, inclusive, ADDING to the selection and leaving the anchor where it was. A plain click is still the row's click (`rowClickFunction`, expansion), and a click on a link, button or input inside a row is still that control's. The range follows the order rows are DRAWN — every rendered row carries `data-row-id`, so a sections or board layout ranges down what is on screen rather than through the sort — falling back to the row model when an end is virtualized away. The anchor lives per table instance (a WeakMap), and a shift-mousedown on a row no longer starts a text selection. Keyboard selection (Space) does not move the anchor.
+
 ### Sorting
 
 `SortControl` (field dropdown + direction button) renders in the toolbar for
@@ -488,7 +495,7 @@ The five layouts are *renderers*. A page often wants more **shapes** than there 
 interface DataTableViewDef<TData extends RowData = RowData> {
   key: string;                 // persisted, and what onViewChange reports
   base: DataTableView;         // which of the five renderers draws it
-  label: string;               // toolbar tooltip / aria-label
+  label: string;               // its entry in the toolbar's View menu, and the trigger's text
   icon?: React.ReactNode;      // defaults to the base layout's icon
   // each overrides the DataTable prop of the same name, for this view only
   renderCard?: (row, ctx) => React.ReactNode;
@@ -701,6 +708,32 @@ Mechanics, ported from Print-Tracker's curated pages: depth beyond two rolls row
 `keepEmptyChildren: true` renders a parent's empty child sections instead of dropping them — required for drag-and-drop, where an empty section that never renders can never be a drop target. It works through `BoardLane.parentValue`: inner levels normally drop empty lanes (that is what scopes each child lane to its own parent), so an empty lane is rescued only inside the parent that declared it.
 
 The nesting *rules* for such trees — what a section drag may do, why a nest is refused — live beside it in `SectionNesting`: `resolveSectionDrop`, `nestingBlockedReason`, `moveTargets`, `mergeBlockedReason`/`mergeTargets`, the `acceptsItemDrag`/`acceptsSectionDrag` drop-target predicates, and the shared `DROP_RING` class. All pure functions over ids — the package still has no dnd-kit dependency; the predicates read the drag payload structurally.
+
+### Outlines (`Outline` / `OutlineCard`)
+
+`buildTreeBoard` draws a **container** tree: sections are headings and rows are filed into them. An outline draws a **row** tree, where every node IS a row you can tick, open and edit (a task and its steps, a project and its sub-projects). It needs no new layout: feed the table the top-level row of every filtered match and let each card draw the rest of its tree.
+
+```tsx
+import { buildRowTree, outlineRoots, rollupTree } from "@bcl32/datatable/Outline";
+import { OutlineCard } from "@bcl32/datatable/OutlineCard";
+
+const tree = buildRowTree(allRows, { parentId: (r) => r.parent_id, compare });
+const deep = rollupTree(tree, { own: (r) => ({ done: r.done ? 1 : 0, total: 1 }), merge });
+<DataTable
+  tableData={outlineRoots(tree, filteredRows)}
+  views={[{ key: "outline", base: "cards", cardMinWidth: 4000,
+            renderCard: (row) => <OutlineCard row={row} tree={tree}
+              matches={matchedIds} renderLine={(r, { lead, isRoot }) => …} /> }]}
+/>
+```
+
+- `buildRowTree(rows, { parentId, compare? })` → `{ byId, children, parentIdOf }`; a row whose parent is missing (or itself) sits at the top level.
+- `outlineRoots(tree, matching)` — each match's top-level row, once, in match order, so a matching child always appears inside its tree and the table's sort still decides the order.
+- `outlineLines(tree, id, folded?)` — the rows under `id` with their `depth`; `ancestorsOf`, `descendantsOf`, `topOf`, `childrenOf`, `parentRowOf`. Every walk is cycle-safe.
+- `rollupTree(tree, { own, merge })` — Print-Tracker's `statsDeep` for a row tree, computed once per list: per row `own`, `below` (everything beneath, the row excluded — `null` when childless) and `deep` (row included). A record tree usually shows `below` ("7 of 12 steps"); a container-like total shows `deep`.
+- `OutlineCard` owns the fold chevrons (`defaultFolded` starts them shut), the indentation guide, fading lines outside `matches`, and stopping a nested line's click from reaching the card — the card is the ROOT's row. `renderLine(row, { depth, lead, isRoot, folded })` draws every line; place `lead` before the title. No line carries a select checkbox — an outline is read and ticked, not picked — but Shift/Ctrl-click on a top-level line selects it (the line is highlighted) and the toolbar's Select-all still selects the top-level rows. `leadOf(row)` adds to the lead (a step number).
+
+Consumers: Home Helper `/Tasks` (Outline view, on `sections` so lanes still group) and Print-Tracker `/Projects` (on `cards`, so no grouping is needed).
 
 ### The section wrapper seam (`renderSectionWrapper`)
 
