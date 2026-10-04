@@ -166,7 +166,7 @@ importers:
         specifier: workspace:^2.6.2
         version: link:../data-utils
       '@bcl32/forms':
-        specifier: workspace:^3.4.2
+        specifier: workspace:^3.5.0
         version: link:../forms
       '@bcl32/hooks':
         specifier: workspace:^4.2.3

@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.5.0
+
+### Minor Changes
+
+- 8e66577: feat(forms): RelationCollectionField renders notes as Markdown (GFM tables, lists, links; raw HTML shown as text), and a long or multi-paragraph note spans the whole row. Adds `markdown-to-jsx` 7.x as a dependency.
+- d7cb0ae: RelationCollectionField draws a collection as two boxes — Links (rows with a URL, a compact list with thumbnails or an app-supplied `linkIcon`) and Notes (Markdown cards that fold when tall) — and edits one item at a time in place instead of switching the whole section into a form. Paste a web address to add a link (its preview image is fetched when the collection has thumbnails), delete with an Undo toast, and drag or Alt+↑/↓ to reorder within a box. A collection whose sub-fields include `section` also folds each box into named sections: add, rename, ungroup, add an item into one, and drag items or whole sections; who folded what is kept per viewer in localStorage. No new dependencies.
+
 ## 3.4.2
 
 ### Patch Changes
