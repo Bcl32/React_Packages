@@ -7,5 +7,6 @@ export { ColourArrayField } from "./ColourArrayField";
 export { AutoGrowTextarea } from "./AutoGrowTextarea";
 export { EditableStringList } from "./EditableStringList";
 export { RelationCollectionField } from "./RelationCollectionField";
+export { NoteMarkdown } from "./NoteMarkdown";
 export { useDebouncedCallback } from "./useDebouncedCallback";
 export * from "./fieldLabel";

@@ -58,6 +58,10 @@
       "types": "./dist/RelationCollectionField.d.ts",
       "import": "./dist/RelationCollectionField.js"
     },
+    "./NoteMarkdown": {
+      "types": "./dist/NoteMarkdown.d.ts",
+      "import": "./dist/NoteMarkdown.js"
+    },
     "./useDebouncedCallback": {
       "types": "./dist/useDebouncedCallback.d.ts",
       "import": "./dist/useDebouncedCallback.js"
