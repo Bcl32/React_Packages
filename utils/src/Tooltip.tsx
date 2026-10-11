@@ -80,11 +80,25 @@ export interface ExplainerTooltipProps {
   delayDuration?: number;
   /** Extra classes for the panel — e.g. a width override (default w-72). */
   className?: string;
+  /**
+   * Also open and close on a click or tap. Radix Tooltip is hover/focus only
+   * and ignores touch by design, so without this a phone can never read the
+   * card. Opt-in because a trigger that is itself an action button would then
+   * do two things on one click.
+   */
+  openOnClick?: boolean;
 }
 
 // Explainer card on hover: layered documentation-plus-live-data popover
 // (title / prose / mono footer). Same Radix behavior as CustomTooltip —
 // self-contained Provider, focusable trigger, collision-aware, portalled.
+//
+// `openOnClick` holds the open state here: a tap or keypress toggles it, a
+// mouse click opens it (hover already did). Two Radix
+// defaults would undo that toggle, so both are vetoed with preventDefault (its
+// handlers run only when the event is not default-prevented): the trigger
+// closes itself on pointerdown and on click, and the content's dismiss layer
+// closes on a pointerdown outside it — which a press on the trigger is.
 function ExplainerTooltip({
   children,
   title,
@@ -94,14 +108,47 @@ function ExplainerTooltip({
   align = "center",
   delayDuration,
   className,
+  openOnClick = false,
 }: ExplainerTooltipProps) {
+  const [open, setOpen] = React.useState(false);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const pointerType = React.useRef("");
+  const clickProps = openOnClick
+    ? {
+        onPointerDown: (event: React.PointerEvent) => {
+          pointerType.current = event.pointerType;
+          event.preventDefault();
+        },
+        onClick: (event: React.MouseEvent) => {
+          event.preventDefault();
+          // A mouse has already opened the card by hovering, so its click
+          // only ever opens (leaving or clicking away closes); a tap or a
+          // keyboard press toggles.
+          const mouse = pointerType.current === "mouse";
+          pointerType.current = "";
+          setOpen((was) => (mouse ? true : !was));
+        },
+      }
+    : {};
   return (
     <TooltipPrimitive.Provider>
-      <TooltipPrimitive.Root delayDuration={delayDuration}>
-        <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
+      <TooltipPrimitive.Root
+        delayDuration={delayDuration}
+        {...(openOnClick ? { open, onOpenChange: setOpen } : {})}
+      >
+        <TooltipPrimitive.Trigger asChild ref={triggerRef} {...clickProps}>
+          {children}
+        </TooltipPrimitive.Trigger>
         <TooltipContent
           side={side}
           align={align}
+          onPointerDownOutside={
+            openOnClick
+              ? (event) => {
+                  if (triggerRef.current?.contains(event.target as Node)) event.preventDefault();
+                }
+              : undefined
+          }
           className={cn("w-72 p-3 text-left whitespace-normal", className)}
         >
           {title && (

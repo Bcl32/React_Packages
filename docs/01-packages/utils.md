@@ -226,7 +226,7 @@ These must be provided by the consuming app:
 | `TooltipProvider` | component | re-export | Radix `Tooltip.Provider`; required ancestor for tooltip components. |
 | `CustomTooltip` | component | `({ children, content, open?, defaultOpen?, onOpenChange?, delayDuration? }) => JSX` | Self-contained tooltip that **includes its own `TooltipProvider`**; accepts `children` + `content` `ReactNode`. |
 | `CustomTooltipProps` | type | — | Props interface for `CustomTooltip`. |
-| `ExplainerTooltip` | component | `({ children, title?, content, footer?, side?, align?, delayDuration?, className? }) => JSX` | Self-contained "explainer card" tooltip: bold `title`, muted prose `content`, and a bordered `font-mono` `footer` for live data (values, ids, notes). Panel defaults to `w-72 p-3`; override width via `className`. Same Radix behaviour as `CustomTooltip` (own provider, portalled, collision-aware). |
+| `ExplainerTooltip` | component | `({ children, title?, content, footer?, side?, align?, delayDuration?, className?, openOnClick? }) => JSX` | Self-contained "explainer card" tooltip: bold `title`, muted prose `content`, and a bordered `font-mono` `footer` for live data (values, ids, notes). Panel defaults to `w-72 p-3`; override width via `className`. Same Radix behaviour as `CustomTooltip` (own provider, portalled, collision-aware). `openOnClick` also opens it on a click or tap (Radix ignores touch): a tap or keypress toggles, a mouse click opens, a press elsewhere closes — opt-in, since an action-button trigger would otherwise do two things. |
 | `ExplainerTooltipProps` | type | — | Props interface for `ExplainerTooltip`. |
 
 ### Navigation — Breadcrumb
