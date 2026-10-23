@@ -96,3 +96,31 @@ describe("useEntityFilters setFilterValue", () => {
     expect(result.current.filteredData).toEqual([]); // failed rows are all archived
   });
 });
+
+describe("useEntityFilters subFilters", () => {
+  const tagged = [
+    { status: "done", archived: false, tags: ["a"] },
+    { status: "done", archived: false, tags: ["b"] },
+    { status: "failed", archived: false, tags: ["a"] },
+  ];
+  const subFilters = { status: { derive: { field: "tags" } } };
+
+  it("opens a sub-filter when a parent value is picked, and drops it when cleared", () => {
+    const { result } = renderHook(() => useEntityFilters(tagged, model, { subFilters }));
+    expect(result.current.filters["status>done"]).toBeUndefined();
+
+    act(() => result.current.changeFilters("status", "value", ["done", "failed"]));
+    expect(result.current.filters["status>done"].options).toEqual([
+      expect.objectContaining({ value: "a", count: 1 }),
+      expect.objectContaining({ value: "b", count: 1 }),
+    ]);
+
+    act(() => result.current.changeFilters("status>done", "value", ["b"]));
+    // "done" narrows to tag b; "failed" is untouched.
+    expect(result.current.filteredData).toEqual([tagged[1], tagged[2]]);
+
+    act(() => result.current.changeFilters("status", "value", ["failed"]));
+    expect(result.current.filters["status>done"]).toBeUndefined();
+    expect(result.current.filteredData).toEqual([tagged[2]]);
+  });
+});

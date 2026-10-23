@@ -448,7 +448,7 @@ export function useDataTableFilterBar({
                 <FilterElement
                   key={entry.name}
                   filter_data={entry}
-                  optionSize={optionSizes?.[field]}
+                  optionSize={optionSizes?.[field] ?? (entry["optionSize"] as FilterOptionSize | undefined)}
                   optionIcon={optionIcons?.[field]}
                 />
               );

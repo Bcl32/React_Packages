@@ -172,9 +172,10 @@ function ComboboxView({ options, value, multiple, placeholder, onChange }: Combo
 }
 
 /**
- * An option's text with the page's mark, if any, in front of it. The mark is
- * wrapped so the gap is on the mark alone and an unmarked option stays plain
- * text; no icon means no extra node at all.
+ * An option's text with its mark, if any, in front of it: the option's own
+ * `icon` first, else the page's. The mark is wrapped so the gap is on the mark
+ * alone and an unmarked option stays plain text; no icon means no extra node
+ * at all. An option carrying a `count` shows it after the text.
  */
 function OptionLabel({
   option,
@@ -188,13 +189,17 @@ function OptionLabel({
   /** Tile layout: the mark above the text, drawn larger than the inline size. */
   stacked?: boolean;
 }): JSX.Element {
-  const mark = icon?.(option);
-  if (!mark) return <>{text}</>;
+  const mark = option.icon ?? icon?.(option);
+  const count =
+    option.count == null ? null : (
+      <span className="ml-1 tabular-nums text-muted-foreground">{option.count}</span>
+    );
+  if (!mark) return <>{text}{count}</>;
   if (stacked) {
     return (
       <>
         <span className="inline-flex shrink-0 items-center [&>svg]:h-7 [&>svg]:w-7">{mark}</span>
-        <span>{text}</span>
+        <span>{text}{count}</span>
       </>
     );
   }
@@ -202,6 +207,7 @@ function OptionLabel({
     <>
       <span className="inline-flex shrink-0 items-center mr-1">{mark}</span>
       {text}
+      {count}
     </>
   );
 }
@@ -269,7 +275,7 @@ function ToggleButtonsView({ options, selected, multiple, size, icon, onChange }
         className={groupClassName}
       >
         {options.map((o) => (
-          <ToggleGroupItem key={o.value} value={o.value}>
+          <ToggleGroupItem key={o.value} value={o.value} disabled={o.disabled}>
             <OptionLabel option={o} text={capitalize(o.label)} icon={icon} stacked={stacked} />
           </ToggleGroupItem>
         ))}
@@ -286,7 +292,7 @@ function ToggleButtonsView({ options, selected, multiple, size, icon, onChange }
       className={groupClassName}
     >
       {options.map((o) => (
-        <ToggleGroupItem key={o.value} value={o.value}>
+        <ToggleGroupItem key={o.value} value={o.value} disabled={o.disabled}>
           <OptionLabel option={o} text={capitalize(o.label)} icon={icon} stacked={stacked} />
         </ToggleGroupItem>
       ))}

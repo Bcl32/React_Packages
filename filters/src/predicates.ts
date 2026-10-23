@@ -7,6 +7,8 @@ import type {
   FilterKind,
   FilterValue,
   NumberRange,
+  SubFilterOption,
+  SubFilterParent,
 } from "./types";
 import { NONE_VALUE } from "./useEntityGroups";
 
@@ -39,7 +41,7 @@ export interface Predicate {
 
 export type Row = Record<string, unknown>;
 
-function extractRowValues(
+export function extractRowValues(
   raw: unknown,
   cell_shape: string | undefined,
   value_key: string,
@@ -58,6 +60,72 @@ function extractRowValues(
     default:
       return raw == null ? [] : [String(raw)];
   }
+}
+
+/** Whether a row holds the sub-filter's parent value in the parent's column. */
+export function rowInParent(row: Row, parent: SubFilterParent): boolean {
+  return extractRowValues(row?.[parent.column], parent.cell_shape, parent.value_key ?? "value")
+    .includes(parent.token);
+}
+
+/** A cell's values lowercased, whether it holds one value or a list. */
+function cellTokens(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.filter((v) => v != null).map((v) => String(v).toLowerCase());
+  return raw == null ? [] : [String(raw).toLowerCase()];
+}
+
+/** Whether a row matches one sub-filter option; `other` is "none of the rest". */
+export function matchesSubOption(row: Row, option: SubFilterOption, all: SubFilterOption[]): boolean {
+  if (option.other) return !all.some((o) => !o.other && matchesSubOption(row, o, all));
+  if (!option.match) return false;
+  const have = cellTokens(row?.[option.match.field]);
+  return option.match.anyOf.some((v) => have.includes(String(v).toLowerCase()));
+}
+
+/** A sub-filter's own test: the row matches one of its chosen options. Null when idle. */
+function subFilterChoice(f: FilterValue): ((row: Row) => boolean) | null {
+  const selected = (f.value as string[]) ?? [];
+  const all = f.subOptions ?? [];
+  const chosen = all.filter((o) => selected.includes(o.value));
+  if (chosen.length === 0) return null;
+  return (row) => chosen.some((o) => matchesSubOption(row, o, all));
+}
+
+/**
+ * The sub-filters under one parent, tested together. A sub-filter narrows only
+ * the rows in its own parent value, and a row in several selected values (a
+ * part in both HomeRacker and Gridfinity) is kept when ANY of them keeps it:
+ * with HomeRacker › Connectors chosen and Gridfinity left open, a Gridfinity
+ * shelf that is also a HomeRacker part still shows, because Gridfinity takes
+ * it. Rows in none of the parent's selected values are left to the parent
+ * filter itself. Null when every sub-filter is idle.
+ *
+ * `parentFilter` supplies the selected values; without it, the sub-filters'
+ * own values stand in.
+ */
+export function subFilterGroupTest(
+  parentFilter: FilterValue | undefined,
+  children: FilterValue[],
+): ((row: Row) => boolean) | null {
+  const byToken = new Map<string, (row: Row) => boolean>();
+  let link: SubFilterParent | undefined;
+  for (const child of children) {
+    const test = child.parent && subFilterChoice(child);
+    if (!test) continue;
+    byToken.set(child.parent!.token, test);
+    link = child.parent;
+  }
+  if (!link) return null;
+  const { column, cell_shape, value_key } = link;
+  const tokens = Array.isArray(parentFilter?.value)
+    ? (parentFilter!.value as unknown[]).map(String)
+    : [...byToken.keys()];
+  return (row) => {
+    const held = extractRowValues(row?.[column], cell_shape, value_key ?? "value");
+    const within = tokens.filter((t) => held.includes(t));
+    if (within.length === 0) return true;
+    return within.some((t) => byToken.get(t)?.(row) ?? true);
+  };
 }
 
 /** A colour token, as opposed to an identity token (an id never starts with #). */
@@ -140,6 +208,8 @@ const optionsPredicate: Predicate = {
   empty: () => [],
   isActive: (f) => (f.value as string[]).length !== 0,
   rowTest(f, column) {
+    // Alone, a sub-filter is its own group. ApplyFilters groups siblings.
+    if (f.parent) return subFilterGroupTest(undefined, [f]);
     const selected = (f.value as string[]) ?? [];
     if (selected.length === 0) return null;
     const value_key = f.value_key ?? "value";

@@ -34,15 +34,74 @@ export type FilterOptionSize = "xs" | "sm" | "default" | "lg" | "tile";
  * Draws a mark in front of one option's label in a toggle-buttons or
  * chip-toggle filter, or nothing for an option that gets none. The label text
  * is always printed by the filter itself, so the mark never changes a button's
- * accessible name; return an `aria-hidden` icon. Option lists come from an
- * API as `{value, label}`, which is why the page supplies this per field
- * (useDataTableFilterBar's `optionIcons`) instead of the data carrying it.
+ * accessible name; return an `aria-hidden` icon. Option lists usually come from
+ * an API as `{value, label}`, which is why the page supplies this per field
+ * (useDataTableFilterBar's `optionIcons`). An option that carries its own
+ * `icon` (a sub-filter's) wins over it.
  */
 export type FilterOptionIcon = (option: FilterOption) => React.ReactNode;
 
 export interface FilterOption {
   value: string;
   label: string;
+  /** A mark drawn in front of the label; see FilterOptionIcon. */
+  icon?: React.ReactNode;
+  /** Rows this option would leave, under every other active filter. */
+  count?: number;
+  /** Greyed out and unclickable: an option that would leave no rows. */
+  disabled?: boolean;
+}
+
+/**
+ * A sub-filter: a toggle group that opens under one selected value of an
+ * options filter and narrows only the rows in that value. Pick HomeRacker in
+ * Systems and "HomeRacker › Kind" appears; choosing Connectors drops the
+ * HomeRacker parts that aren't connectors and leaves every other system's
+ * parts alone. Declared per parent field through useEntityFilters'
+ * `subFilters`; see subFilters.ts.
+ */
+export interface SubFilterSpec {
+  /**
+   * The fixed option list for one parent value, or null/undefined to fall
+   * through to `derive`. An empty list means "no sub-filter for this value".
+   */
+  options?: (parent: SubFilterParentOption) => SubFilterOption[] | null | undefined;
+  /** Otherwise the distinct values of this column among the parent value's rows. */
+  derive?: { field: string };
+  /** The group's heading; defaults to the parent value's label. */
+  title?: (parent: SubFilterParentOption, info: { derived: boolean }) => string;
+  /** Toggle size for the group (default `xs`). */
+  size?: FilterOptionSize;
+}
+
+/** The parent filter's option for the selected value, as the API sent it. */
+export interface SubFilterParentOption {
+  value: string;
+  label: string;
+  [key: string]: unknown;
+}
+
+/**
+ * One sub-filter option. Plain data, so a list can live in code or come from
+ * an API: it matches a row holding any of `match.anyOf` in `match.field`
+ * (case-insensitive). `other` instead matches rows that no other option in the
+ * list matches.
+ */
+export interface SubFilterOption extends FilterOption {
+  match?: { field: string; anyOf: string[] };
+  other?: boolean;
+}
+
+/** Where a sub-filter hangs: the parent filter and the one value it opened under. */
+export interface SubFilterParent {
+  /** The parent's key in the Filters map. */
+  key: string;
+  /** The parent's data column, and how to read it. */
+  column: string;
+  cell_shape?: FilterCellShape;
+  value_key?: string;
+  /** The parent value this sub-filter belongs to. */
+  token: string;
 }
 
 /**
@@ -117,6 +176,11 @@ export interface FilterValue {
   // enriched attribute when fetched options arrive, so the two agree. Nothing
   // may write to it. Optional because apps can build filter maps by hand.
   attr?: ModelAttribute;
+  // Sub-filters only (see SubFilterSpec): the parent value this filter narrows
+  // within, its full option list with match rules, and its toggle size.
+  parent?: SubFilterParent;
+  subOptions?: SubFilterOption[];
+  optionSize?: FilterOptionSize;
 }
 
 export interface Filters {

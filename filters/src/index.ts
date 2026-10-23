@@ -25,6 +25,7 @@ export * from "./FilterSearchBar";
 export * from "./FilterSearchHotkey";
 export * from "./FilterTargeting";
 export * from "./OrderFilters";
+export * from "./subFilters";
 export * from "./useEntityFilters";
 export * from "./useEntityGroups";
 export * from "./EntityGroupCards";
@@ -41,6 +42,10 @@ export type {
   FilterOptionSize,
   FilterOptionIcon,
   FilterOption,
+  SubFilterSpec,
+  SubFilterOption,
+  SubFilterParent,
+  SubFilterParentOption,
   FilterSelection,
   FilterCellShape,
   BooleanFilterValue,

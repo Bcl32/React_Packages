@@ -11,6 +11,10 @@ import type { FilterData, Filters } from "./types";
  *   2. other always-present filters (options chips, colour swatches)
  *   3. user-added instances, in the order they were added
  *
+ * A sub-filter (one with a `parent`) is then lifted to sit straight after its
+ * parent, wherever that landed, so "HomeRacker › Kind" reads as part of
+ * Systems rather than trailing the panel.
+ *
  * Array.prototype.sort is stable, so ranks 2 and 3 keep the insertion order of
  * the underlying object — which for instances is exactly "as added", across
  * kinds. That's why this doesn't reuse GroupFilters: bucketing by type would
@@ -48,7 +52,7 @@ export function OrderFilters(filters: Filters): FilterData[] {
   const isDisplayField = (entry: FilterData): boolean =>
     ((entry["field"] as string | undefined) ?? entry["name"]) === DISPLAY_FIELD;
 
-  return entries.sort((a, b) => {
+  const sorted = entries.sort((a, b) => {
     const byRank = rank(a) - rank(b);
     if (byRank !== 0) return byRank;
     if (rank(a) !== 0) return 0; // stable: keep insertion order
@@ -64,4 +68,16 @@ export function OrderFilters(filters: Filters): FilterData[] {
     if (aOrder === bOrder) return 0;
     return aOrder - bOrder;
   });
+
+  const parentKey = (entry: FilterData) =>
+    (entry["parent"] as { key: string } | undefined)?.key;
+  if (!sorted.some(parentKey)) return sorted;
+  const ordered: FilterData[] = [];
+  for (const entry of sorted) {
+    if (parentKey(entry)) continue;
+    ordered.push(entry, ...sorted.filter((c) => parentKey(c) === entry.name));
+  }
+  // A sub-filter whose parent is missing would never show; keep it visible.
+  const placed = new Set(ordered.map((e) => e.name));
+  return [...ordered, ...sorted.filter((e) => !placed.has(e.name))];
 }

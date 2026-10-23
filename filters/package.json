@@ -150,7 +150,8 @@
   "bcl32": {
     "barrelOnlyModules": [
       "EntityGroupCards",
-      "FilterSearch"
+      "FilterSearch",
+      "subFilters"
     ]
   },
   "files": [

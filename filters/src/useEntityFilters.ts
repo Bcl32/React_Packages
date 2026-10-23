@@ -10,6 +10,7 @@ import { BuildFilterSearchIndex, type SearchFieldEntry } from "./FilterSearch";
 import { syncEnrichedAttributes } from "./syncEnrichedAttributes";
 import { seedFilter } from "./seedFilter";
 import { applyInitialValues, setFilterValueIn } from "./filterWrites";
+import { reconcileSubFilters, withSubFilterCounts } from "./subFilters";
 import type {
   Filters,
   ModelData,
@@ -18,6 +19,7 @@ import type {
   DatasetStats,
   FilterCatalogEntry,
   FilterInitialValue,
+  SubFilterSpec,
 } from "./types";
 
 export interface AddFilterOptions {
@@ -46,6 +48,14 @@ export interface UseEntityFiltersOptions {
    * later changes to this option are ignored.
    */
   initialValues?: Record<string, FilterInitialValue>;
+  /**
+   * Sub-filters, keyed by the parent field: each selected value of that
+   * options filter opens a toggle group that narrows only the rows in that
+   * value (see SubFilterSpec). Kept in step with the parent on every write,
+   * so deselecting the value removes its group and its choices. Read on each
+   * write; a spec that changes takes effect at the next one.
+   */
+  subFilters?: Record<string, SubFilterSpec>;
 }
 
 export interface UseEntityFiltersReturn {
@@ -115,10 +125,40 @@ export function useEntityFilters(
       stats,
     );
 
+  // Sub-filters follow their parents on every write. The specs and rows are
+  // read through a ref so a page can pass `subFilters` inline without the
+  // setter (and everything that depends on it) changing each render.
+  const subFilterInputs = useRef({ specs: options.subFilters, rows: safeDataset });
+  useEffect(() => {
+    subFilterInputs.current = { specs: options.subFilters, rows: safeDataset };
+  });
+
   // Initialize filters synchronously
-  const [filters, setFilters] = useState<Filters>(() =>
-    buildFilters(enrichedModelData.model_attributes, datasetStats)
+  const [filters, setRawFilters] = useState<Filters>(() =>
+    reconcileSubFilters(
+      buildFilters(enrichedModelData.model_attributes, datasetStats),
+      options.subFilters,
+      safeDataset,
+    )
   );
+
+  // Every write goes through here, so no path (a toggle, a chip reset,
+  // removeFilter, setFilterValue, the re-init) can leave a sub-filter behind
+  // its parent.
+  const setFilters = useCallback(
+    (update: Filters | ((prev: Filters) => Filters)) => {
+      setRawFilters((prev) => {
+        const { specs, rows } = subFilterInputs.current;
+        return reconcileSubFilters(typeof update === "function" ? update(prev) : update, specs, rows);
+      });
+    },
+    [],
+  );
+
+  // New rows can change a derived sub-filter's options; re-run the pass.
+  useEffect(() => {
+    if (subFilterInputs.current.specs) setFilters((prev) => prev);
+  }, [safeDataset, setFilters]);
 
   // Re-initialize when data arrives (the useState initializer only runs once).
   // Tracked with a ref instead of `Object.keys(filters).length === 0`: with
@@ -132,14 +172,14 @@ export function useEntityFilters(
     }
     // buildFilters reads only dynamicFilters and a ref besides its arguments.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [datasetStats, enrichedModelData.model_attributes, dynamicFilters]);
+  }, [datasetStats, enrichedModelData.model_attributes, dynamicFilters, setFilters]);
 
   // Sync newly-fetched options (and the enriched attribute they came on) into
   // existing filter state without clobbering the user's value/rule. Without
   // this, options that arrive after filter initialization never reach the UI.
   useEffect(() => {
     setFilters((prev) => syncEnrichedAttributes(prev, enrichedModelData.model_attributes));
-  }, [enrichedModelData.model_attributes]);
+  }, [enrichedModelData.model_attributes, setFilters]);
 
   // Process dataset with current filters
   const processed = useMemo<ProcessedDataset>(() => {
@@ -162,7 +202,7 @@ export function useEntityFilters(
         [name]: { ...prev[name], [key]: value },
       }));
     },
-    []
+    [setFilters]
   );
 
   // Attribute lookup for on-demand creation, so addFilter stays O(1) no matter
@@ -207,7 +247,7 @@ export function useEntityFilters(
       });
       return key;
     },
-    [attributesByName, datasetStats, filters]
+    [attributesByName, datasetStats, filters, setFilters]
   );
 
   const setFilterValue = useCallback(
@@ -220,7 +260,7 @@ export function useEntityFilters(
       setFilters((prev) => setFilterValueIn(prev, key, value, attrs, datasetStats).filters);
       return written;
     },
-    [enrichedModelData.model_attributes, datasetStats, filters]
+    [enrichedModelData.model_attributes, datasetStats, filters, setFilters]
   );
 
   const removeFilter = useCallback((name: string) => {
@@ -230,7 +270,7 @@ export function useEntityFilters(
       delete next[name];
       return next;
     });
-  }, []);
+  }, [setFilters]);
 
   const hasPrimaryFilters = useMemo(
     () =>
@@ -252,8 +292,15 @@ export function useEntityFilters(
     [enrichedModelData.model_attributes, datasetStats]
   );
 
+  // Sub-filter option counts depend on every other filter, so they are worked
+  // out for display rather than stored.
+  const displayedFilters = useMemo(
+    () => withSubFilterCounts(safeDataset, filters),
+    [safeDataset, filters]
+  );
+
   return {
-    filters,
+    filters: displayedFilters,
     changeFilters,
     addFilter,
     removeFilter,
