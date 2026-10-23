@@ -25,9 +25,10 @@ export type FilterSelection = "single" | "multi";
 /**
  * A toggle-buttons filter's option size — the @bcl32/utils ToggleGroup cva
  * size names. `xs` is the default caption row; a page declares a larger one
- * per field through useDataTableFilterBar's `optionSizes`.
+ * per field through useDataTableFilterBar's `optionSizes`. `tile` stacks the
+ * option's mark above a small label in a square-ish button.
  */
-export type FilterOptionSize = "xs" | "sm" | "default" | "lg";
+export type FilterOptionSize = "xs" | "sm" | "default" | "lg" | "tile";
 
 /**
  * Draws a mark in front of one option's label in a toggle-buttons or

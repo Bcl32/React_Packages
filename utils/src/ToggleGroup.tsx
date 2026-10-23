@@ -26,6 +26,10 @@ const toggleVariants = cva(
         default: "h-10 px-3",
         sm: "h-9 px-2.5",
         lg: "h-11 px-5",
+        // A square-ish tile: whatever is drawn first (an icon) sits on top and
+        // the label runs small beneath it. Height follows the content, so a
+        // tile with no icon is just a short two-line button.
+        tile: "h-auto min-w-[4rem] flex-col gap-1 px-2 py-2 text-[10px] leading-tight",
       },
     },
     defaultVariants: {
@@ -36,7 +40,7 @@ const toggleVariants = cva(
 );
 
 interface ToggleGroupContextValue {
-  size?: "default" | "xs" | "sm" | "lg";
+  size?: "default" | "xs" | "sm" | "lg" | "tile";
   variant?: "default" | "outline";
 }
 

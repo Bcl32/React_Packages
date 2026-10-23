@@ -176,9 +176,28 @@ function ComboboxView({ options, value, multiple, placeholder, onChange }: Combo
  * wrapped so the gap is on the mark alone and an unmarked option stays plain
  * text; no icon means no extra node at all.
  */
-function OptionLabel({ option, text, icon }: { option: FilterOption; text: string; icon?: FilterOptionIcon }): JSX.Element {
+function OptionLabel({
+  option,
+  text,
+  icon,
+  stacked = false,
+}: {
+  option: FilterOption;
+  text: string;
+  icon?: FilterOptionIcon;
+  /** Tile layout: the mark above the text, drawn larger than the inline size. */
+  stacked?: boolean;
+}): JSX.Element {
   const mark = icon?.(option);
   if (!mark) return <>{text}</>;
+  if (stacked) {
+    return (
+      <>
+        <span className="inline-flex shrink-0 items-center [&>svg]:h-7 [&>svg]:w-7">{mark}</span>
+        <span>{text}</span>
+      </>
+    );
+  }
   return (
     <>
       <span className="inline-flex shrink-0 items-center mr-1">{mark}</span>
@@ -228,7 +247,8 @@ interface ToggleButtonsViewProps {
 }
 
 function ToggleButtonsView({ options, selected, multiple, size, icon, onChange }: ToggleButtonsViewProps): JSX.Element {
-  const groupClassName = `flex flex-wrap justify-start ${size === "xs" ? "gap-0.5" : "gap-1"}`;
+  const groupClassName = `flex flex-wrap justify-start ${size === "xs" ? "gap-0.5" : size === "tile" ? "gap-1.5" : "gap-1"}`;
+  const stacked = size === "tile";
   // `xs` by default: inside the filter grid these are captions, and a
   // full-height button row is what made an options filter twice as tall as a
   // text one. A page opts a field up a size through `optionSizes`.
@@ -250,7 +270,7 @@ function ToggleButtonsView({ options, selected, multiple, size, icon, onChange }
       >
         {options.map((o) => (
           <ToggleGroupItem key={o.value} value={o.value}>
-            <OptionLabel option={o} text={capitalize(o.label)} icon={icon} />
+            <OptionLabel option={o} text={capitalize(o.label)} icon={icon} stacked={stacked} />
           </ToggleGroupItem>
         ))}
       </ToggleGroup>
@@ -267,7 +287,7 @@ function ToggleButtonsView({ options, selected, multiple, size, icon, onChange }
     >
       {options.map((o) => (
         <ToggleGroupItem key={o.value} value={o.value}>
-          <OptionLabel option={o} text={capitalize(o.label)} icon={icon} />
+          <OptionLabel option={o} text={capitalize(o.label)} icon={icon} stacked={stacked} />
         </ToggleGroupItem>
       ))}
     </ToggleGroup>
