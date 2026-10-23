@@ -1,5 +1,6 @@
 // Core filter types used across the package
 
+import type * as React from "react";
 import type { ModelAttribute } from "@bcl32/data-utils";
 
 /**
@@ -20,6 +21,23 @@ export type FilterDisplay =
 export type FilterCellShape = "scalar" | "scalar-array" | "object-array";
 
 export type FilterSelection = "single" | "multi";
+
+/**
+ * A toggle-buttons filter's option size — the @bcl32/utils ToggleGroup cva
+ * size names. `xs` is the default caption row; a page declares a larger one
+ * per field through useDataTableFilterBar's `optionSizes`.
+ */
+export type FilterOptionSize = "xs" | "sm" | "default" | "lg";
+
+/**
+ * Draws a mark in front of one option's label in a toggle-buttons or
+ * chip-toggle filter, or nothing for an option that gets none. The label text
+ * is always printed by the filter itself, so the mark never changes a button's
+ * accessible name; return an `aria-hidden` icon. Option lists come from an
+ * API as `{value, label}`, which is why the page supplies this per field
+ * (useDataTableFilterBar's `optionIcons`) instead of the data carrying it.
+ */
+export type FilterOptionIcon = (option: FilterOption) => React.ReactNode;
 
 export interface FilterOption {
   value: string;

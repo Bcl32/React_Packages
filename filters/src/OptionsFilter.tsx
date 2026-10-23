@@ -10,6 +10,8 @@ import type {
   FilterContextValue,
   FilterDisplay,
   FilterOption,
+  FilterOptionIcon,
+  FilterOptionSize,
   FilterSelection,
   FilterCellShape,
   ColourPresetsConfig,
@@ -21,6 +23,10 @@ interface OptionsFilterProps {
   title?: string;
   options: FilterOption[];
   display?: FilterDisplay;
+  /** Toggle-buttons only: the ToggleGroup cva size the options draw at. */
+  optionSize?: FilterOptionSize;
+  /** Toggle-buttons and chip-toggle: a mark drawn in front of an option's label. */
+  optionIcon?: FilterOptionIcon;
   selection?: FilterSelection;
   cell_shape?: FilterCellShape;
   colour_presets?: ColourPresetsConfig;
@@ -33,6 +39,8 @@ export function OptionsFilter({
   title,
   options,
   display = "combobox",
+  optionSize = "xs",
+  optionIcon,
   selection = "multi",
   cell_shape = "scalar-array",
   colour_presets,
@@ -105,7 +113,7 @@ export function OptionsFilter({
       )}
 
       {display === "chip-toggle" && (
-        <ChipToggleView options={options} selected={currentValue} onToggle={toggleValue} />
+        <ChipToggleView options={options} selected={currentValue} icon={optionIcon} onToggle={toggleValue} />
       )}
 
       {display === "toggle-buttons" && (
@@ -113,6 +121,8 @@ export function OptionsFilter({
           options={options}
           selected={currentValue}
           multiple={selection === "multi"}
+          size={optionSize}
+          icon={optionIcon}
           onChange={setValue}
         />
       )}
@@ -161,13 +171,30 @@ function ComboboxView({ options, value, multiple, placeholder, onChange }: Combo
   );
 }
 
+/**
+ * An option's text with the page's mark, if any, in front of it. The mark is
+ * wrapped so the gap is on the mark alone and an unmarked option stays plain
+ * text; no icon means no extra node at all.
+ */
+function OptionLabel({ option, text, icon }: { option: FilterOption; text: string; icon?: FilterOptionIcon }): JSX.Element {
+  const mark = icon?.(option);
+  if (!mark) return <>{text}</>;
+  return (
+    <>
+      <span className="inline-flex shrink-0 items-center mr-1">{mark}</span>
+      {text}
+    </>
+  );
+}
+
 interface ChipToggleViewProps {
   options: FilterOption[];
   selected: string[];
+  icon?: FilterOptionIcon;
   onToggle: (value: string) => void;
 }
 
-function ChipToggleView({ options, selected, onToggle }: ChipToggleViewProps): JSX.Element {
+function ChipToggleView({ options, selected, icon, onToggle }: ChipToggleViewProps): JSX.Element {
   return (
     <div className="flex flex-wrap gap-0.5">
       {options.map((o) => {
@@ -177,13 +204,13 @@ function ChipToggleView({ options, selected, onToggle }: ChipToggleViewProps): J
             key={o.value}
             type="button"
             onClick={() => onToggle(o.value)}
-            className={`px-1.5 rounded-full text-[11px] leading-5 transition-colors ${
+            className={`inline-flex items-center px-1.5 rounded-full text-[11px] leading-5 transition-colors ${
               on
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             }`}
           >
-            {o.label}
+            <OptionLabel option={o} text={o.label} icon={icon} />
           </button>
         );
       })}
@@ -195,15 +222,16 @@ interface ToggleButtonsViewProps {
   options: FilterOption[];
   selected: string[];
   multiple: boolean;
+  size: FilterOptionSize;
+  icon?: FilterOptionIcon;
   onChange: (next: string[]) => void;
 }
 
-function ToggleButtonsView({ options, selected, multiple, onChange }: ToggleButtonsViewProps): JSX.Element {
-  const itemClassName = "h-6 rounded px-1.5 text-[11px]";
-  const groupClassName = "flex flex-wrap justify-start gap-0.5";
-  // Overrides the `sm` variant's h-9 on each item: inside the filter grid
-  // these are captions, and a full-height button row is what made an options
-  // filter twice as tall as a text one.
+function ToggleButtonsView({ options, selected, multiple, size, icon, onChange }: ToggleButtonsViewProps): JSX.Element {
+  const groupClassName = `flex flex-wrap justify-start ${size === "xs" ? "gap-0.5" : "gap-1"}`;
+  // `xs` by default: inside the filter grid these are captions, and a
+  // full-height button row is what made an options filter twice as tall as a
+  // text one. A page opts a field up a size through `optionSizes`.
   //
   // Two ToggleGroups rather than one with a computed `type`: Radix types the
   // value/onValueChange pair by that prop (string[] vs string), and a union
@@ -215,14 +243,14 @@ function ToggleButtonsView({ options, selected, multiple, onChange }: ToggleButt
       <ToggleGroup
         type="multiple"
         variant="outline"
-        size="sm"
+        size={size}
         value={selected}
         onValueChange={(value: string[]) => onChange(value)}
         className={groupClassName}
       >
         {options.map((o) => (
-          <ToggleGroupItem key={o.value} value={o.value} className={itemClassName}>
-            {capitalize(o.label)}
+          <ToggleGroupItem key={o.value} value={o.value}>
+            <OptionLabel option={o} text={capitalize(o.label)} icon={icon} />
           </ToggleGroupItem>
         ))}
       </ToggleGroup>
@@ -232,14 +260,14 @@ function ToggleButtonsView({ options, selected, multiple, onChange }: ToggleButt
     <ToggleGroup
       type="single"
       variant="outline"
-      size="sm"
+      size={size}
       value={selected[0] ?? ""}
       onValueChange={(value: string) => onChange(value ? [value] : [])}
       className={groupClassName}
     >
       {options.map((o) => (
-        <ToggleGroupItem key={o.value} value={o.value} className={itemClassName}>
-          {capitalize(o.label)}
+        <ToggleGroupItem key={o.value} value={o.value}>
+          <OptionLabel option={o} text={capitalize(o.label)} icon={icon} />
         </ToggleGroupItem>
       ))}
     </ToggleGroup>

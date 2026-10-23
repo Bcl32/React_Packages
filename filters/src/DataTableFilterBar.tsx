@@ -9,7 +9,7 @@ import { baseFieldName } from "./BuildFilterCatalog";
 import { pumpFilterRequests, registerFilterBar } from "./FilterTargeting";
 import type { SearchFieldEntry } from "./FilterSearch";
 import { chipLabel } from "./filterText";
-import type { Filters, FilterCatalogEntry, FilterInitialValue } from "./types";
+import type { Filters, FilterCatalogEntry, FilterInitialValue, FilterOptionIcon, FilterOptionSize } from "./types";
 import { ListFilter, X } from "lucide-react";
 import { CustomTooltip } from "@bcl32/utils/Tooltip";
 
@@ -123,6 +123,20 @@ interface UseDataTableFilterBarProps {
    */
   hiddenFields?: string[];
   /**
+   * Per-field option size for toggle-buttons filters, as ToggleGroup cva size
+   * names (`{ systems: "default" }`). Unlisted fields draw the compact `xs`
+   * caption row. Matched on the data column like `hiddenFields`, so a
+   * user-added second instance gets the same size.
+   */
+  optionSizes?: Record<string, FilterOptionSize>;
+  /**
+   * Per-field mark drawn in front of an option's label in toggle-buttons and
+   * chip-toggle filters (`{ systems: (o) => isGridfinity(o) ? <Icon /> : null }`).
+   * The label text stays, so the mark is decoration and not the button's
+   * name. Matched on the data column like `optionSizes`.
+   */
+  optionIcons?: Record<string, FilterOptionIcon>;
+  /**
    * Whether the card panel can be folded away behind a "Filters" toggle.
    *
    * Defaults to true — inside a table's toolbar the panel opens *above* the
@@ -157,6 +171,8 @@ export function useDataTableFilterBar({
   columnVisibility,
   hasPrimaryFilters,
   hiddenFields,
+  optionSizes,
+  optionIcons,
   collapsible = true,
   size = "default",
 }: UseDataTableFilterBarProps): DataTableFilter {
@@ -426,9 +442,17 @@ export function useDataTableFilterBar({
           // a typical six-filter set fits on a single row on a wide
           // screen instead of two.
           <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-            {orderedFilters.map((entry) => (
-              <FilterElement key={entry.name} filter_data={entry} />
-            ))}
+            {orderedFilters.map((entry) => {
+              const field = (entry["field"] as string | undefined) ?? baseFieldName(entry.name);
+              return (
+                <FilterElement
+                  key={entry.name}
+                  filter_data={entry}
+                  optionSize={optionSizes?.[field]}
+                  optionIcon={optionIcons?.[field]}
+                />
+              );
+            })}
           </div>
         )}
       </div>

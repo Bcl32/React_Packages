@@ -20,6 +20,9 @@ const toggleVariants = cva(
           "border border-input bg-accent hover:bg-accent/90 hover:text-accent-foreground",
       },
       size: {
+        // A caption row, not a control row: what a filter card's options draw
+        // at, so an options filter is no taller than a text one beside it.
+        xs: "h-6 rounded px-1.5 text-[11px]",
         default: "h-10 px-3",
         sm: "h-9 px-2.5",
         lg: "h-11 px-5",
@@ -33,7 +36,7 @@ const toggleVariants = cva(
 );
 
 interface ToggleGroupContextValue {
-  size?: "default" | "sm" | "lg";
+  size?: "default" | "xs" | "sm" | "lg";
   variant?: "default" | "outline";
 }
 

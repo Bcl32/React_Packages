@@ -7,13 +7,17 @@ import { BooleanFilter } from "./BooleanFilter";
 import { TimeFilter } from "./TimeFilter";
 import { DateFilter } from "./DateFilter";
 import { FILTER_FIELD_ATTR } from "./FilterTargeting";
-import type { FilterContextValue, FilterData, FilterDisplay, FilterOption, FilterSelection, FilterCellShape, ColourPresetsConfig } from "./types";
+import type { FilterContextValue, FilterData, FilterDisplay, FilterOption, FilterOptionIcon, FilterOptionSize, FilterSelection, FilterCellShape, ColourPresetsConfig } from "./types";
 
 interface FilterElementProps {
   filter_data: FilterData;
+  /** Toggle-buttons option size; other filters ignore it. */
+  optionSize?: FilterOptionSize;
+  /** Mark in front of a toggle-buttons / chip-toggle option; other filters ignore it. */
+  optionIcon?: FilterOptionIcon;
 }
 
-export function FilterElement({ filter_data }: FilterElementProps): JSX.Element {
+export function FilterElement({ filter_data, optionSize, optionIcon }: FilterElementProps): JSX.Element {
   const context = React.useContext(FilterContext) as FilterContextValue | null;
 
   // User-added instances get a ✕ that drops the slot entirely; schema-declared
@@ -33,12 +37,17 @@ export function FilterElement({ filter_data }: FilterElementProps): JSX.Element 
   // original sitting beside it.
   return (
     <div className="min-w-0" {...{ [FILTER_FIELD_ATTR]: filter_data["name"] }}>
-      {get_chart_type(filter_data, onRemove)}
+      {get_chart_type(filter_data, onRemove, optionSize, optionIcon)}
     </div>
   );
 }
 
-function get_chart_type(filter_data: FilterData, onRemove?: () => void): JSX.Element {
+function get_chart_type(
+  filter_data: FilterData,
+  onRemove?: () => void,
+  optionSize?: FilterOptionSize,
+  optionIcon?: FilterOptionIcon,
+): JSX.Element {
   // Prefer the schema-provided `title` (e.g. "Size (mm)"); components fall back
   // to a humanized field name when it's absent.
   const title = filter_data["title"] as string | undefined;
@@ -83,6 +92,8 @@ function get_chart_type(filter_data: FilterData, onRemove?: () => void): JSX.Ele
           title={title}
           options={(filter_data["options"] as FilterOption[]) || []}
           display={filter_data["display"] as FilterDisplay | undefined}
+          optionSize={optionSize}
+          optionIcon={optionIcon}
           selection={filter_data["selection"] as FilterSelection | undefined}
           cell_shape={filter_data["cell_shape"] as FilterCellShape | undefined}
           colour_presets={filter_data["colour_presets"] as ColourPresetsConfig | undefined}

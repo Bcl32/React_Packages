@@ -38,6 +38,8 @@ export type {
   FilterContextValue,
   FilterData,
   FilterDisplay,
+  FilterOptionSize,
+  FilterOptionIcon,
   FilterOption,
   FilterSelection,
   FilterCellShape,
