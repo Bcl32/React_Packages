@@ -1,5 +1,16 @@
 # @bcl32/filters
 
+## 5.2.0
+
+### Minor Changes
+
+- 4b24e43: feat(filters): per-field option sizes and icons for toggle filters; sub-filters (a scoped toggle group under each selected value of an options filter, via useEntityFilters `subFilters`)
+
+### Patch Changes
+
+- Updated dependencies [4b24e43]
+  - @bcl32/utils@2.12.0
+
 ## 5.1.0
 
 ### Minor Changes
