@@ -67,4 +67,17 @@ describe("CalculateFeatureStats — options", () => {
     ]);
     expect(stat(stats, "tags", "options")).toEqual(["a", "b"]);
   });
+
+  it("counts colour_array values the same way", () => {
+    const attr: ModelAttribute = { name: "filament_colours", type: "colour_array" };
+    const rows = [{ filament_colours: ["#000000FF", "#FFFFFFFF"] }, { filament_colours: ["#000000FF"] }];
+
+    const stats = CalculateFeatureStats([attr], rows);
+
+    expect(stat(stats, "filament_colours", "count")).toEqual([
+      { length: 2, name: "#000000FF" },
+      { length: 1, name: "#FFFFFFFF" },
+    ]);
+    expect(stat(stats, "filament_colours", "options")).toEqual(["#000000FF", "#FFFFFFFF"]);
+  });
 });

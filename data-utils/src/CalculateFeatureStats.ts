@@ -82,7 +82,10 @@ export function CalculateFeatureStats(metadata: ModelAttribute[], dataset: DataE
       stats[name].push(min, max, bin_stat);
     }
 
-    if (item["type"] === "list" || item["type"] === "colour") {
+    // colour_array is a list of hex strings — schema_utils already files it with
+    // `list` as an options filter. Without stats here the filter catalog sees
+    // zero values and greys it out as "no data".
+    if (item["type"] === "list" || item["type"] === "colour" || item["type"] === "colour_array") {
       const counts: Record<string, number> = {};
       const options = new Set<string>();
 
