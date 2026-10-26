@@ -60,7 +60,7 @@ export interface FilterOption {
  * parts alone. Declared per parent field through useEntityFilters'
  * `subFilters`; see subFilters.ts.
  */
-export interface SubFilterSpec {
+export interface OptionsSubFilterSpec {
   /**
    * The fixed option list for one parent value, or null/undefined to fall
    * through to `derive`. An empty list means "no sub-filter for this value".
@@ -72,6 +72,68 @@ export interface SubFilterSpec {
   title?: (parent: SubFilterParentOption, info: { derived: boolean }) => string;
   /** Toggle size for the group (default `xs`). */
   size?: FilterOptionSize;
+}
+
+/**
+ * A sub-filter the app draws and matches itself: a control that is not a
+ * toggle group (a footprint grid, a colour wheel, a calendar) hanging under
+ * one parent value like any other sub-filter — same scoping, chip, ordering
+ * and reset. `build` sees only the rows in that value, so it can size its
+ * control from the data (the largest footprint among the Gridfinity parts),
+ * and returns null where the value gets no such filter (a system that is not
+ * Gridfinity). A parent field may carry several specs; each custom one needs
+ * an `id`, which becomes part of the sub-filter's key.
+ */
+export interface CustomSubFilterSpec {
+  /** Distinguishes this sub-filter from its siblings under the same value. */
+  id: string;
+  build: (parent: SubFilterParentOption, rows: Record<string, unknown>[]) => CustomFilterBuild | null;
+  /** The card's heading; defaults to the parent value's label. */
+  title?: (parent: SubFilterParentOption) => string;
+}
+
+export type SubFilterSpec = OptionsSubFilterSpec | CustomSubFilterSpec;
+
+/** What a CustomSubFilterSpec builds: the idle value plus the filter's behaviour. */
+export interface CustomFilterBuild<V = unknown> extends CustomFilterDef<V> {
+  /** The "no filter" value; cloned into `value` and `filter_empty`. */
+  empty: V;
+}
+
+/**
+ * A `custom` filter's behaviour, supplied by the app and carried on the
+ * FilterValue (`custom`). The package calls these the way it calls its own
+ * predicates: `isActive` decides whether the chip shows and the rows are
+ * tested, `rowTest` is the per-row test while active, `describe` is the chip
+ * text, and `component` draws the card. `data` is whatever the component
+ * wants to read back (a domain, counts) — the package never looks at it.
+ */
+export interface CustomFilterDef<V = unknown> {
+  component: React.ComponentType<CustomFilterProps>;
+  // Method signatures, not function-typed properties: TypeScript checks
+  // methods bivariantly, so an app's `isActive(v: Range)` fits the package's
+  // `unknown`-valued FilterValue without a cast at every spec.
+  isActive(value: V): boolean;
+  rowTest(value: V, row: Record<string, unknown>): boolean;
+  describe(value: V): string;
+  data?: unknown;
+  /**
+   * `"half"`: the card takes the right half of the filter panel instead of
+   * one column — for a control that needs the room (a 20-step strip with a
+   * row of toggles under it). Cards keep their order; the one before it
+   * fills the left half, and anything that does not fit beside it moves
+   * down. Omit for an ordinary one-column card.
+   */
+  width?: "half";
+}
+
+/** What a custom filter's component receives; it reads its value from useFilterContext. */
+export interface CustomFilterProps {
+  /** The filter's key in the Filters map. */
+  name: string;
+  title?: string;
+  /** Supplied for user-added instances — renders the ✕ that drops the slot. */
+  onRemove?: () => void;
 }
 
 /** The parent filter's option for the selected value, as the API sent it. */
@@ -109,7 +171,7 @@ export interface SubFilterParent {
  * picker section and search kind. resolveFilterKind decides it for an
  * attribute.
  */
-export type FilterKind = "number" | "datetime" | "date" | "string" | "boolean" | "options";
+export type FilterKind = "number" | "datetime" | "date" | "string" | "boolean" | "options" | "custom";
 
 /**
  * A boolean filter's value. null is "no filter"; "unknown" selects the rows
@@ -181,6 +243,8 @@ export interface FilterValue {
   parent?: SubFilterParent;
   subOptions?: SubFilterOption[];
   optionSize?: FilterOptionSize;
+  // `custom` filters only: the app-supplied control and predicate.
+  custom?: CustomFilterDef;
 }
 
 export interface Filters {

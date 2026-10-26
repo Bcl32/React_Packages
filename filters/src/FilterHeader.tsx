@@ -29,6 +29,9 @@ interface FilterHeaderProps {
  * the grid's rows even and buys back most of the panel's height — the label is
  * a caption, not body copy, so it reads at `text-[11px]` uppercase and the
  * whole row fits in 16px.
+ *
+ * Exported so an app's custom filter (CustomFilterDef) can wear the same
+ * chrome as the package's own cards.
  */
 export function FilterHeader({ label, rule, actions, onRemove }: FilterHeaderProps): JSX.Element {
   return (

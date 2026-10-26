@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { ApplyFilters } from "./ApplyFilters";
+import { chipLabel } from "./filterText";
 import { GetActiveFilters } from "./GetActiveFilters";
 import { OrderFilters } from "./OrderFilters";
 import { reconcileSubFilters, subFilterKey, withSubFilterCounts } from "./subFilters";
-import type { FilterValue, Filters, SubFilterSpec } from "./types";
+import type { CustomSubFilterSpec, FilterValue, Filters, SubFilterSpec } from "./types";
 
 // A Parts-shaped fixture: systems is a list of {value, label} objects, tags a
 // list of strings. HR = HomeRacker, GF = Gridfinity.
@@ -66,7 +67,7 @@ const HR_KEY = subFilterKey("systems", "hr");
 const GF_KEY = subFilterKey("systems", "gf");
 const names = (filters: Filters) =>
   ApplyFilters(rows, GetActiveFilters(filters)).map((r) => r.name);
-const choose = (filters: Filters, key: string, value: string[]) => ({
+const choose = (filters: Filters, key: string, value: unknown) => ({
   ...filters,
   [key]: { ...filters[key], value },
 });
@@ -222,6 +223,86 @@ describe("withSubFilterCounts", () => {
   it("returns the same map when there are no sub-filters", () => {
     const filters = { systems: systemsFilter([]) };
     expect(withSubFilterCounts(rows, filters)).toBe(filters);
+  });
+});
+
+describe("a custom sub-filter", () => {
+  // A footprint range: rows whose `w` lies in [min, max]. Only Gridfinity
+  // gets one; HomeRacker's build returns null.
+  type Range = { min: number; max: number } | null;
+  const sized = rows.map((r, i) => ({ ...r, w: r.systems.some((s) => s.value === "gf") ? (i % 3) + 1 : null }));
+  const size: CustomSubFilterSpec = {
+    id: "size",
+    build: (parent, inParent) =>
+      parent.kind === "gridfinity"
+        ? {
+            empty: null as Range,
+            component: () => null,
+            isActive: (v: Range) => v != null,
+            rowTest: (v: Range, row) => {
+              const w = row.w as number | null;
+              return v == null || (w != null && w >= v.min && w <= v.max);
+            },
+            describe: (v: Range) => (v ? `${v.min}–${v.max} wide` : ""),
+            data: { max: Math.max(...inParent.map((r) => (r.w as number) ?? 0)) },
+          }
+        : null,
+    title: (parent) => `${parent.label} › Size`,
+  };
+  const specs = { systems: [kinds, size] };
+  const SIZE_KEY = subFilterKey("systems", "gf", "size");
+  const open = (value: string[]) =>
+    reconcileSubFilters({ name: nameFilter(), systems: systemsFilter(value) }, specs, sized);
+  const sizedNames = (filters: Filters) => ApplyFilters(sized, GetActiveFilters(filters)).map((r) => r.name);
+
+  it("opens beside the options group, only where build returns one", () => {
+    const filters = open(["gf", "hr"]);
+    expect(Object.keys(filters)).toEqual(["name", "systems", GF_KEY, SIZE_KEY, HR_KEY]);
+    expect(filters[SIZE_KEY]).toMatchObject({
+      type: "custom",
+      value: null,
+      filter_empty: null,
+      title: "Gridfinity › Size",
+      field: SIZE_KEY,
+      parent: { key: "systems", token: "gf" },
+    });
+    // build saw only the Gridfinity rows: widths 1..3, nothing from HomeRacker.
+    expect((filters[SIZE_KEY].custom?.data as { max: number }).max).toBe(3);
+    expect(filters[subFilterKey("systems", "hr", "size")]).toBeUndefined();
+  });
+
+  it("is idle at its empty value and active once set, with a chip", () => {
+    const idle = open(["gf"]);
+    expect(GetActiveFilters(idle)[SIZE_KEY]).toBeUndefined();
+    const set = choose(idle, SIZE_KEY, { min: 2, max: 3 } as never);
+    expect(GetActiveFilters(set)[SIZE_KEY]).toBeDefined();
+    expect(chipLabel(SIZE_KEY, set[SIZE_KEY])).toBe("Gridfinity › Size: 2–3 wide");
+  });
+
+  it("narrows only its parent value and keeps its value across rebuilds", () => {
+    let filters = choose(open(["gf", "hr"]), SIZE_KEY, { min: 3, max: 3 } as never);
+    // Only "gf base" is 3 wide; the HomeRacker rows are untouched, and "both
+    // shelf" (1 wide) stays because HomeRacker is open. "loose" has no system
+    // and falls to the Systems filter itself.
+    expect(sizedNames(filters)).toEqual([
+      "hr connector", "hr connectors", "hr support", "hr custom", "hr untagged", "gf base", "both shelf",
+    ]);
+    filters = reconcileSubFilters(filters, specs, sized);
+    expect(filters[SIZE_KEY].value).toEqual({ min: 3, max: 3 });
+  });
+
+  it("ANDs with the options group under the same value", () => {
+    let filters = choose(open(["gf"]), SIZE_KEY, { min: 1, max: 3 } as never);
+    filters = choose(filters, GF_KEY, ["Base"]);
+    // Every Gridfinity part has a width, so Size alone keeps them all; Kind
+    // then cuts to the bases.
+    expect(sizedNames(filters)).toEqual(["gf base", "gf base 2"]);
+  });
+
+  it("is left alone by withSubFilterCounts", () => {
+    const filters = withSubFilterCounts(sized, open(["gf"]));
+    expect(filters[SIZE_KEY].options).toBeUndefined();
+    expect(filters[GF_KEY].options?.every((o) => typeof o.count === "number")).toBe(true);
   });
 });
 

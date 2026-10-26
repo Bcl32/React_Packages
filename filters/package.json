@@ -18,6 +18,10 @@
       "types": "./dist/FilterElement.d.ts",
       "import": "./dist/FilterElement.js"
     },
+    "./FilterHeader": {
+      "types": "./dist/FilterHeader.d.ts",
+      "import": "./dist/FilterHeader.js"
+    },
     "./ChartFilter": {
       "types": "./dist/ChartFilter.d.ts",
       "import": "./dist/ChartFilter.js"

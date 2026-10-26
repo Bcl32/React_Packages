@@ -1,4 +1,5 @@
 export * from "./FilterElement";
+export * from "./FilterHeader";
 export * from "./ChartFilter";
 export * from "./FiltersSummary";
 export * from "./OptionsFilter";
@@ -43,6 +44,11 @@ export type {
   FilterOptionIcon,
   FilterOption,
   SubFilterSpec,
+  OptionsSubFilterSpec,
+  CustomSubFilterSpec,
+  CustomFilterBuild,
+  CustomFilterDef,
+  CustomFilterProps,
   SubFilterOption,
   SubFilterParent,
   SubFilterParentOption,

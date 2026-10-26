@@ -91,6 +91,18 @@ function subFilterChoice(f: FilterValue): ((row: Row) => boolean) | null {
   return (row) => chosen.some((o) => matchesSubOption(row, o, all));
 }
 
+/** A custom filter's own test, from its app-supplied predicate. Null when idle. */
+function customTest(f: FilterValue): ((row: Row) => boolean) | null {
+  const custom = f.custom;
+  if (!custom || !custom.isActive(f.value)) return null;
+  return (row) => custom.rowTest(f.value, row);
+}
+
+/** One sub-filter's test, whatever its kind. Null when idle. */
+function subFilterTest(f: FilterValue): ((row: Row) => boolean) | null {
+  return f.type === "custom" ? customTest(f) : subFilterChoice(f);
+}
+
 /**
  * The sub-filters under one parent, tested together. A sub-filter narrows only
  * the rows in its own parent value, and a row in several selected values (a
@@ -99,6 +111,10 @@ function subFilterChoice(f: FilterValue): ((row: Row) => boolean) | null {
  * shelf that is also a HomeRacker part still shows, because Gridfinity takes
  * it. Rows in none of the parent's selected values are left to the parent
  * filter itself. Null when every sub-filter is idle.
+ *
+ * Several sub-filters under the SAME value (Gridfinity › Kind and Gridfinity ›
+ * Size) all have to pass: a Gridfinity part is kept by Gridfinity only when
+ * every one of its active sub-filters keeps it.
  *
  * `parentFilter` supplies the selected values; without it, the sub-filters'
  * own values stand in.
@@ -110,9 +126,11 @@ export function subFilterGroupTest(
   const byToken = new Map<string, (row: Row) => boolean>();
   let link: SubFilterParent | undefined;
   for (const child of children) {
-    const test = child.parent && subFilterChoice(child);
+    const test = child.parent && subFilterTest(child);
     if (!test) continue;
-    byToken.set(child.parent!.token, test);
+    const token = child.parent!.token;
+    const prior = byToken.get(token);
+    byToken.set(token, prior ? (row) => prior(row) && test(row) : test);
     link = child.parent;
   }
   if (!link) return null;
@@ -361,6 +379,25 @@ const booleanPredicate: Predicate = {
   },
 };
 
+/**
+ * A `custom` filter defers to the app's CustomFilterDef on its `custom` key.
+ * Its empty value is the app's too, so a custom filter is only ever built by
+ * a CustomSubFilterSpec (which writes filter_empty itself), never from an
+ * attribute; `empty()` here is what emptyFor reports for the kind, nothing
+ * more. Seeding is not supported: an app-shaped value has no generic form a
+ * search suggestion or drill-in could produce.
+ */
+const customPredicate: Predicate = {
+  empty: () => null,
+  isActive: (f) => f.custom?.isActive(f.value) ?? false,
+  rowTest(f) {
+    // Alone, a sub-filter is its own group. ApplyFilters groups siblings.
+    if (f.parent) return subFilterGroupTest(undefined, [f]);
+    return customTest(f);
+  },
+  seed() {},
+};
+
 export const PREDICATES: Record<FilterKind, Predicate> = {
   string: stringPredicate,
   number: numberPredicate,
@@ -368,6 +405,7 @@ export const PREDICATES: Record<FilterKind, Predicate> = {
   date: datePredicate,
   options: optionsPredicate,
   boolean: booleanPredicate,
+  custom: customPredicate,
 };
 
 /** The predicate for a filter's runtime type, or undefined for an unknown one. */

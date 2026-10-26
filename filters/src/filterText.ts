@@ -96,6 +96,10 @@ export function chipLabel(name: string, filter: FilterValue): string {
       const end = dayjs(v.timespan_end).format("MMM D, YYYY");
       return `${label}: ${start} → ${end}`;
     }
+    case "custom": {
+      const text = filter.custom?.describe(filter.value);
+      return text ? `${label}: ${text}` : label;
+    }
     default:
       return label;
   }
@@ -140,6 +144,9 @@ export function summaryValue(filter: FilterValue): string {
       return `${ruleHint}${n} colour${n === 1 ? "" : "s"}`;
     }
     return ruleHint + summaryOptionsValue(arrValue, filter["options"]);
+  }
+  if (filter["type"] === "custom") {
+    return filter.custom?.describe(filter.value) ?? "";
   }
   return filter["rule"] + " " + filter["value"];
 }

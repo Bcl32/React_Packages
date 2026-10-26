@@ -242,6 +242,8 @@ function fieldMatchScore(entry: SearchFieldEntry, query: string): number {
   return best;
 }
 
+// A custom filter is never indexed — it is only ever a sub-filter, built from
+// no attribute — but the kind-keyed tables still need its row to typecheck.
 const KIND_DETAIL: Record<SearchFieldKind, string> = {
   number: "numeric range",
   datetime: "date range",
@@ -249,6 +251,7 @@ const KIND_DETAIL: Record<SearchFieldKind, string> = {
   string: "text search",
   boolean: "yes / no",
   options: "options",
+  custom: "",
 };
 
 /** Compact bound formatting — "41.2M", "0.08", "838". */
@@ -288,6 +291,7 @@ const KIND_BOOST: Record<SearchFieldKind, number> = {
   number: 0,
   datetime: 0,
   date: 0,
+  custom: 0,
 };
 
 function countDetail(count: number | undefined): string | undefined {
@@ -323,6 +327,7 @@ const STARTER_SCORE: Record<SearchFieldKind, number> = {
   number: 20,
   date: 15,
   datetime: 10,
+  custom: 0,
 };
 
 /** What picking one of a field's values does. */

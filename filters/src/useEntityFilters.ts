@@ -10,7 +10,7 @@ import { BuildFilterSearchIndex, type SearchFieldEntry } from "./FilterSearch";
 import { syncEnrichedAttributes } from "./syncEnrichedAttributes";
 import { seedFilter } from "./seedFilter";
 import { applyInitialValues, setFilterValueIn } from "./filterWrites";
-import { reconcileSubFilters, withSubFilterCounts } from "./subFilters";
+import { reconcileSubFilters, withSubFilterCounts, type SubFilterSpecs } from "./subFilters";
 import type {
   Filters,
   ModelData,
@@ -19,7 +19,6 @@ import type {
   DatasetStats,
   FilterCatalogEntry,
   FilterInitialValue,
-  SubFilterSpec,
 } from "./types";
 
 export interface AddFilterOptions {
@@ -53,9 +52,11 @@ export interface UseEntityFiltersOptions {
    * options filter opens a toggle group that narrows only the rows in that
    * value (see SubFilterSpec). Kept in step with the parent on every write,
    * so deselecting the value removes its group and its choices. Read on each
-   * write; a spec that changes takes effect at the next one.
+   * write; a spec that changes takes effect at the next one. A list of specs
+   * opens one sub-filter per spec under each value (a kind group and a size
+   * control, say); custom specs need an `id` to tell them apart.
    */
-  subFilters?: Record<string, SubFilterSpec>;
+  subFilters?: SubFilterSpecs;
 }
 
 export interface UseEntityFiltersReturn {

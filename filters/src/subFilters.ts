@@ -3,8 +3,10 @@ import { baseFieldName } from "./BuildFilterCatalog";
 import { GetActiveFilters } from "./GetActiveFilters";
 import { extractRowValues, matchesSubOption, rowInParent, type Row } from "./predicates";
 import type {
+  CustomSubFilterSpec,
   FilterValue,
   Filters,
+  OptionsSubFilterSpec,
   SubFilterOption,
   SubFilterParent,
   SubFilterParentOption,
@@ -23,9 +25,20 @@ import type {
  * `field` is its own key, which matches no attribute, so it never picks up the
  * parent's option sizes or icons, never gets its options overwritten by
  * syncEnrichedAttributes, and stays out of the Add-filter catalog.
+ *
+ * A custom sub-filter (CustomSubFilterSpec) adds its id after an `@`
+ * ("systems>7cf4…@size"), so one value can carry the options group and any
+ * number of custom controls side by side.
  */
-export function subFilterKey(parentKey: string, token: string): string {
-  return `${parentKey}>${token}`;
+export function subFilterKey(parentKey: string, token: string, id?: string): string {
+  return id ? `${parentKey}>${token}@${id}` : `${parentKey}>${token}`;
+}
+
+/** Every spec declared for a parent field, whether one or a list was given. */
+export type SubFilterSpecs = Record<string, SubFilterSpec | SubFilterSpec[]>;
+
+function isCustomSpec(spec: SubFilterSpec): spec is CustomSubFilterSpec {
+  return "build" in spec && typeof spec.build === "function";
 }
 
 /**
@@ -39,7 +52,7 @@ export function subFilterKey(parentKey: string, token: string): string {
  */
 export function reconcileSubFilters(
   filters: Filters,
-  specs: Record<string, SubFilterSpec> | undefined,
+  specs: SubFilterSpecs | undefined,
   rows: Row[],
 ): Filters {
   if (!specs || Object.keys(specs).length === 0) return filters;
@@ -48,34 +61,43 @@ export function reconcileSubFilters(
     const filter = filters[key];
     if (filter.parent) continue; // rebuilt below, after its parent
     next[key] = filter;
-    const spec = specs[filter.field ?? baseFieldName(key)];
-    if (!spec || filter.type !== "options") continue;
+    const declared = specs[filter.field ?? baseFieldName(key)];
+    if (!declared || filter.type !== "options") continue;
+    const list = Array.isArray(declared) ? declared : [declared];
     const selected = Array.isArray(filter.value) ? (filter.value as unknown[]).map(String) : [];
     for (const token of selected) {
-      const childKey = subFilterKey(key, token);
-      const child = buildSubFilter(key, filter, token, spec, rows, filters[childKey]);
-      if (child) next[childKey] = child;
+      for (const spec of list) {
+        const childKey = subFilterKey(key, token, isCustomSpec(spec) ? spec.id : undefined);
+        const child = isCustomSpec(spec)
+          ? buildCustomSubFilter(key, filter, token, spec, rows, filters[childKey])
+          : buildSubFilter(key, filter, token, spec, rows, filters[childKey]);
+        if (child) next[childKey] = child;
+      }
     }
   }
   return next;
 }
 
-function buildSubFilter(
-  parentKey: string,
-  parentFilter: FilterValue,
-  token: string,
-  spec: SubFilterSpec,
-  rows: Row[],
-  existing: FilterValue | undefined,
-): FilterValue | null {
-  const parentOption = findParentOption(parentFilter, token);
-  const parent: SubFilterParent = {
+function parentLink(parentKey: string, parentFilter: FilterValue, token: string): SubFilterParent {
+  return {
     key: parentKey,
     column: parentFilter.field ?? baseFieldName(parentKey),
     cell_shape: parentFilter.cell_shape,
     value_key: parentFilter.value_key,
     token,
   };
+}
+
+function buildSubFilter(
+  parentKey: string,
+  parentFilter: FilterValue,
+  token: string,
+  spec: OptionsSubFilterSpec,
+  rows: Row[],
+  existing: FilterValue | undefined,
+): FilterValue | null {
+  const parentOption = findParentOption(parentFilter, token);
+  const parent = parentLink(parentKey, parentFilter, token);
 
   let options = spec.options?.(parentOption) ?? null;
   let derived = false;
@@ -109,6 +131,42 @@ function buildSubFilter(
   };
 }
 
+/**
+ * A custom sub-filter is rebuilt on every pass like the options kind, so its
+ * control follows the data (new rows can widen its domain), but its value is
+ * the user's and is kept as it stands: the package cannot tell which parts of
+ * an app-shaped value still make sense, so that is the component's job when
+ * it draws.
+ */
+function buildCustomSubFilter(
+  parentKey: string,
+  parentFilter: FilterValue,
+  token: string,
+  spec: CustomSubFilterSpec,
+  rows: Row[],
+  existing: FilterValue | undefined,
+): FilterValue | null {
+  const parentOption = findParentOption(parentFilter, token);
+  const parent = parentLink(parentKey, parentFilter, token);
+  const built = spec.build(
+    parentOption,
+    rows.filter((row) => rowInParent(row, parent)),
+  );
+  if (!built) return null;
+  const { empty, ...custom } = built;
+  return {
+    type: "custom",
+    value: existing?.type === "custom" ? existing.value : structuredClone(empty),
+    filter_empty: structuredClone(empty),
+    field: subFilterKey(parentKey, token, spec.id),
+    title: spec.title?.(parentOption) ?? parentOption.label,
+    parent,
+    custom,
+    primaryFilter: parentFilter.primaryFilter ?? false,
+    dynamic: false,
+  };
+}
+
 /** The parent's option for `token` as fetched (it may carry extra fields, like a system's kind). */
 function findParentOption(parentFilter: FilterValue, token: string): SubFilterParentOption {
   const found = (parentFilter.options ?? []).find((o) => String(o.value) === token);
@@ -135,10 +193,11 @@ function deriveOptions(rows: Row[], parent: SubFilterParent, field: string): Sub
  * OTHER active filter (its own choices excluded, so picking Connectors doesn't
  * zero out Supports). An option with nothing to show is disabled, unless it is
  * already chosen, which must stay clickable to undo. Derived for display; the
- * stored filters are left alone.
+ * stored filters are left alone. Custom sub-filters have no options to count
+ * and pass through.
  */
 export function withSubFilterCounts(rows: Row[], filters: Filters): Filters {
-  const childKeys = Object.keys(filters).filter((k) => filters[k].parent);
+  const childKeys = Object.keys(filters).filter((k) => filters[k].parent && filters[k].subOptions);
   if (childKeys.length === 0) return filters;
   const active = GetActiveFilters(filters);
   const next: Filters = { ...filters };

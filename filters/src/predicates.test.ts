@@ -4,7 +4,7 @@ import { emptyFor } from "./BuildFilterCatalog";
 import { PREDICATES, predicateFor } from "./predicates";
 import type { FilterKind, FilterValue } from "./types";
 
-const KINDS: FilterKind[] = ["string", "number", "datetime", "date", "options", "boolean"];
+const KINDS: FilterKind[] = ["string", "number", "datetime", "date", "options", "boolean", "custom"];
 
 describe("PREDICATES", () => {
   it("has a predicate for every filter kind", () => {
