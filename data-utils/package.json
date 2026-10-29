@@ -45,6 +45,10 @@
     "./pivotTimeSeries": {
       "types": "./dist/pivotTimeSeries.d.ts",
       "import": "./dist/pivotTimeSeries.js"
+    },
+    "./numbers": {
+      "types": "./dist/numbers.d.ts",
+      "import": "./dist/numbers.js"
     }
   },
   "bcl32": {

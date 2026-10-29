@@ -4,10 +4,9 @@ import { chipLabel, summaryValue } from "./filterText";
 import type { FilterValue } from "./types";
 
 // Characterization tests: they record how the toolbar chip and the
-// FiltersSummary describe each filter type today. The two formats differ on
-// purpose-less details (separator, date format, option prettifying); those
-// differences are pinned here so unifying them (R5) is a visible, deliberate
-// change.
+// FiltersSummary describe each filter type. Number ranges read the same in
+// both since R5 (formatNumberRange); dates and options still differ, and those
+// differences are pinned here so unifying them is a visible, deliberate change.
 
 // No offset: dayjs parses these as local time, so the output doesn't depend
 // on the machine's timezone.
@@ -54,7 +53,7 @@ describe("chipLabel", () => {
 describe("summaryValue", () => {
   it.each([
     ["string", "contains pla"],
-    ["number", "10 - 50"],
+    ["number", "10 – 50"],
     // Unlike the chip, option labels are not prettified.
     ["options", "in_progress, done"],
     ["optionsAll", " (all)a, b"],
@@ -62,5 +61,30 @@ describe("summaryValue", () => {
     ["datetime", "Start: Jan, 10 2026 - 9:30am\n End: Feb, 1 2026 - 5:05pm"],
   ])("describes a %s filter", (key, expected) => {
     expect(summaryValue(filters[key])).toBe(expected);
+  });
+});
+
+describe("number ranges in the chip and the summary", () => {
+  // A + nudge adds its step to an unrounded minimum, so a set bound can carry
+  // more decimals than anyone typed; the text shows it exactly, not in full.
+  const nudged: FilterValue = {
+    ...filters.number,
+    title: "Ceiling height (cm)",
+    value: { min: 12012.3456, max: 1234567 },
+  };
+
+  it("prints set bounds exactly, with separators and at most 3 decimals", () => {
+    expect(chipLabel("ceiling_height_cm", nudged)).toBe("Ceiling height (cm): 12,012.346 – 1,234,567");
+    expect(summaryValue(nudged)).toBe("12,012.346 – 1,234,567");
+  });
+
+  it("does not abbreviate: 1.2M would hide the bound that was chosen", () => {
+    const set = { ...nudged, value: { min: 1200000, max: 1249999 } };
+    expect(summaryValue(set)).toBe("1,200,000 – 1,249,999");
+  });
+
+  it("prints a missing bound as a dash rather than throwing", () => {
+    const blank = { ...nudged, value: { min: "", max: "" } as unknown as FilterValue["value"] };
+    expect(summaryValue(blank)).toBe("—");
   });
 });

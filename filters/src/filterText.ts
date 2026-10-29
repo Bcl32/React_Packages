@@ -1,5 +1,7 @@
 import dayjs from "dayjs";
 
+import { formatNumberRange } from "@bcl32/data-utils/numbers";
+
 import { DATE_PRESET_LABEL, isDay } from "./dateOnly";
 import { humanizeFieldName, prettyOptionLabel } from "./utils";
 import type {
@@ -15,9 +17,9 @@ import type {
  * The text a filter is described with: the toolbar chip (chipLabel) and the
  * FiltersSummary row (summaryValue). Pure, so the strings are testable.
  *
- * The two formats differ today (separator, date format, option prettifying);
- * filterText.test.ts pins both. Unifying them is a deliberate, visible change
- * for R5, not a side effect of moving the code.
+ * Number ranges read the same in both (formatNumberRange: exact, en dash).
+ * Dates and options still differ between the two; filterText.test.ts pins
+ * both.
  *
  * Internal to the package: not re-exported from the barrel.
  */
@@ -75,8 +77,8 @@ export function chipLabel(name: string, filter: FilterValue): string {
     case "string":
       return `${label} ${filter.rule} "${filter.value}"`;
     case "number": {
-      const v = filter.value as { min: number; max: number };
-      return `${label}: ${v.min} – ${v.max}`;
+      const v = filter.value as NumberRange;
+      return `${label}: ${formatNumberRange(v.min, v.max, filter.attr)}`;
     }
     case "options": {
       const vals = filter.value as string[];
@@ -127,7 +129,7 @@ export function summaryValue(filter: FilterValue): string {
   }
   if (filter["type"] === "number") {
     const numValue = filter["value"] as NumberRange;
-    return numValue["min"] + " - " + numValue["max"];
+    return formatNumberRange(numValue["min"], numValue["max"], filter.attr);
   }
   if (filter["type"] === "boolean") {
     const value = filter["value"] as BooleanFilterValue;

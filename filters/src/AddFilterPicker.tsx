@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import dayjs from "dayjs";
 import { ChevronDown, ChevronRight, Plus, Search } from "lucide-react";
 
+import { formatNumberRange } from "@bcl32/data-utils/numbers";
 import { Input } from "@bcl32/utils/Input";
 import { anchoredPanelStyle, useAnchorRect } from "./AnchoredPanel";
 import type { FilterCatalogEntry } from "./types";
@@ -51,24 +52,6 @@ function kindOrder(type: string): number {
   return at === -1 ? KIND_ORDER.length : at;
 }
 
-/**
- * Compact number formatting for the range preview. Byte counts and volumes run
- * into the millions while layer heights are 0.08 — one formatter has to stay
- * readable across both, so large values go compact ("41.2M") and small ones
- * keep up to three decimals.
- */
-function formatBound(value: number): string {
-  if (!isFinite(value)) return "—";
-  const magnitude = Math.abs(value);
-  if (magnitude >= 10000) {
-    return new Intl.NumberFormat(undefined, {
-      notation: "compact",
-      maximumFractionDigits: 1,
-    }).format(value);
-  }
-  if (magnitude >= 100 || Number.isInteger(value)) return String(Math.round(value));
-  return String(+value.toPrecision(3));
-}
 
 /** The live data span shown on the right of a picker row. */
 function formatRange(entry: FilterCatalogEntry): string {
@@ -96,7 +79,7 @@ function formatRange(entry: FilterCatalogEntry): string {
     return `${dayjs(entry.earliest).format(DATE_FORMAT)} – ${dayjs(entry.latest).format(DATE_FORMAT)}`;
   }
   if (typeof entry.min !== "number" || typeof entry.max !== "number") return "—";
-  return `${formatBound(entry.min)} – ${formatBound(entry.max)}`;
+  return formatNumberRange(entry.min, entry.max, entry.attr, { compact: true });
 }
 
 /**

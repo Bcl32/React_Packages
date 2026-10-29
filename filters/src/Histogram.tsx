@@ -1,5 +1,6 @@
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 
+import { formatNumber } from "@bcl32/data-utils/numbers";
 import {
   ChartContainer,
   ChartTooltip,
@@ -13,6 +14,10 @@ interface HistogramProps {
   name: string;
   chart_data: ChartDataEntry[];
   title?: string;
+}
+
+function formatTick(value: unknown): string {
+  return formatNumber(value, undefined, { compact: true });
 }
 
 export function Histogram({ name, chart_data, title }: HistogramProps): JSX.Element {
@@ -48,6 +53,8 @@ export function Histogram({ name, chart_data, title }: HistogramProps): JSX.Elem
             tickCount={chart_data.length}
             fontSize={11}
             tickLine={false}
+            // Bin starts are a preview of the spread: short, no unit (the header names it).
+            tickFormatter={formatTick}
           />
 
           <ChartTooltip content={<ChartTooltipContent hideLabel />} />

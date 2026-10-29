@@ -2,9 +2,10 @@ import * as React from "react";
 import { FilterContext } from "./FilterContext";
 import { FilterHeader } from "./FilterHeader";
 
+import { formatNumber } from "@bcl32/data-utils/numbers";
 import { Input } from "@bcl32/utils/Input";
 import * as SliderPrimitive from "@radix-ui/react-slider";
-import type { FilterContextValue, HistogramBin, NumberRange } from "./types";
+import type { FilterContextValue, HistogramBin, ModelAttribute, NumberRange } from "./types";
 import { humanizeFieldName } from "./utils";
 
 interface DebouncedNumberFilterProps {
@@ -13,6 +14,9 @@ interface DebouncedNumberFilterProps {
   /** Supplied for user-added instances — renders the ✕ that drops the slot. */
   onRemove?: () => void;
 }
+
+/** A bin's bounds are a preview of the data, so they print short ("1.2M"). */
+const COMPACT = { compact: true } as const;
 
 /** A drawn bar: its extent on screen, and the range selecting it applies. */
 interface StripBin extends HistogramBin {
@@ -28,6 +32,8 @@ interface HistogramStripProps {
   selectedMin: number;
   selectedMax: number;
   onSelectRange: (min: number, max: number) => void;
+  /** The filtered field, for number formatting. */
+  attr?: ModelAttribute;
 }
 
 /**
@@ -51,6 +57,7 @@ function HistogramStrip({
   selectedMin,
   selectedMax,
   onSelectRange,
+  attr,
 }: HistogramStripProps): JSX.Element | null {
   // Index of the bar a drag started on; null when not dragging. Sweeping over
   // bars applies the range live, so the existing fade doubles as the preview.
@@ -171,8 +178,8 @@ function HistogramStrip({
             // "values", not "rows": for a number_list column (per-axis sizes,
             // system units) the bins count every element, while a row matches
             // when ANY of its elements falls in range — so the two differ.
-            title={`${bin.count} value${bin.count === 1 ? "" : "s"} between ${formatBound(bin.selectMin)} and ${formatBound(bin.selectMax)} — click, or drag across bars, to filter to that range`}
-            aria-label={`Filter to ${formatBound(bin.selectMin)} – ${formatBound(bin.selectMax)} (${bin.count} values)`}
+            title={`${bin.count} value${bin.count === 1 ? "" : "s"} between ${formatNumber(bin.selectMin, attr, COMPACT)} and ${formatNumber(bin.selectMax, attr, COMPACT)} — click, or drag across bars, to filter to that range`}
+            aria-label={`Filter to ${formatNumber(bin.selectMin, attr, COMPACT)} – ${formatNumber(bin.selectMax, attr, COMPACT)} (${bin.count} values)`}
             className="absolute bottom-0 top-0 cursor-pointer border-0 bg-transparent p-0"
             style={{ left: `${left}%`, width: `${width}%` }}
           >
@@ -187,20 +194,6 @@ function HistogramStrip({
       })}
     </div>
   );
-}
-
-/** Compact bound for tooltips: 41.2M rather than 41231884. */
-function formatBound(value: number): string {
-  if (!isFinite(value)) return "—";
-  const magnitude = Math.abs(value);
-  if (magnitude >= 10000) {
-    return new Intl.NumberFormat(undefined, {
-      notation: "compact",
-      maximumFractionDigits: 1,
-    }).format(value);
-  }
-  if (magnitude >= 100 || Number.isInteger(value)) return String(Math.round(value));
-  return String(+value.toPrecision(3));
 }
 
 export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumberFilterProps): JSX.Element | null {
@@ -324,6 +317,7 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
             selectedMin={inputValue.min}
             selectedMax={inputValue.max}
             onSelectRange={(min, max) => setInputValue({ min, max })}
+            attr={filterData.attr}
           />
           {slider}
         </div>
@@ -337,7 +331,7 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
             type="button"
             onClick={() => setInputValue({ ...inputValue, min: slider_min })}
             className={minBtnClass}
-            title={`Set to ${slider_min}`}
+            title={`Set to ${formatNumber(slider_min, filterData.attr)}`}
           >
             Min
           </button>
@@ -378,7 +372,7 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
             type="button"
             onClick={() => setInputValue({ ...inputValue, max: slider_max })}
             className={maxBtnClass}
-            title={`Set to ${slider_max}`}
+            title={`Set to ${formatNumber(slider_max, filterData.attr)}`}
           >
             Max
           </button>

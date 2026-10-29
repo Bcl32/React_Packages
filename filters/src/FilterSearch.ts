@@ -1,3 +1,5 @@
+import { formatNumber, formatNumberRange } from "@bcl32/data-utils/numbers";
+
 import { baseFieldName, resolveFilterKind } from "./BuildFilterCatalog";
 import { DATE_PRESETS, isDatePreset } from "./dateOnly";
 import { parseBooleanValue } from "./predicates";
@@ -254,24 +256,10 @@ const KIND_DETAIL: Record<SearchFieldKind, string> = {
   custom: "",
 };
 
-/** Compact bound formatting — "41.2M", "0.08", "838". */
-function formatBound(value: number): string {
-  if (!isFinite(value)) return "—";
-  const magnitude = Math.abs(value);
-  if (magnitude >= 10000) {
-    return new Intl.NumberFormat(undefined, {
-      notation: "compact",
-      maximumFractionDigits: 1,
-    }).format(value);
-  }
-  if (magnitude >= 100 || Number.isInteger(value)) return String(Math.round(value));
-  return String(+value.toPrecision(3));
-}
-
 /** The live-data summary for a field-level suggestion ("12 – 511", "8 values"). */
 function fieldDetail(entry: SearchFieldEntry): string {
   if (entry.kind === "number" && entry.min !== undefined && entry.max !== undefined) {
-    return `${formatBound(entry.min)} – ${formatBound(entry.max)}`;
+    return formatNumberRange(entry.min, entry.max, entry.attr, { compact: true });
   }
   if (entry.kind === "datetime" && entry.earliest && entry.latest) {
     return `${entry.earliest.slice(0, 10)} – ${entry.latest.slice(0, 10)}`;
@@ -439,7 +427,7 @@ export function SearchFilterIndex(
               : { min: num, max: num };
         pool.push({
           field: entry.field,
-          label: `${entry.title} ${comparisonLabel(op)} ${num}`,
+          label: `${entry.title} ${comparisonLabel(op)} ${formatNumber(num, entry.attr)}`,
           detail: KIND_DETAIL.number,
           score: 90 + fieldScore * 3,
           action: { type: "number-range", field: entry.field, ...range },
@@ -499,7 +487,7 @@ export function SearchFilterIndex(
       if (fieldScore === 0 || !usable(entry)) continue;
       pool.push({
         field: entry.field,
-        label: `${entry.title}: ${min} – ${max}`,
+        label: `${entry.title}: ${formatNumberRange(min, max, entry.attr)}`,
         detail: KIND_DETAIL.number,
         score: 90 + fieldScore * 3,
         action: { type: "number-range", field: entry.field, min, max },
