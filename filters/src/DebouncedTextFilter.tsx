@@ -80,6 +80,7 @@ export function DebouncedTextFilter({ name, title, onRemove }: DebouncedTextFilt
         variant="background"
         size="sm"
         id={"filter_" + name}
+        aria-label={label}
         name={name}
         value={inputValue}
         onChange={handleInputChange}

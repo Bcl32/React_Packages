@@ -42,6 +42,8 @@ export interface ComboboxProps {
    * whole control moves as one step.
    */
   size?: "default" | "sm";
+  /** Put on the text input, so a `<label htmlFor>` names the control. */
+  id?: string;
 }
 
 export function Combobox({
@@ -54,6 +56,7 @@ export function Combobox({
   showBadges = false,
   className,
   size = "default",
+  id,
 }: ComboboxProps) {
   const compact = size === "sm";
   const [input, setInput] = React.useState("");
@@ -156,6 +159,7 @@ export function Combobox({
       )}
       <Input
         ref={inputRef}
+        id={id}
         value={displayInput}
         onChange={(e) => {
           setInput(e.target.value);

@@ -121,13 +121,14 @@ function IdReferenceField({
 
   return (
     <div className="py-2">
-      <LabelWithHelp htmlFor={name} helpText={helpText}>
+      <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
         {label}:
       </LabelWithHelp>
       {/* Pairs, so the pick IS the record's id. This used to hand the
           combobox names and look the id up by name afterwards, which saved
           the FIRST of two same-named records whichever one was clicked. */}
       <Combobox
+        id={"input_" + name}
         options={options}
         value={current ? [current] : []}
         onChange={(val) => {
@@ -234,10 +235,11 @@ export function FormElement({
     case "list":
       return (
         <div className="py-2">
-          <LabelWithHelp htmlFor={name} helpText={helpText}>
+          <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
             {label}:
           </LabelWithHelp>
           <Combobox
+            id={"input_" + name}
             multiple
             freeSolo
             options={((entry_data.options as Array<string | {label: string}>) || []).map(
@@ -262,11 +264,12 @@ export function FormElement({
       const current = (formData[name] as string | null | undefined) || "";
       return (
         <div className="py-2">
-          <LabelWithHelp htmlFor={name} helpText={helpText}>
+          <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
             {label}:
           </LabelWithHelp>
           <div className="flex items-center gap-2">
             <Combobox
+              id={"input_" + name}
               freeSolo
               className="flex-1"
               options={((entry_data.options as Array<string | { label: string }>) || []).map(
@@ -312,10 +315,11 @@ export function FormElement({
       const currentValues = ((formData[name] as Array<string>) || []).map(String);
       return (
         <div className="py-2">
-          <LabelWithHelp htmlFor={name} helpText={helpText}>
+          <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
             {label}:
           </LabelWithHelp>
           <Combobox
+            id={"input_" + name}
             multiple
             showBadges
             options={pairs}
@@ -333,7 +337,7 @@ export function FormElement({
       return (
         <div className="flex col-2">
           <div>
-            <LabelWithHelp htmlFor={name} helpText={helpText}>
+            <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
               {label}:
             </LabelWithHelp>
             <FieldInput
@@ -349,7 +353,7 @@ export function FormElement({
     case "datetime":
       return (
         <div className="py-2">
-          <LabelWithHelp htmlFor={name} helpText={helpText}>
+          <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
             {label}:
           </LabelWithHelp>
 

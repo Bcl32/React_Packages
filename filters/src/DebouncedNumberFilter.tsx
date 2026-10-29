@@ -336,12 +336,13 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
             Min
           </button>
           <div className="flex flex-col shrink-0">
-            <button type="button" onClick={() => nudge(0, 1)} className="text-muted-foreground hover:text-foreground text-[11px] leading-none px-0.5 hover:bg-accent rounded">+</button>
-            <button type="button" onClick={() => nudge(0, -1)} className="text-muted-foreground hover:text-foreground text-[11px] leading-none px-0.5 hover:bg-accent rounded">−</button>
+            <button type="button" onClick={() => nudge(0, 1)} aria-label={`Raise ${label} minimum`} className="text-muted-foreground hover:text-foreground text-[11px] leading-none px-0.5 hover:bg-accent rounded">+</button>
+            <button type="button" onClick={() => nudge(0, -1)} aria-label={`Lower ${label} minimum`} className="text-muted-foreground hover:text-foreground text-[11px] leading-none px-0.5 hover:bg-accent rounded">−</button>
           </div>
           <Input
             variant="background"
             id={`${name}-min`}
+            aria-label={`${label} minimum`}
             name={name}
             value={inputValue.min}
             onChange={(e) => handleInputChange(0, e.target.value)}
@@ -357,6 +358,7 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
           <Input
             variant="background"
             id={`${name}-max`}
+            aria-label={`${label} maximum`}
             name={name}
             value={inputValue.max}
             onChange={(e) => handleInputChange(1, e.target.value)}
@@ -365,8 +367,8 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
             className="flex-1 min-w-0 h-6 text-[11px] md:text-[11px] tabular-nums text-center [appearance:textfield] px-1 py-0"
           />
           <div className="flex flex-col shrink-0">
-            <button type="button" onClick={() => nudge(1, 1)} className="text-muted-foreground hover:text-foreground text-[11px] leading-none px-0.5 hover:bg-accent rounded">+</button>
-            <button type="button" onClick={() => nudge(1, -1)} className="text-muted-foreground hover:text-foreground text-[11px] leading-none px-0.5 hover:bg-accent rounded">−</button>
+            <button type="button" onClick={() => nudge(1, 1)} aria-label={`Raise ${label} maximum`} className="text-muted-foreground hover:text-foreground text-[11px] leading-none px-0.5 hover:bg-accent rounded">+</button>
+            <button type="button" onClick={() => nudge(1, -1)} aria-label={`Lower ${label} maximum`} className="text-muted-foreground hover:text-foreground text-[11px] leading-none px-0.5 hover:bg-accent rounded">−</button>
           </div>
           <button
             type="button"

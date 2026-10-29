@@ -111,3 +111,15 @@ describe("Combobox with plain string options (unchanged behaviour)", () => {
     expect(onChange).toHaveBeenCalledWith(["r9"]);
   });
 });
+
+describe("Combobox id", () => {
+  it("puts the id on its text input, so a label can name it", () => {
+    render(
+      <>
+        <label htmlFor="input_room">Room</label>
+        <Combobox id="input_room" options={HALLS} value={[]} onChange={vi.fn()} />
+      </>,
+    );
+    expect(screen.getByLabelText("Room")).toBe(screen.getByRole("textbox"));
+  });
+});
