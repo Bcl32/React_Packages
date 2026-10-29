@@ -64,7 +64,7 @@ export function laneDropWrite(
   if (!attr) return { ok: false, reason: "Group the board by a field to move cards between lanes." };
   const title = fieldLabel(attr);
 
-  const shape = (attr.cell_shape as string | undefined) ?? "scalar";
+  const shape = attr.cell_shape ?? "scalar";
   if (shape !== "scalar") {
     return {
       ok: false,

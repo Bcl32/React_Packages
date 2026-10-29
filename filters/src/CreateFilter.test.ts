@@ -134,6 +134,7 @@ describe("CreateFilter", () => {
       name: "material",
       type: "select",
       filter: true,
+      // @ts-expect-error an invalid declared filter_type, on purpose
       filter_type: "select",
       filter_empty: [],
       options: [{ value: "PLA", label: "PLA" }],

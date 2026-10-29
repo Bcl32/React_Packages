@@ -148,11 +148,10 @@ export function BuildFilterSearchIndex(
     if (!kind) continue;
 
     const field = item["name"];
-    const rawAliases = item["searchAliases"];
     const base: Omit<SearchFieldEntry, "values"> = {
       field,
-      title: (item["title"] as string) ?? humanizeFieldName(field),
-      aliases: Array.isArray(rawAliases) ? rawAliases.map(String) : [],
+      title: item.title ?? humanizeFieldName(field),
+      aliases: item.searchAliases ?? [],
       kind,
       attr: item,
     };

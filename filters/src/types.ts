@@ -1,26 +1,24 @@
 // Core filter types used across the package
 
 import type * as React from "react";
-import type { ModelAttribute } from "@bcl32/data-utils";
+import type {
+  AttributeFilterType,
+  ColourPresetsConfig,
+  FilterCellShape,
+  FilterDisplay,
+  FilterSelection,
+  ModelAttribute,
+} from "@bcl32/data-utils";
 
-/**
- * How a filter is drawn. Options filters use the first five; a boolean filter
- * is drawn as "segmented" (Any / Yes / No, the default) or "checkbox" (one
- * side only, set per field with checkedValue and checkedLabel).
- */
-export type FilterDisplay =
-  | "dropdown"
-  | "combobox"
-  | "chip-toggle"
-  | "swatch-grid"
-  | "toggle-buttons"
-  | "segmented"
-  | "checkbox";
-
-/** What the row's cell holds: one value, a list of values, or a list of objects. */
-export type FilterCellShape = "scalar" | "scalar-array" | "object-array";
-
-export type FilterSelection = "single" | "multi";
+// The attribute's own vocabulary lives in data-utils, beside ModelAttribute,
+// and is re-exported here so imports from @bcl32/filters keep working.
+export type {
+  AttributeFilterType,
+  ColourPresetsConfig,
+  FilterCellShape,
+  FilterDisplay,
+  FilterSelection,
+} from "@bcl32/data-utils";
 
 /**
  * A toggle-buttons filter's option size — the @bcl32/utils ToggleGroup cva
@@ -171,7 +169,7 @@ export interface SubFilterParent {
  * picker section and search kind. resolveFilterKind decides it for an
  * attribute.
  */
-export type FilterKind = "number" | "datetime" | "date" | "string" | "boolean" | "options" | "custom";
+export type FilterKind = AttributeFilterType | "custom";
 
 /**
  * A boolean filter's value. null is "no filter"; "unknown" selects the rows
@@ -302,27 +300,8 @@ export interface FilterContextValue {
   filter_catalog?: FilterCatalogEntry[];
 }
 
-export interface FilterData {
-  name: string;
-  type: string;
-  options?: FilterOption[];
-  colour_presets?: ColourPresetsConfig;
-  [key: string]: unknown;
-}
-
-export interface ColourPresetsConfig {
-  get_api_url: string;
-  group_by?: string;
-  subgroup_by?: string;
-  /**
-   * Row column holding the IDENTITY of each selected preset, parallel to the
-   * colour column the filter is declared on. When set, a swatch pick is stored
-   * as the preset's id and matched against this column instead of by colour —
-   * necessary wherever several presets share one hex, which a colour
-   * comparison cannot tell apart. Supplied by the schema.
-   */
-  match_field?: string;
-}
+/** One filter as FilterElement draws it: its value plus its key in the Filters map. */
+export type FilterData = FilterValue & { name: string };
 
 export interface ChartMetadata {
   name: string;

@@ -48,7 +48,7 @@ export function EntityGroupCards({
           >
             {groupableAttrs.map((a) => (
               <ToggleGroupItem key={a.name} value={a.name}>
-                {(a as ModelAttribute).title as string ?? a.name}
+                {a.title ?? a.name}
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
@@ -59,7 +59,7 @@ export function EntityGroupCards({
         <div className="bg-card rounded-lg border p-8 text-center space-y-3">
           <p className="text-muted-foreground">
             {attr
-              ? `No ${(attr as ModelAttribute).title as string ?? attr.name} values found.`
+              ? `No ${attr.title ?? attr.name} values found.`
               : "Nothing to group."}
           </p>
           {onEmptySwitchToTable && (

@@ -82,7 +82,7 @@ function compactBody(value: number, locale: string): string {
 function unitSuffix(attr: ModelAttribute | undefined, opts: FormatNumberOptions): string | undefined {
   if (!opts.unit) return undefined;
   if (opts.adapter?.suffix) return opts.adapter.suffix;
-  return typeof attr?.unit_label === "string" && attr.unit_label ? attr.unit_label : undefined;
+  return attr?.unit_label || undefined;
 }
 
 function body(value: unknown, opts: FormatNumberOptions): string {

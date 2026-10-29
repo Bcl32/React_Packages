@@ -49,6 +49,10 @@
     "./numbers": {
       "types": "./dist/numbers.d.ts",
       "import": "./dist/numbers.js"
+    },
+    "./modelAttributeKeys": {
+      "types": "./dist/modelAttributeKeys.d.ts",
+      "import": "./dist/modelAttributeKeys.js"
     }
   },
   "bcl32": {

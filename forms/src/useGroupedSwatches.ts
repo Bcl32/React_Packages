@@ -3,12 +3,6 @@ import { useGetRequest } from "@bcl32/hooks/useGetRequest";
 import type { ModelAttribute } from "@bcl32/data-utils";
 import type { ColourSwatch } from "@bcl32/utils/ColourPickerPopover";
 
-interface ColourPresetsInfo {
-  get_api_url: string;
-  group_by?: string;
-  subgroup_by?: string;
-}
-
 /**
  * Fetches the colour-preset swatches for a form field and groups them into a
  * two-level map: the outer key is the `group_by` field value (e.g. material),
@@ -21,9 +15,7 @@ interface ColourPresetsInfo {
 export function useGroupedSwatches(
   entry_data: ModelAttribute
 ): Map<string, Map<string, ColourSwatch[]>> {
-  const colourPresets = entry_data.colour_presets as
-    | ColourPresetsInfo
-    | undefined;
+  const colourPresets = entry_data.colour_presets;
 
   const { data } = useGetRequest<{ items: Record<string, unknown>[] }>(
     colourPresets?.get_api_url ?? "",

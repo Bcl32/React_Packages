@@ -53,7 +53,7 @@ function declaredLanes(attr: ModelAttribute): FilterOption[] {
 
 export function getGroupableAttrs(modelData: ModelData): ModelAttribute[] {
   return modelData.model_attributes.filter(
-    (a) => a.filter === true && isCategorical(a as ModelAttribute),
+    (a) => a.filter === true && isCategorical(a),
   );
 }
 
@@ -178,8 +178,8 @@ export function rowGroupValues(
   attr: ModelAttribute,
 ): RowGroupValue[] {
   const cellShape = attr.cell_shape ?? "scalar";
-  const valueKey = (attr.value_key as string) ?? "value";
-  const labelKey = (attr.label_key as string) ?? "label";
+  const valueKey = attr.value_key ?? "value";
+  const labelKey = attr.label_key ?? "label";
   const raw = row[attr.name];
 
   if (cellShape === "scalar-array") {
@@ -223,7 +223,7 @@ export function useEntityGroups(
     if (!attr) return [];
     const rows = Array.isArray(dataset) ? dataset : [];
 
-    const cellShape = (attr as ModelAttribute).cell_shape ?? "scalar";
+    const cellShape = attr.cell_shape ?? "scalar";
 
     const buckets = new Map<string, GroupAccumulator>();
     const seed = (value: string, label?: string) => {
@@ -253,9 +253,7 @@ export function useEntityGroups(
     // A reference attribute's options are the rows of the table it points
     // at, so a value with no option is a dangling id — a deleted project. Its
     // uuid is not a label anyone can read.
-    const isReference = Boolean(
-      (attr as ModelAttribute & { options_source?: { label_key?: string } }).options_source?.label_key,
-    );
+    const isReference = Boolean(attr.options_source?.label_key);
 
     const result: EntityGroup[] = [];
     for (const [value, acc] of buckets.entries()) {
@@ -279,7 +277,7 @@ export function useEntityGroups(
     // shuffled. Everything else stays count-desc, which is what the landing
     // view and the existing boards were built around — and they only ever
     // group by `options`, so nothing there moves.
-    const numeric = (attr as ModelAttribute).filter_type === "number";
+    const numeric = attr.filter_type === "number";
     result.sort((a, b) => {
       if (a.isNone && !b.isNone) return 1;
       if (!a.isNone && b.isNone) return -1;

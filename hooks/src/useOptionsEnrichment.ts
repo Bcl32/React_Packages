@@ -29,7 +29,6 @@ export interface OptionsSource {
 interface AttrLike {
   options_source?: OptionsSource;
   options?: unknown;
-  [key: string]: unknown;
 }
 
 /** Shared with `@bcl32/filters`' `NONE_VALUE`: the option meaning "no value". */

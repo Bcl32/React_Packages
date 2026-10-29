@@ -53,7 +53,7 @@ export function CreateFilter(
   const filter: FilterValue = {
     type: resolvedType,
     value: structuredClone(empty),
-    rule: resolvedType === "boolean" ? undefined : item["filter_rule"],
+    rule: resolvedType === "boolean" ? undefined : (item.filter_rule ?? undefined),
     filter_empty: structuredClone(empty),
     field: title,
     attr: item,

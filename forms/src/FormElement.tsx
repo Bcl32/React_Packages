@@ -299,8 +299,8 @@ export function FormElement({
       // Combobox works in label-space for display; formData stores the
       // canonical value array (UUIDs), translated at change time via
       // attr.options. Mirrors EditableDetailItem.jsx's badge-modal flow.
-      const valueKey = (entry_data.value_key as string) || "value";
-      const labelKey = (entry_data.label_key as string) || "label";
+      const valueKey = entry_data.value_key || "value";
+      const labelKey = entry_data.label_key || "label";
       const options =
         (entry_data.options as Array<Record<string, unknown>>) || [];
       // Pairs: the combobox holds the ids themselves, so two options that

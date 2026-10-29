@@ -25,6 +25,7 @@ describe("resolveFilterKind", () => {
     ["declared string on a date field", attr({ type: "date", filter_type: "string" }), "string"],
     ["no filter_type, scalar data type", attr({ type: "number" }), "number"],
     ["no filter_type, select", attr({ type: "select" }), "options"],
+    // @ts-expect-error an invalid declared filter_type, on purpose
     ["invalid declared filter_type", attr({ type: "select", filter_type: "select" }), "options"],
   ])("%s", (_label, item, expected) => {
     expect(resolveFilterKind(item)).toBe(expected);
@@ -37,6 +38,7 @@ describe("resolveFilterKind", () => {
 
 describe("stale metadata", () => {
   it("refuses an attribute that still says source_kind", () => {
+    // @ts-expect-error source_kind is no longer a key, which is the point
     expect(() => resolveFilterKind(attr({ name: "tags", type: "list", source_kind: "scalar-array" }))).toThrow(
       /tags: metadata predates schema_utils 0\.18/,
     );
@@ -52,6 +54,7 @@ describe("the three builders agree", () => {
   const attrs: ModelAttribute[] = [
     attr({ name: "weight_g", type: "number", filter_type: "number", filter_empty: { min: "", max: "" }, unit: "g" }),
     attr({ name: "done", type: "boolean", filter_type: "options", filter_empty: [], options: [{ value: "true", label: "Yes" }, { value: "false", label: "No" }] }),
+    // @ts-expect-error an invalid declared filter_type, on purpose
     attr({ name: "material", type: "select", filter_type: "select", filter_empty: [], options: [{ value: "PLA", label: "PLA" }] }),
   ];
   const stats: DatasetStats = {

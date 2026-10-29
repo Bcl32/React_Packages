@@ -13,7 +13,7 @@ import type { ModelAttribute } from "@bcl32/data-utils";
  * "Sub_type:" and "Vendor id:" ended up in the same dialog.
  */
 export function fieldLabel(attr: ModelAttribute): string {
-  const title = (attr as { title?: string }).title;
+  const title = attr.title;
   if (title) return title;
 
   const name = attr.name ?? "";

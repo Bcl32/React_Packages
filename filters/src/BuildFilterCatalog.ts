@@ -44,8 +44,7 @@ export function resolveFilterKind(item: ModelAttribute): FilterKind | null {
   }
   if (item["type"] === "boolean") return "boolean";
 
-  const declared = item["filter_type"] as string | undefined;
-  const type = declared ?? (item["type"] as string);
+  const type: string = item.filter_type ?? item.type;
   if (type === "number" || type === "datetime" || type === "date" || type === "string") return type;
   return "options";
 }
@@ -211,7 +210,7 @@ export function BuildFilterCatalog(
     const stats = datasetStats?.[item["name"]];
     const base = {
       field: item["name"],
-      title: (item["title"] as string) ?? humanizeFieldName(item["name"]),
+      title: item.title ?? humanizeFieldName(item.name),
       type: kind,
       usedCount: usedCounts.get(item["name"]) ?? 0,
       attr: item,

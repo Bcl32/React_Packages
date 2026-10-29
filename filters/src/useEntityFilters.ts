@@ -276,7 +276,7 @@ export function useEntityFilters(
   const hasPrimaryFilters = useMemo(
     () =>
       enrichedModelData.model_attributes.some(
-        (attr) => attr.filter && (attr as { primaryFilter?: boolean }).primaryFilter,
+        (attr) => attr.filter && attr.primaryFilter,
       ),
     [enrichedModelData.model_attributes],
   );

@@ -7,7 +7,7 @@ import { BooleanFilter } from "./BooleanFilter";
 import { TimeFilter } from "./TimeFilter";
 import { DateFilter } from "./DateFilter";
 import { FILTER_FIELD_ATTR } from "./FilterTargeting";
-import type { CustomFilterDef, FilterContextValue, FilterData, FilterDisplay, FilterOption, FilterOptionIcon, FilterOptionSize, FilterSelection, FilterCellShape, ColourPresetsConfig } from "./types";
+import type { FilterContextValue, FilterData, FilterOptionIcon, FilterOptionSize } from "./types";
 
 interface FilterElementProps {
   filter_data: FilterData;
@@ -39,7 +39,7 @@ export function FilterElement({ filter_data, optionSize, optionIcon }: FilterEle
   // `width`). The panel is 2/3/4/5 columns across the breakpoints, so "half"
   // is the right half rounded up, started at the column after the left half;
   // on a one-column phone layout there is nothing to span.
-  const half = (filter_data["custom"] as CustomFilterDef | undefined)?.width === "half";
+  const half = filter_data["custom"]?.width === "half";
   return (
     <div
       className={
@@ -62,7 +62,7 @@ function get_chart_type(
 ): JSX.Element {
   // Prefer the schema-provided `title` (e.g. "Size (mm)"); components fall back
   // to a humanized field name when it's absent.
-  const title = filter_data["title"] as string | undefined;
+  const title = filter_data["title"];
   switch (filter_data["type"]) {
     case "string":
       return (
@@ -102,13 +102,13 @@ function get_chart_type(
         <OptionsFilter
           name={filter_data["name"]}
           title={title}
-          options={(filter_data["options"] as FilterOption[]) || []}
-          display={filter_data["display"] as FilterDisplay | undefined}
+          options={filter_data["options"] || []}
+          display={filter_data["display"]}
           optionSize={optionSize}
           optionIcon={optionIcon}
-          selection={filter_data["selection"] as FilterSelection | undefined}
-          cell_shape={filter_data["cell_shape"] as FilterCellShape | undefined}
-          colour_presets={filter_data["colour_presets"] as ColourPresetsConfig | undefined}
+          selection={filter_data["selection"]}
+          cell_shape={filter_data["cell_shape"]}
+          colour_presets={filter_data["colour_presets"]}
           onRemove={onRemove}
         />
       );
@@ -123,7 +123,7 @@ function get_chart_type(
     case "custom": {
       // The app's own control (see CustomFilterDef); it reads its value from
       // the same context the package's controls do.
-      const Custom = (filter_data["custom"] as CustomFilterDef | undefined)?.component;
+      const Custom = filter_data["custom"]?.component;
       if (!Custom) return <p>No filter</p>;
       return <Custom name={filter_data["name"]} title={title} onRemove={onRemove} />;
     }

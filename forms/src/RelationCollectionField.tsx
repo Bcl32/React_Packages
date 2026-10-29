@@ -227,13 +227,7 @@ export function RelationCollectionField({
   formData?: FormData;
   setFormData?: React.Dispatch<React.SetStateAction<FormData>>;
 }) {
-  const attr = entry_data as unknown as {
-    title?: string;
-    name: string;
-    sortable?: boolean;
-    thumbnail?: boolean;
-    sub_fields?: ModelAttribute[];
-  };
+  const attr = entry_data;
   const title = attr.title || attr.name;
   const subFields = attr.sub_fields ?? [];
   const sortable = !!attr.sortable;
