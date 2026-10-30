@@ -110,7 +110,25 @@ export interface ModelAttribute {
   reference?: ReferenceInfo;
   colour_presets?: ColourPresetsConfig;
   unit?: string;
-  format?: "bytes";
+  /**
+   * How a `number` is shown; the type stays "number". `money` prints currency
+   * at `decimals ?? 2` places (the currency comes from `NumberAdapterProvider`).
+   */
+  format?: "bytes" | "money";
+  /**
+   * The smallest and largest value the schema allows (`ge`/`le`, or `gt`/`lt`
+   * with the matching `_exclusive` flag, written only when true). parseNumber
+   * refuses a value outside them. Planned: schema_utils emits them next.
+   */
+  min?: number;
+  max?: number;
+  min_exclusive?: boolean;
+  max_exclusive?: boolean;
+  /**
+   * Fractional digits the column stores (its SQL `Numeric` scale). parseNumber
+   * refuses more; formatNumber shows at most this many. Planned.
+   */
+  decimals?: number;
   // Filters
   filter?: boolean;
   filter_type?: AttributeFilterType;

@@ -12,8 +12,13 @@ import type { ModelAttribute } from "./types";
  * - compact: browsing a column's spread. 10K and up abbreviate ("1.2M"), 100
  *   and up round to a whole number, below that 3 significant digits.
  *
- * Anything that isn't a finite number prints "—". Strings are not coerced: a
- * "12" in a number column is a leak worth seeing, not a value to hide.
+ * A field's `decimals` (its column's scale) replaces the 3-decimal cap, and
+ * `format: "money"` prints exactly `decimals ?? 2` places, as currency when the
+ * adapter carries one (`$1,249.50`).
+ *
+ * A plain decimal string ("12.50") is read as its number: every Decimal column
+ * arrives as one, by design, so no cent is lost to a float on the wire.
+ * Anything else that isn't a finite number prints "—".
  */
 
 /** How a unit is shown. Supplied per attribute once units can be switched (R8). */
@@ -39,6 +44,25 @@ export interface UnitAdapter {
   formatEditable?: (value: number) => string;
   /** One nudge, in stored units (½″ as 1.27 cm). Overrides the range-derived step. */
   step?: number;
+  /**
+   * An ISO 4217 code ("CAD") a `format: "money"` field prints in. Set by
+   * NumberAdapterProvider's `currency`, never per row.
+   */
+  currency?: string;
+}
+
+/** Whether an adapter changes the number itself, not only how money reads. */
+export function convertsUnits(adapter: UnitAdapter | null | undefined): boolean {
+  return !!(adapter && (adapter.toDisplay || adapter.fromDisplay || adapter.parse || adapter.format || adapter.formatEditable));
+}
+
+/**
+ * The fractional digits a field holds: its `decimals` (the column's scale),
+ * else 2 for money, else undefined (no limit).
+ */
+export function numberDecimals(attr: Pick<ModelAttribute, "decimals" | "format"> | undefined): number | undefined {
+  if (typeof attr?.decimals === "number") return attr.decimals;
+  return attr?.format === "money" ? 2 : undefined;
 }
 
 /**
@@ -47,7 +71,13 @@ export interface UnitAdapter {
  */
 export type ParseResult =
   | { ok: true; value: number | null }
-  | { ok: false; reason: "invalid" | "fraction" };
+  | { ok: false; reason: ParseFailure };
+
+/**
+ * Why typed text is refused: not a number, a fraction on an `integer` field,
+ * more digits than the field's `decimals`, or outside its `min`/`max`.
+ */
+export type ParseFailure = "invalid" | "fraction" | "decimals" | "range";
 
 export interface FormatNumberOptions {
   /** Abbreviate for browsing (default false: exact). */
@@ -67,32 +97,51 @@ const BLANK = "—";
 
 const formatters = new Map<string, Intl.NumberFormat>();
 
-function formatter(locale: string, kind: "fraction" | "significant" | "compact"): Intl.NumberFormat {
-  const key = `${locale}|${kind}`;
+function cached(locale: string, options: Intl.NumberFormatOptions): Intl.NumberFormat {
+  const key = `${locale}|${JSON.stringify(options)}`;
   let nf = formatters.get(key);
   if (!nf) {
-    const options: Intl.NumberFormatOptions =
-      kind === "fraction"
-        ? { maximumFractionDigits: 3 }
-        : kind === "significant"
-          ? { maximumSignificantDigits: 3 }
-          : { notation: "compact", maximumFractionDigits: 1 };
     nf = new Intl.NumberFormat(locale, options);
     formatters.set(key, nf);
   }
   return nf;
 }
 
-function exactBody(value: number, locale: string): string {
-  const kind = Math.abs(value) >= 1 || value === 0 ? "fraction" : "significant";
-  return formatter(locale, kind).format(value);
+const SIGNIFICANT: Intl.NumberFormatOptions = { maximumSignificantDigits: 3 };
+const COMPACT: Intl.NumberFormatOptions = { notation: "compact", maximumFractionDigits: 1 };
+
+function exactBody(value: number, locale: string, decimals: number | undefined): string {
+  // A column's scale is the whole answer: 0.05 at 2 places reads 0.05, not 0.0500.
+  if (decimals !== undefined) return cached(locale, { maximumFractionDigits: decimals }).format(value);
+  if (Math.abs(value) >= 1 || value === 0) return cached(locale, { maximumFractionDigits: 3 }).format(value);
+  return cached(locale, SIGNIFICANT).format(value);
 }
 
 function compactBody(value: number, locale: string): string {
   const magnitude = Math.abs(value);
-  if (magnitude >= 10000) return formatter(locale, "compact").format(value);
+  if (magnitude >= 10000) return cached(locale, COMPACT).format(value);
   if (magnitude >= 100 || Number.isInteger(value)) return String(Math.round(value));
   return String(+value.toPrecision(3));
+}
+
+/** Money: always its full places ($1,249.50, never $1,249.5); compact is $1.2K. */
+function moneyBody(value: number, locale: string, decimals: number, currency: string | undefined, compact: boolean): string {
+  const style: Intl.NumberFormatOptions = currency ? { style: "currency", currency } : {};
+  if (compact && Math.abs(value) >= 10000) return cached(locale, { ...style, ...COMPACT }).format(value);
+  return cached(locale, { ...style, minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(value);
+}
+
+/** The symbol a currency prints with in a locale ("CAD" → "$" in en-CA), for an input's prefix. */
+export function currencySymbol(currency: string, locale: string = DEFAULT_LOCALE): string {
+  const part = cached(locale, { style: "currency", currency }).formatToParts(0).find((p) => p.type === "currency");
+  return part?.value ?? currency;
+}
+
+/** A number, or the number a plain decimal string ("12.50") spells. */
+function numeric(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  const t = value.trim();
+  return DECIMAL.test(t) ? Number(t) : value;
 }
 
 /**
@@ -106,23 +155,29 @@ function unitSuffix(attr: ModelAttribute | undefined, opts: FormatNumberOptions)
   return attr?.unit_label || undefined;
 }
 
-function body(value: unknown, opts: FormatNumberOptions): string {
+function body(raw: unknown, attr: ModelAttribute | undefined, opts: FormatNumberOptions): string {
+  const value = numeric(raw);
   if (typeof value !== "number" || !Number.isFinite(value)) return BLANK;
   const adapter = opts.adapter;
   if (adapter?.format) return adapter.format(value);
   // + 0 turns -0 into 0; Intl would print "-0".
   const shown = (adapter?.toDisplay ? adapter.toDisplay(value) : value) + 0;
   const locale = opts.locale ?? DEFAULT_LOCALE;
-  return opts.compact ? compactBody(shown, locale) : exactBody(shown, locale);
+  // A converted value is no longer in the column's scale (203.2 cm is 80 in).
+  const decimals = adapter?.toDisplay ? undefined : numberDecimals(attr);
+  if (attr?.format === "money") {
+    return moneyBody(shown, locale, decimals ?? 2, adapter?.currency, !!opts.compact);
+  }
+  return opts.compact ? compactBody(shown, locale) : exactBody(shown, locale, decimals);
 }
 
-/** One number as text, e.g. `12.346`, `1.2M` (compact), `—` (missing). */
+/** One number as text, e.g. `12.346`, `1.2M` (compact), `$1,249.50` (money), `—` (missing). */
 export function formatNumber(
   value: unknown,
   attr?: ModelAttribute,
   opts: FormatNumberOptions = {},
 ): string {
-  const text = body(value, opts);
+  const text = body(value, attr, opts);
   const suffix = text === BLANK || opts.adapter?.format ? undefined : unitSuffix(attr, opts);
   return suffix ? `${text} ${suffix}` : text;
 }
@@ -137,8 +192,8 @@ export function formatNumberRange(
   attr?: ModelAttribute,
   opts: FormatNumberOptions = {},
 ): string {
-  const lo = body(min, opts);
-  const hi = body(max, opts);
+  const lo = body(min, attr, opts);
+  const hi = body(max, attr, opts);
   const text = lo === hi ? lo : `${lo} – ${hi}`;
   const suffix = text === BLANK || opts.adapter?.format ? undefined : unitSuffix(attr, opts);
   return suffix ? `${text} ${suffix}` : text;
@@ -160,6 +215,11 @@ const GROUPED = /^[+-]?\d{1,3}(?:,\d{3})+(?:\.\d+)?$/;
  * - Thousands commas are accepted ("1,249,999", what formatNumber prints), and
  *   a lone comma with no point is a decimal comma ("1,5" → 1.5).
  * - A fraction on an `integer` field is refused, never rounded.
+ * - More digits than the field's `decimals` (money: 2) are refused; through a
+ *   converting adapter the stored value is rounded to them instead, since the
+ *   extra digits are the conversion's, not the person's.
+ * - A value outside `min`/`max` (exclusive where flagged) is refused.
+ * Checked in that order, so 2.5 on a 1–5 integer reads as a fraction.
  */
 export function parseNumber(
   text: string,
@@ -168,18 +228,45 @@ export function parseNumber(
 ): ParseResult {
   const t = text.trim();
   if (t === "") return { ok: true, value: null };
-  if (opts.adapter?.parse) return opts.adapter.parse(t, attr);
-
-  let plain = t;
-  if (GROUPED.test(t)) plain = t.replace(/,/g, "");
-  else if (/^[^.,]*,[^.,]*$/.test(t)) plain = t.replace(",", ".");
-  if (!DECIMAL.test(plain)) return { ok: false, reason: "invalid" };
-
-  const typed = Number(plain);
-  if (!Number.isFinite(typed)) return { ok: false, reason: "invalid" };
-  const value = opts.adapter?.fromDisplay ? opts.adapter.fromDisplay(typed) : typed;
+  const adapter = opts.adapter;
+  let value: number;
+  if (adapter?.parse) {
+    const parsed = adapter.parse(t, attr);
+    if (!parsed.ok || parsed.value === null) return parsed;
+    value = parsed.value;
+  } else {
+    let plain = t;
+    if (GROUPED.test(t)) plain = t.replace(/,/g, "");
+    else if (/^[^.,]*,[^.,]*$/.test(t)) plain = t.replace(",", ".");
+    if (!DECIMAL.test(plain)) return { ok: false, reason: "invalid" };
+    const typed = Number(plain);
+    if (!Number.isFinite(typed)) return { ok: false, reason: "invalid" };
+    value = adapter?.fromDisplay ? adapter.fromDisplay(typed) : typed;
+  }
   if (attr?.integer && !Number.isInteger(value)) return { ok: false, reason: "fraction" };
+
+  const decimals = numberDecimals(attr);
+  if (decimals !== undefined && !fitsDecimals(value, decimals)) {
+    if (!convertsUnits(adapter)) return { ok: false, reason: "decimals" };
+    value = +value.toFixed(decimals);
+  }
+  if (!withinBounds(value, attr)) return { ok: false, reason: "range" };
   return { ok: true, value };
+}
+
+/** Whether a value has no more than `decimals` fractional digits (float-noise tolerant). */
+function fitsDecimals(value: number, decimals: number): boolean {
+  return Number.isInteger(+(value * 10 ** decimals).toPrecision(15));
+}
+
+/** Whether a value lies inside the field's `min`/`max`, honouring exclusivity. */
+export function withinBounds(
+  value: number,
+  attr: Pick<ModelAttribute, "min" | "max" | "min_exclusive" | "max_exclusive"> | undefined,
+): boolean {
+  if (typeof attr?.min === "number" && (attr.min_exclusive ? value <= attr.min : value < attr.min)) return false;
+  if (typeof attr?.max === "number" && (attr.max_exclusive ? value >= attr.max : value > attr.max)) return false;
+  return true;
 }
 
 /**

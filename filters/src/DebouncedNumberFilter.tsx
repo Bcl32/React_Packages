@@ -2,7 +2,7 @@ import * as React from "react";
 import { FilterContext } from "./FilterContext";
 import { FilterHeader } from "./FilterHeader";
 
-import { formatEditable, formatNumber, parseNumber } from "@bcl32/data-utils/numbers";
+import { convertsUnits, formatEditable, formatNumber, numberDecimals, parseNumber } from "@bcl32/data-utils/numbers";
 import { Input } from "@bcl32/utils/Input";
 import { useNumberAdapter } from "@bcl32/utils/NumberAdapter";
 import * as SliderPrimitive from "@radix-ui/react-slider";
@@ -261,7 +261,13 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
   const domain = numberDomain(filterEmpty);
   const slider_min = filterEmpty.min;
   const slider_max = filterEmpty.max;
-  const slider_step = stepFor(domain, { step: adapter?.step, integer: attr?.integer });
+  // A converted unit (inches over cm) is not in the column's scale, so only an
+  // unconverted field takes its decimals.
+  const slider_step = stepFor(domain, {
+    step: adapter?.step,
+    integer: attr?.integer,
+    decimals: convertsUnits(adapter) ? undefined : numberDecimals(attr),
+  });
 
   // Typed text is a deliberate "apply": it goes to the table at once rather
   // than through the debounce, and the debounce then has nothing left to send.

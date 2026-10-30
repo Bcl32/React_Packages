@@ -51,13 +51,19 @@ describe("formatNumber — compact (browsing a column's spread)", () => {
 });
 
 describe("formatNumber — blanks", () => {
-  it.each([[null], [undefined], [NaN], [Infinity], [-Infinity], [""], ["12"], [{}]])(
+  it.each([[null], [undefined], [NaN], [Infinity], [-Infinity], [""], ["12 cm"], ["0x10"], ["Infinity"], [{}]])(
     "%s → —",
     (value) => {
       expect(formatNumber(value)).toBe("—");
       expect(formatNumber(value, undefined, { compact: true })).toBe("—");
     },
   );
+
+  // R13: a Decimal arrives as a string by design, so a plain decimal string reads as its number.
+  it("reads a plain decimal string as its number", () => {
+    expect(formatNumber("12")).toBe("12");
+    expect(formatNumber(" 1249999.50 ")).toBe("1,249,999.5");
+  });
 });
 
 describe("formatNumber — locale", () => {

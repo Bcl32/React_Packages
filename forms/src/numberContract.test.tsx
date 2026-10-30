@@ -158,3 +158,59 @@ describe("AddModelForm", () => {
     expect(sent.body).toEqual({ amount: 0, width_cm: 80 });
   });
 });
+
+// R13: bounds, decimal places and money, named under the field before any request.
+describe("bounds, decimals and money", () => {
+  const stars: ModelAttribute = { ...rating, min: 1, max: 5 };
+  const price: ModelAttribute = {
+    name: "price", type: "number", title: "Price", editable: true, format: "money", decimals: 2, min: 0, min_exclusive: true,
+  };
+  const ModelData = {
+    model_name: "Item",
+    get_api_url: "items/",
+    update_api_url: "items",
+    model_attributes: [stars, price],
+  } as never;
+  const row = { id: 1, rating: 3, price: "12.50" };
+  const edit = (currency?: string) =>
+    render(
+      <NumberAdapterProvider currency={currency}>
+        <EditModelForm ModelData={ModelData} query_invalidation={[]} obj_data={row} />
+      </NumberAdapterProvider>,
+    );
+  const update = () => fireEvent.click(screen.getByRole("button", { name: "Update" }));
+
+  it("names a value outside the bounds and blocks the submit", () => {
+    edit();
+    fireEvent.change(box("Rating"), { target: { value: "6" } });
+    expect(screen.getByRole("alert").textContent).toBe("Between 1 and 5");
+    update();
+    expect(sent.mutate).not.toHaveBeenCalled();
+  });
+
+  it("names an exclusive bound in the field's own money", () => {
+    edit("CAD");
+    fireEvent.change(box("Price"), { target: { value: "0" } });
+    expect(screen.getByRole("alert").textContent).toBe("More than $0.00");
+  });
+
+  it("refuses a third decimal on money, and sends two as a number", () => {
+    edit();
+    fireEvent.change(box("Price"), { target: { value: "12.345" } });
+    expect(screen.getByRole("alert").textContent).toBe("2 decimal places at most");
+    fireEvent.change(box("Price"), { target: { value: "19.99" } });
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(sent.body).toEqual({ price: 19.99 });
+  });
+
+  it("keeps money in a number box, with the currency inside it and a 0.01 step", () => {
+    edit("CAD");
+    const input = box("Price");
+    expect(input.type).toBe("number");
+    expect(input.step).toBe("0.01");
+    expect(input.closest("div")?.textContent).toContain("$");
+    expect(box("Rating").min).toBe("1");
+    expect(box("Rating").max).toBe("5");
+    expect(input.min).toBe(""); // exclusive: left to parseNumber
+  });
+});

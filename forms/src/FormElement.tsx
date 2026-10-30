@@ -12,6 +12,7 @@ import { Input } from "@bcl32/utils/Input";
 import { Label } from "@bcl32/utils/Label";
 import { CustomTooltip } from "@bcl32/utils/Tooltip";
 import { DateTimePicker } from "@bcl32/utils/DateTimePicker";
+import { useNumberAdapter } from "@bcl32/utils/NumberAdapter";
 
 import { useGetRequest } from "@bcl32/hooks/useGetRequest";
 import { optionsFromSource } from "@bcl32/hooks/useOptionsEnrichment";
@@ -23,6 +24,16 @@ import { FieldInput, type NumberFieldError } from "./FieldInput";
 import { fieldLabel } from "./fieldLabel";
 import { fieldErrorText, type FieldError } from "./numberFields";
 import { RelationCollectionField } from "./RelationCollectionField";
+
+/** The inline error under a number field, its bounds printed in the field's unit. */
+function NumberFieldMessage({ id, label, error, attr }: { id: string; label: string; error: FieldError; attr: ModelAttribute }) {
+  const adapter = useNumberAdapter()(attr);
+  return (
+    <p id={id} role="alert" className="mt-1 text-xs text-destructive">
+      {fieldErrorText(label, error, attr, adapter)}
+    </p>
+  );
+}
 
 interface LabelWithHelpProps {
   htmlFor: string;
@@ -223,9 +234,7 @@ export function FormElement({
               describedBy={fieldError ? "error_" + name : undefined}
             />
             {fieldError && (
-              <p id={"error_" + name} role="alert" className="mt-1 text-xs text-destructive">
-                {fieldErrorText(label, fieldError)}
-              </p>
+              <NumberFieldMessage id={"error_" + name} label={label} error={fieldError} attr={entry_data} />
             )}
           </div>
         </div>

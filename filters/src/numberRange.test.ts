@@ -32,6 +32,13 @@ describe("stepFor", () => {
     expect(stepFor({ min: 0, max: 5000 }, { integer: true })).toBe(50);
   });
 
+  it("never steps finer than the column's last decimal place", () => {
+    expect(stepFor({ min: 0, max: 0.5 }, { decimals: 2 })).toBe(0.01);
+    expect(stepFor({ min: 0, max: 0.5 }, { decimals: 4 })).toBe(0.005);
+    expect(stepFor({ min: 0, max: 100000 }, { decimals: 2 })).toBe(1000);
+    expect(stepFor({ min: 0, max: 0.01 }, { decimals: 4 })).toBe(0.0001);
+  });
+
   it("takes a unit's own step, and 1 for an empty domain", () => {
     expect(stepFor(d, { step: 1.27 })).toBe(1.27);
     expect(stepFor({ min: 3, max: 3 })).toBe(1);

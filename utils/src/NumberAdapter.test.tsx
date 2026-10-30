@@ -30,4 +30,26 @@ describe("useNumberAdapter", () => {
     expect(seen?.({ name: "width_cm", unit: "cm" })).toBe(INCHES);
     expect(seen?.({ name: "weight_g", unit: "g" })).toBeNull();
   });
+
+  it("prints money in the provider's currency, one shared adapter for every money field", () => {
+    renderToStaticMarkup(
+      <NumberAdapterProvider currency="CAD">
+        <Reader />
+      </NumberAdapterProvider>,
+    );
+    const budget = seen?.({ name: "budget", format: "money" });
+    expect(budget).toEqual({ currency: "CAD" });
+    expect(seen?.({ name: "amount", format: "money" })).toBe(budget);
+    expect(seen?.({ name: "width_cm", unit: "cm" })).toBeNull();
+  });
+
+  it("keeps the app's adapter where it gives one, and adds currency to the rest", () => {
+    renderToStaticMarkup(
+      <NumberAdapterProvider adapterFor={inchesForCm} currency="CAD">
+        <Reader />
+      </NumberAdapterProvider>,
+    );
+    expect(seen?.({ name: "width_cm", unit: "cm" })).toBe(INCHES);
+    expect(seen?.({ name: "spent", format: "money" })).toEqual({ currency: "CAD" });
+  });
 });

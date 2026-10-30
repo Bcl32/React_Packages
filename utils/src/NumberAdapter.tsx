@@ -11,7 +11,7 @@ import type { UnitAdapter } from "@bcl32/data-utils/numbers";
  * shared adapter constants from it, never a new object per call — readers
  * memoise on what it returns.
  */
-export type AdapterResolver = (attr: { name: string; unit?: string }) => UnitAdapter | null;
+export type AdapterResolver = (attr: { name: string; unit?: string; format?: string }) => UnitAdapter | null;
 
 /**
  * The resolver with no provider: every field is shown as stored. A module
@@ -25,17 +25,34 @@ export interface NumberAdapterProviderProps {
   /**
    * Build it with `useMemo` keyed on the app's unit setting, so its identity
    * changes exactly once per switch and every reader redraws in the new unit.
+   * Optional: an app that only sets `currency` converts nothing.
    */
-  adapterFor: AdapterResolver;
+  adapterFor?: AdapterResolver;
+  /**
+   * The ISO 4217 code ("CAD") every `format: "money"` field prints in. One per
+   * app, never per row: a filter chip formats a value, not a row. A money
+   * field the resolver adapts keeps the resolver's adapter.
+   */
+  currency?: string;
   children: React.ReactNode;
 }
 
+/** The resolver, with money fields it leaves alone printing in `currency`. */
+function withCurrency(adapterFor: AdapterResolver, currency: string | undefined): AdapterResolver {
+  if (!currency) return adapterFor;
+  // One shared adapter per currency: readers memoise on what the resolver returns.
+  const money: UnitAdapter = { currency };
+  return (attr) => adapterFor(attr) ?? (attr.format === "money" ? money : null);
+}
+
 /**
- * Mounted once by an app that converts units. Nothing between it and the
- * number inputs, filters and chips that read it needs to pass anything on.
+ * Mounted once by an app that converts units or prints money. Nothing between
+ * it and the number inputs, filters and chips that read it needs to pass
+ * anything on.
  */
-export function NumberAdapterProvider({ adapterFor, children }: NumberAdapterProviderProps) {
-  return <NumberAdapterContext.Provider value={adapterFor}>{children}</NumberAdapterContext.Provider>;
+export function NumberAdapterProvider({ adapterFor, currency, children }: NumberAdapterProviderProps) {
+  const resolver = React.useMemo(() => withCurrency(adapterFor ?? NO_ADAPTER, currency), [adapterFor, currency]);
+  return <NumberAdapterContext.Provider value={resolver}>{children}</NumberAdapterContext.Provider>;
 }
 
 /**

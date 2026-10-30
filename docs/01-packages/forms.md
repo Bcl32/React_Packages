@@ -65,15 +65,20 @@ import { ColourField } from "@bcl32/forms/ColourField";
 > **Number fields carry numbers.** `FieldInput`'s number box holds the typed
 > text itself and emits only what it means — a number, or `null` for an emptied
 > box — through `@bcl32/data-utils/numbers`' `parseNumber`, never the browser's
-> string. Unreadable text and a fraction on an `integer` field are reported
-> (`onInvalid`) and never emitted. `EditModelForm` normalises the loaded row
-> with `toNumberValue` and diffs against that, so a Decimal's `"12.50"` retyped
-> as 12.5 is no change; Add and Bulk normalise their defaults the same way. All
-> three show the reason under the field (`Width is required` for an emptied
-> number whose attribute is not `nullable`, `Whole numbers only`, `Not a
-> number`) and refuse to submit while one shows. Under a `NumberAdapterProvider`
-> (`@bcl32/utils/NumberAdapter`) the box shows and reads the display unit and
-> the form still holds stored units.
+> string. Unreadable text, a fraction on an `integer` field, more decimal places
+> than the field's `decimals` (money: 2) and a value outside its `min`/`max`
+> are reported (`onInvalid`) and never emitted. `EditModelForm` normalises the
+> loaded row with `toNumberValue` and diffs against that, so a Decimal's
+> `"12.50"` retyped as 12.5 is no change; Add and Bulk normalise their defaults
+> the same way. All three show the reason under the field (`Width is required`
+> for an emptied number whose attribute is not `nullable`, `Whole numbers only`,
+> `2 decimal places at most`, `Between 1 and 5` / `At least 0` / `More than
+> $0.00`, `Not a number`) and refuse to submit while one shows. The box takes
+> inclusive bounds as native `min`/`max`, steps by the column's last place, and
+> a money field shows its currency symbol inside the box. Under a
+> `NumberAdapterProvider` (`@bcl32/utils/NumberAdapter`) a converting adapter
+> makes the box show and read the display unit (a `text` box) while the form
+> still holds stored units; money's currency-only adapter keeps a `number` box.
 
 > **`ButtonDatePicker` was removed in 3.0.0 (MAJOR).** The old MUI
 > `MobileDateTimePicker`-backed button (which required a parent

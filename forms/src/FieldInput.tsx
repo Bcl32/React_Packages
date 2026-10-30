@@ -5,7 +5,15 @@ import { Select } from "@bcl32/utils/Select";
 import { Checkbox } from "@bcl32/utils/Checkbox";
 import { useNumberAdapter } from "@bcl32/utils/NumberAdapter";
 import type { ModelAttribute } from "@bcl32/data-utils";
-import { formatEditable, parseNumber, toNumberValue, type ParseResult } from "@bcl32/data-utils/numbers";
+import {
+  convertsUnits,
+  currencySymbol,
+  formatEditable,
+  numberDecimals,
+  parseNumber,
+  toNumberValue,
+  type ParseResult,
+} from "@bcl32/data-utils/numbers";
 
 import { AutoGrowTextarea } from "./AutoGrowTextarea";
 
@@ -224,14 +232,23 @@ function NumberField({
     onInvalid?.(next);
   };
 
+  // A unit's text (6'10") is not a number the browser would accept; money's
+  // adapter only names a currency, so its box stays a number box.
+  const converts = convertsUnits(adapter);
+  const decimals = numberDecimals(attr);
   return (
     <Input
       id={id}
       name={name}
-      // A unit's text (6'10") is not a number the browser would accept.
-      type={adapter ? "text" : "number"}
+      type={converts ? "text" : "number"}
       inputMode="decimal"
-      step={attr.integer ? 1 : "any"}
+      // 1 / 10 ** d, not 10 ** -d: 10 ** -4 is 0.00009999999999999999.
+      step={attr.integer ? 1 : decimals !== undefined ? 1 / 10 ** decimals : "any"}
+      // The spinner stops at an inclusive bound; parseNumber refuses the rest
+      // (exclusive bounds, typed values) with a message the browser can't give.
+      min={!converts && typeof attr.min === "number" && !attr.min_exclusive ? attr.min : undefined}
+      max={!converts && typeof attr.max === "number" && !attr.max_exclusive ? attr.max : undefined}
+      prefix={attr.format === "money" && adapter?.currency ? currencySymbol(adapter.currency) : undefined}
       variant={compact ? undefined : "background"}
       size={compact ? undefined : "lg"}
       className={className}

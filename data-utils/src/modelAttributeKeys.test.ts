@@ -19,7 +19,8 @@ const GENERATED = [
 // Keys package code reads that the generator does not write.
 const HAND_WRITTEN = ["accept"];
 const REACT_ONLY = ["description", "groupBy", "searchAliases"];
-const PLANNED = ["unit_label"];
+// Read by parseNumber / formatNumber (R13) ahead of schema_utils emitting them.
+const PLANNED = ["decimals", "max", "max_exclusive", "min", "min_exclusive", "unit_label"];
 
 function keysOf(origin: string): string[] {
   return Object.entries(MODEL_ATTRIBUTE_KEYS)
