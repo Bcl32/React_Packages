@@ -1,5 +1,18 @@
 # @bcl32/filters
 
+## 5.4.1
+
+### Patch Changes
+
+- 39942aa: Every filter and form control has an accessible name.
+
+  - utils: `Combobox` takes an `id`, put on its text input so a `<label htmlFor>` can name it.
+  - forms: `FormElement`'s labels point at the id their control carries (`input_<name>`). The select, datetime, list, single_combobox, id_list and reference fields pointed at a bare name no element had.
+  - filters: the number filter's min and max boxes are named "<label> minimum"/"maximum", and their +/− buttons "Raise/Lower <label> minimum/maximum". The text filter's box is named after its field.
+
+- Updated dependencies [39942aa]
+  - @bcl32/utils@2.14.0
+
 ## 5.4.0
 
 ### Minor Changes
