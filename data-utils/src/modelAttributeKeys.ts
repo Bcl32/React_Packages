@@ -29,6 +29,7 @@ export const MODEL_ATTRIBUTE_KEYS = {
   format: "generated",
   options: "generated",
   nullable: "generated",
+  integer: "generated",
   help_text: "generated",
   colour_presets: "generated",
   editable: "generated",
@@ -58,5 +59,4 @@ export const MODEL_ATTRIBUTE_KEYS = {
   groupBy: "react-only",
   searchAliases: "react-only",
   unit_label: "planned",
-  integer: "planned",
 } as const satisfies Record<keyof ModelAttribute, ModelAttributeKeyOrigin>;
