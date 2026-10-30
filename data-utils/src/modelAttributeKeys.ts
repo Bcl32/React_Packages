@@ -58,4 +58,5 @@ export const MODEL_ATTRIBUTE_KEYS = {
   groupBy: "react-only",
   searchAliases: "react-only",
   unit_label: "planned",
+  integer: "planned",
 } as const satisfies Record<keyof ModelAttribute, ModelAttributeKeyOrigin>;

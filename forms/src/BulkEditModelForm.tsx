@@ -15,6 +15,7 @@ import { getFormDefault, resolveBulkUpdateUrl, type ModelData } from "@bcl32/dat
 
 import { toast } from "sonner";
 import { FormElement, canRenderFormElement, type FormData } from "./FormElement";
+import { fieldErrors, normaliseNumbers, useParseErrors } from "./numberFields";
 
 interface RowSelection {
   [key: string]: boolean;
@@ -66,8 +67,13 @@ export function BulkEditModelForm({
     form_defaults[item.name] = getFormDefault(item);
   });
 
-  const [formData, setFormData] = React.useState<FormData>(form_defaults);
+  const [formData, setFormData] = React.useState<FormData>(() =>
+    normaliseNumbers(form_defaults, editableAttributes),
+  );
   const [enabledFields, setEnabledFields] = React.useState<Record<string, boolean>>({});
+  const { parseErrors, onFieldError } = useParseErrors();
+  // Only the ticked fields are sent, so only they can block the submit.
+  const errors = fieldErrors(editableAttributes, formData, parseErrors, (name) => !!enabledFields[name]);
 
   // For list-style fields (scalar `list` or reference `id_list`), default to
   // merge mode (add to existing) so a bulk-apply doesn't wipe per-row
@@ -164,6 +170,10 @@ export function BulkEditModelForm({
   // it is a no-op and gives a false sense of "the POST finished" in code
   // that runs after. Use `mutateAsync()` if you need to await.
   function handleSubmit() {
+  if (Object.keys(errors).length > 0) {
+    toast.error("Fix the highlighted fields first");
+    return;
+  }
     submittedIdsRef.current = [...selectedIds];
     submittedDataRef.current = { ...enabledData };
     mutation.mutate();
@@ -215,6 +225,8 @@ export function BulkEditModelForm({
                   change_datetime={change_datetime}
                   formData={formData}
                   setFormData={setFormData}
+                  fieldError={errors[attr.name]}
+                  onFieldError={onFieldError}
                 />
                 {(attr.type === "list" || attr.type === "id_list") && (
                   <div className="flex items-center gap-2 mt-2">

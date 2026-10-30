@@ -19,8 +19,9 @@ import { Combobox } from "@bcl32/utils/Combobox";
 import type { ModelAttribute, ReferenceInfo } from "@bcl32/data-utils";
 import { ColourField } from "./ColourField";
 import { ColourArrayField } from "./ColourArrayField";
-import { FieldInput } from "./FieldInput";
+import { FieldInput, type NumberFieldError } from "./FieldInput";
 import { fieldLabel } from "./fieldLabel";
+import { fieldErrorText, type FieldError } from "./numberFields";
 import { RelationCollectionField } from "./RelationCollectionField";
 
 interface LabelWithHelpProps {
@@ -82,6 +83,10 @@ export interface FormElementProps {
   formData: FormData;
   setFormData: React.Dispatch<React.SetStateAction<FormData>>;
   change_datetime: (value: Dayjs | null, name: string) => void;
+  /** Why this field can't be submitted as it stands; shown under it. */
+  fieldError?: FieldError;
+  /** A number field's parse error (or null once fixed), keyed by field name. */
+  onFieldError?: (name: string, reason: NumberFieldError | null) => void;
 }
 
 
@@ -148,6 +153,8 @@ export function FormElement({
   formData,
   setFormData,
   change_datetime,
+  fieldError,
+  onFieldError,
 }: FormElementProps) {
   const name = entry_data.name;
   const label = fieldLabel(entry_data);
@@ -209,9 +216,17 @@ export function FormElement({
               attr={entry_data}
               id={"input_" + name}
               name={name}
-              value={(formData[name] as string | number) ?? ""}
+              value={formData[name]}
               onChange={setField}
+              onInvalid={onFieldError ? (reason) => onFieldError(name, reason) : undefined}
+              invalid={fieldError !== undefined}
+              describedBy={fieldError ? "error_" + name : undefined}
             />
+            {fieldError && (
+              <p id={"error_" + name} role="alert" className="mt-1 text-xs text-destructive">
+                {fieldErrorText(label, fieldError)}
+              </p>
+            )}
           </div>
         </div>
       );

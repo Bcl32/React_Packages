@@ -448,6 +448,9 @@ importers:
         specifier: ^2.5.2
         version: 2.6.1
     devDependencies:
+      '@bcl32/data-utils':
+        specifier: workspace:^2.7.0
+        version: link:../data-utils
       '@types/react':
         specifier: ^18.2.0
         version: 18.3.28

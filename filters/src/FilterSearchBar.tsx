@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Search } from "lucide-react";
 
 import { Input } from "@bcl32/utils/Input";
+import { useNumberAdapter } from "@bcl32/utils/NumberAdapter";
 import {
   ApplyFilterSuggestion,
   SearchFilterIndex,
@@ -64,9 +65,11 @@ export function FilterSearchBar({
   const panelRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
+  // In the deps: switching units must redo the suggestions in the new unit.
+  const adapterFor = useNumberAdapter();
   const suggestions = React.useMemo<FilterSuggestion[]>(
-    () => SearchFilterIndex(index, query, { filters, canAdd: !!addFilter }),
-    [index, query, filters, addFilter],
+    () => SearchFilterIndex(index, query, { filters, canAdd: !!addFilter, adapterFor }),
+    [index, query, filters, addFilter, adapterFor],
   );
 
   // Keep the highlight on a real row as the result set shrinks.

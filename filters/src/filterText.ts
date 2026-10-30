@@ -1,6 +1,9 @@
 import dayjs from "dayjs";
 
 import { formatNumberRange } from "@bcl32/data-utils/numbers";
+import type { AdapterResolver } from "@bcl32/utils/NumberAdapter";
+
+import { adapterOf } from "./adapterOf";
 
 import { DATE_PRESET_LABEL, isDay } from "./dateOnly";
 import { humanizeFieldName, prettyOptionLabel } from "./utils";
@@ -68,8 +71,11 @@ export function datePhrase(value: DateFilterValue): string {
   return "Any";
 }
 
-/** The toolbar chip for one active filter, e.g. `Weight (g): 10 – 50`. */
-export function chipLabel(name: string, filter: FilterValue): string {
+/**
+ * The toolbar chip for one active filter, e.g. `Weight (g): 10 – 50`. A number
+ * range goes through the app's unit adapter for the field, when there is one.
+ */
+export function chipLabel(name: string, filter: FilterValue, adapterFor?: AdapterResolver): string {
   // Prefer the schema title ("Size (mm)") over the raw key — a dynamic instance's
   // key is synthetic ("weight_g#2"), so the key alone reads badly in a chip.
   const label = filter.title ?? humanizeFieldName(filter.field ?? name);
@@ -78,7 +84,7 @@ export function chipLabel(name: string, filter: FilterValue): string {
       return `${label} ${filter.rule} "${filter.value}"`;
     case "number": {
       const v = filter.value as NumberRange;
-      return `${label}: ${formatNumberRange(v.min, v.max, filter.attr)}`;
+      return `${label}: ${formatNumberRange(v.min, v.max, filter.attr, { adapter: adapterOf(adapterFor, filter.attr) })}`;
     }
     case "options": {
       const vals = filter.value as string[];
@@ -113,8 +119,8 @@ function summaryOptionsValue(value: string[], options: FilterOption[] | undefine
   return value.map((v) => map.get(v) ?? v).join(", ");
 }
 
-/** The value text of one FiltersSummary row. */
-export function summaryValue(filter: FilterValue): string {
+/** The value text of one FiltersSummary row; numbers as `chipLabel` reads them. */
+export function summaryValue(filter: FilterValue, adapterFor?: AdapterResolver): string {
   if (filter["type"] === "datetime") {
     const dtValue = filter["value"] as DatetimeFilterValue;
     return (
@@ -129,7 +135,9 @@ export function summaryValue(filter: FilterValue): string {
   }
   if (filter["type"] === "number") {
     const numValue = filter["value"] as NumberRange;
-    return formatNumberRange(numValue["min"], numValue["max"], filter.attr);
+    return formatNumberRange(numValue["min"], numValue["max"], filter.attr, {
+      adapter: adapterOf(adapterFor, filter.attr),
+    });
   }
   if (filter["type"] === "boolean") {
     const value = filter["value"] as BooleanFilterValue;

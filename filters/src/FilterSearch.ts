@@ -1,4 +1,7 @@
-import { formatNumber, formatNumberRange } from "@bcl32/data-utils/numbers";
+import { formatNumber, formatNumberRange, parseNumber, type UnitAdapter } from "@bcl32/data-utils/numbers";
+import type { AdapterResolver } from "@bcl32/utils/NumberAdapter";
+
+import { adapterOf } from "./adapterOf";
 
 import { baseFieldName, resolveFilterKind } from "./BuildFilterCatalog";
 import { DATE_PRESETS, isDatePreset } from "./dateOnly";
@@ -256,9 +259,12 @@ const KIND_DETAIL: Record<SearchFieldKind, string> = {
 };
 
 /** The live-data summary for a field-level suggestion ("12 – 511", "8 values"). */
-function fieldDetail(entry: SearchFieldEntry): string {
+function fieldDetail(entry: SearchFieldEntry, adapterFor?: AdapterResolver): string {
   if (entry.kind === "number" && entry.min !== undefined && entry.max !== undefined) {
-    return formatNumberRange(entry.min, entry.max, entry.attr, { compact: true });
+    return formatNumberRange(entry.min, entry.max, entry.attr, {
+      compact: true,
+      adapter: adapterOf(adapterFor, entry.attr),
+    });
   }
   if (entry.kind === "datetime" && entry.earliest && entry.latest) {
     return `${entry.earliest.slice(0, 10)} – ${entry.latest.slice(0, 10)}`;
@@ -290,6 +296,22 @@ interface SearchOptions {
   /** Whether unmounted fields can be instantiated (addFilter is wired). */
   canAdd: boolean;
   maxResults?: number;
+  /**
+   * The app's unit adapters (`useNumberAdapter`). A typed number is in the
+   * field's DISPLAY unit, so it is converted to the stored unit before it
+   * becomes a filter value, and labels print the stored value back.
+   */
+  adapterFor?: AdapterResolver;
+}
+
+/**
+ * A number typed in a field's display unit, as the stored value; null when the
+ * text is not one. No attribute is passed on purpose: "rating > 3.5" is a fair
+ * question about an integer column, which parseNumber would refuse as a value.
+ */
+function typedNumber(text: string, adapter: UnitAdapter | null): number | null {
+  const parsed = parseNumber(text, undefined, { adapter });
+  return parsed.ok ? parsed.value : null;
 }
 
 /** The filter-map keys' resolved data columns — what's already on screen. */
@@ -344,7 +366,7 @@ function comparisonLabel(op: string): string {
 export function SearchFilterIndex(
   index: SearchFieldEntry[],
   rawQuery: string,
-  { filters, canAdd, maxResults = 8 }: SearchOptions,
+  { filters, canAdd, maxResults = 8, adapterFor }: SearchOptions,
 ): FilterSuggestion[] {
   const query = normalize(rawQuery);
   const mounted = mountedFields(filters);
@@ -359,7 +381,7 @@ export function SearchFilterIndex(
       .map((entry) => ({
         field: entry.field,
         label: `Filter by ${entry.title}`,
-        detail: fieldDetail(entry),
+        detail: fieldDetail(entry, adapterFor),
         score: STARTER_SCORE[entry.kind],
         action: { type: "add-field", field: entry.field } as FilterSearchAction,
       }))
@@ -398,7 +420,7 @@ export function SearchFilterIndex(
       pool.push({
         field: entry.field,
         label: `Filter by ${entry.title}`,
-        detail: fieldDetail(entry),
+        detail: fieldDetail(entry, adapterFor),
         score: 60 + fieldScore * 3,
         action: { type: "add-field", field: entry.field },
       });
@@ -416,8 +438,9 @@ export function SearchFilterIndex(
       if (fieldScore === 0 || !usable(entry)) continue;
 
       if (entry.kind === "number") {
-        const num = Number(valuePart);
-        if (!isFinite(num) || valuePart.trim() === "") continue;
+        const adapter = adapterOf(adapterFor, entry.attr);
+        const num = typedNumber(valuePart, adapter);
+        if (num === null) continue;
         const range =
           op === ">" || op === ">="
             ? { min: num }
@@ -426,7 +449,7 @@ export function SearchFilterIndex(
               : { min: num, max: num };
         pool.push({
           field: entry.field,
-          label: `${entry.title} ${comparisonLabel(op)} ${formatNumber(num, entry.attr)}`,
+          label: `${entry.title} ${comparisonLabel(op)} ${formatNumber(num, entry.attr, { adapter })}`,
           detail: KIND_DETAIL.number,
           score: 90 + fieldScore * 3,
           action: { type: "number-range", field: entry.field, ...range },
@@ -478,15 +501,19 @@ export function SearchFilterIndex(
   const range = RANGE_RE.exec(query);
   if (range) {
     const [, fieldPart, lo, hi] = range;
-    const min = Math.min(Number(lo), Number(hi));
-    const max = Math.max(Number(lo), Number(hi));
     for (const entry of index) {
       if (entry.kind !== "number") continue;
       const fieldScore = fieldMatchScore(entry, fieldPart.trim());
       if (fieldScore === 0 || !usable(entry)) continue;
+      const adapter = adapterOf(adapterFor, entry.attr);
+      const a = typedNumber(lo, adapter);
+      const b = typedNumber(hi, adapter);
+      if (a === null || b === null) continue;
+      const min = Math.min(a, b);
+      const max = Math.max(a, b);
       pool.push({
         field: entry.field,
-        label: `${entry.title}: ${formatNumberRange(min, max, entry.attr)}`,
+        label: `${entry.title}: ${formatNumberRange(min, max, entry.attr, { adapter })}`,
         detail: KIND_DETAIL.number,
         score: 90 + fieldScore * 3,
         action: { type: "number-range", field: entry.field, min, max },
@@ -522,7 +549,7 @@ export function SearchFilterIndex(
       pool.push({
         field: entry.field,
         label: `Filter by ${entry.title}`,
-        detail: fieldDetail(entry),
+        detail: fieldDetail(entry, adapterFor),
         score: fieldScore * 10,
         action: { type: "add-field", field: entry.field },
       });

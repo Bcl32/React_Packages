@@ -5,6 +5,8 @@ import { ChevronDown, ChevronRight, Plus, Search } from "lucide-react";
 
 import { formatNumberRange } from "@bcl32/data-utils/numbers";
 import { Input } from "@bcl32/utils/Input";
+import { useNumberAdapter, type AdapterResolver } from "@bcl32/utils/NumberAdapter";
+import { adapterOf } from "./adapterOf";
 import { anchoredPanelStyle, useAnchorRect } from "./AnchoredPanel";
 import type { FilterCatalogEntry } from "./types";
 
@@ -54,7 +56,7 @@ function kindOrder(type: string): number {
 
 
 /** The live data span shown on the right of a picker row. */
-function formatRange(entry: FilterCatalogEntry): string {
+function formatRange(entry: FilterCatalogEntry, adapterFor: AdapterResolver): string {
   // A boolean's value list is a fixed pair, so the row just says what control
   // it will add rather than pretending to summarise the data.
   if (entry.type === "boolean") return "yes / no";
@@ -79,7 +81,10 @@ function formatRange(entry: FilterCatalogEntry): string {
     return `${dayjs(entry.earliest).format(DATE_FORMAT)} – ${dayjs(entry.latest).format(DATE_FORMAT)}`;
   }
   if (typeof entry.min !== "number" || typeof entry.max !== "number") return "—";
-  return formatNumberRange(entry.min, entry.max, entry.attr, { compact: true });
+  return formatNumberRange(entry.min, entry.max, entry.attr, {
+    compact: true,
+    adapter: adapterOf(adapterFor, entry.attr),
+  });
 }
 
 /**
@@ -147,6 +152,7 @@ export function AddFilterPicker({
   onOpenChange,
   size = "default",
 }: AddFilterPickerProps): JSX.Element {
+  const adapterFor = useNumberAdapter();
   const [selfOpen, setSelfOpen] = React.useState(false);
   const open = openProp ?? selfOpen;
   // Accepts the updater form the toggle button already uses, so the two modes
@@ -272,7 +278,7 @@ export function AddFilterPicker({
               <TopValues values={entry.topValues} />
             )}
             <span className="shrink-0 tabular-nums text-muted-foreground">
-              {entry.disabled ? (entry.reason ?? "unavailable") : formatRange(entry)}
+              {entry.disabled ? (entry.reason ?? "unavailable") : formatRange(entry, adapterFor)}
             </span>
           </span>
         </button>

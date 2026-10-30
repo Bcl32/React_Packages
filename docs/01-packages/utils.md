@@ -56,7 +56,7 @@ import { Button, buttonVariants } from "@bcl32/utils/Button";
 `Alert`, `AnimatedTabs`, `AnimatedFileSystem`, `ShowHierarchy`, `ToggleGroup`,
 `DateTimePicker`, `Dialog`, `DialogButton`, `Sidebar`, `Select`, `Button`, `Input`, `Label`,
 `Card`, `Separator`, `Skeleton`, `Sheet`, `Checkbox`, `Dropdown`, `Tooltip`,
-`RadioButton`, `Slider`, `Breadcrumb`, `Stepper`, `useIsMobile`,
+`RadioButton`, `Slider`, `Breadcrumb`, `Stepper`, `NumberAdapter`, `useIsMobile`,
 `StatusBanner`, `ColourPickerPopover`, `Combobox`, `cn`.
 
 ## Dependencies
@@ -284,6 +284,23 @@ natural height. That is fine on a page and wrong in a dialog, where it makes the
 modal jump between tabs; inside one, give every `TabContent` the same fixed
 height per
 [02-INTEROP §6](../02-INTEROP.md#6-dialog-design-conventions).
+
+### NumberAdapter (unit conversion seam)
+
+One context, mounted once by an app that converts units; read by the number
+inputs in `@bcl32/forms` and every number surface in `@bcl32/filters` (the card,
+chips, summary, search, add-filter picker). With no provider every reader gets
+`NO_ADAPTER` and renders exactly as before. The `UnitAdapter` type and the pure
+functions that take one (`formatNumber`, `parseNumber`, `formatEditable`) live
+in `@bcl32/data-utils/numbers`; utils imports the type only, so it installs no
+`@bcl32` package.
+
+| Name | Kind | Signature / Props | Description |
+| --- | --- | --- | --- |
+| `NumberAdapterProvider` | component | `{ adapterFor: AdapterResolver; children }` | Sets the resolver for everything below. Build `adapterFor` with `useMemo` keyed on the unit setting, and return shared adapter constants from it. |
+| `useNumberAdapter` | hook | `() => AdapterResolver` | The provider's resolver, or `NO_ADAPTER`. Never null, never throws. Component bodies only — pure code takes the result as an argument. |
+| `NO_ADAPTER` | const | `AdapterResolver` | `() => null`: every field shown as stored. A module constant, so readers without a provider never re-render for it. |
+| `AdapterResolver` | type | `(attr: { name: string; unit?: string }) => UnitAdapter \| null` | Per field, so a length can convert while a count or a price never does. |
 
 ### Stepper (controlled wizard)
 

@@ -12,6 +12,7 @@ import { chipLabel } from "./filterText";
 import type { Filters, FilterCatalogEntry, FilterInitialValue, FilterOptionIcon, FilterOptionSize } from "./types";
 import { ListFilter, X } from "lucide-react";
 import { CustomTooltip } from "@bcl32/utils/Tooltip";
+import { useNumberAdapter } from "@bcl32/utils/NumberAdapter";
 
 /** Characters a chip shows before it ellipsises; the tooltip carries the rest. */
 const CHIP_LABEL_CAP = { default: 28, large: 40 } as const;
@@ -177,6 +178,7 @@ export function useDataTableFilterBar({
   size = "default",
 }: UseDataTableFilterBarProps): DataTableFilter {
   const large = size === "large";
+  const adapterFor = useNumberAdapter();
   // One flat, ordered list instead of per-kind tabs: pinned filters first,
   // then the always-present options filters, then user-added instances in the
   // order they were added. See OrderFilters for why bucketing by type is wrong
@@ -363,7 +365,7 @@ export function useDataTableFilterBar({
   const chips =
     activeCount > 0
       ? Object.entries(activeFilters).map(([key, entry]) => {
-          const label = chipLabel(key, entry);
+          const label = chipLabel(key, entry, adapterFor);
           const cap = CHIP_LABEL_CAP[size];
           const chip = (
           <span

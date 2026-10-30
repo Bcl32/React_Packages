@@ -6,6 +6,7 @@ import duration from "dayjs/plugin/duration";
 dayjs.extend(duration);
 
 import { Button } from "@bcl32/utils/Button";
+import { useNumberAdapter } from "@bcl32/utils/NumberAdapter";
 import { FilterContext } from "./FilterContext";
 import { summaryValue } from "./filterText";
 import type { Filters, FilterContextValue } from "./types";
@@ -18,6 +19,7 @@ interface FiltersSummaryProps {
 export function FiltersSummary({ active_filters }: FiltersSummaryProps): JSX.Element | null {
   // Get filters from Context (single source of truth)
   const context = React.useContext(FilterContext) as FilterContextValue | null;
+  const adapterFor = useNumberAdapter();
 
   // Safety check: Don't render until filters are initialized
   if (!context?.filters || Object.keys(context.filters).length === 0) {
@@ -42,7 +44,7 @@ export function FiltersSummary({ active_filters }: FiltersSummaryProps): JSX.Ele
               return null;
             }
 
-            const filter_value = summaryValue(context.filters[key]);
+            const filter_value = summaryValue(context.filters[key], adapterFor);
 
             return (
               <FiltersEntry

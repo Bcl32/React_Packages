@@ -2,11 +2,14 @@ import * as React from "react";
 import { FilterContext } from "./FilterContext";
 import { FilterHeader } from "./FilterHeader";
 
-import { formatNumber } from "@bcl32/data-utils/numbers";
+import { formatEditable, formatNumber, parseNumber } from "@bcl32/data-utils/numbers";
 import { Input } from "@bcl32/utils/Input";
+import { useNumberAdapter } from "@bcl32/utils/NumberAdapter";
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import type { FilterContextValue, HistogramBin, ModelAttribute, NumberRange } from "./types";
 import { humanizeFieldName } from "./utils";
+import { adapterOf } from "./adapterOf";
+import { nudge, numberDomain, sameRange, setBound, stepFor } from "./numberRange";
 
 interface DebouncedNumberFilterProps {
   name: string;
@@ -16,7 +19,6 @@ interface DebouncedNumberFilterProps {
 }
 
 /** A bin's bounds are a preview of the data, so they print short ("1.2M"). */
-const COMPACT = { compact: true } as const;
 
 /** A drawn bar: its extent on screen, and the range selecting it applies. */
 interface StripBin extends HistogramBin {
@@ -59,6 +61,8 @@ function HistogramStrip({
   onSelectRange,
   attr,
 }: HistogramStripProps): JSX.Element | null {
+  const adapterFor = useNumberAdapter();
+  const COMPACT = { compact: true, adapter: adapterOf(adapterFor, attr) };
   // Index of the bar a drag started on; null when not dragging. Sweeping over
   // bars applies the range live, so the existing fade doubles as the preview.
   const [anchor, setAnchor] = React.useState<number | null>(null);
@@ -196,8 +200,11 @@ function HistogramStrip({
   );
 }
 
+type Bound = "min" | "max";
+
 export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumberFilterProps): JSX.Element | null {
   const context = React.useContext(FilterContext) as FilterContextValue | null;
+  const adapterFor = useNumberAdapter();
 
   // Safe access to filter data - handles React batching timing issues
   const filterData = context?.filters?.[name];
@@ -206,26 +213,39 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
   const filterEmpty = filterData ? (filterData["filter_empty"] as NumberRange) : { min: 0, max: 0 };
   const filterValue = filterData ? (filterData["value"] as NumberRange) : { min: 0, max: 0 };
 
+  // The range the card shows: the slider and histogram write it as they move,
+  // and it reaches the table through the 500 ms debounce below.
   const [inputValue, setInputValue] = React.useState<NumberRange>(filterValue);
-  const mountedRef = React.useRef(false);
+  // What the table filters by now. A range equal to it is never sent again,
+  // which is what stops an outside reset echoing back as a second write.
+  const committedRef = React.useRef<NumberRange>(filterValue);
+
+  // Typed text, one per box, present only while that box is being edited. A
+  // box shows its draft while there is one and the live value otherwise, so it
+  // can hold "2" on the way to "250", "12." on the way to 12.5, or "-".
+  const [draft, setDraft] = React.useState<Partial<Record<Bound, string>>>({});
+  const [invalid, setInvalid] = React.useState<Partial<Record<Bound, boolean>>>({});
+  // The text a box held when focused. Committing that same text writes
+  // nothing: an adapter's edit text can round (82 11/16″ for 210 cm), and an
+  // untouched box must not save the rounded value.
+  const seededRef = React.useRef<Partial<Record<Bound, string>>>({});
 
   // Sync local state when context changes externally (e.g., reset from FiltersSummary)
   React.useEffect(() => {
+    committedRef.current = { min: filterValue.min, max: filterValue.max };
     setInputValue({ min: filterValue.min, max: filterValue.max });
   }, [filterValue.min, filterValue.max]);
 
-  // Debounce input and push to context.
+  // Debounce slider and histogram moves and push them to context.
   //
   // Both effects must run before the "no filter data" guard below: a removed
   // instance makes filterData undefined for one render, and bailing out between
   // two hooks would trip React's "rendered fewer hooks than expected".
   React.useEffect(() => {
-    if (!mountedRef.current) {
-      mountedRef.current = true;
-      return;
-    }
     if (!context?.filters?.[name]) return;
+    if (sameRange(inputValue, committedRef.current)) return;
     const timeoutId = setTimeout(() => {
+      committedRef.current = inputValue;
       context?.change_filters(name, "value", inputValue);
     }, 500);
     return () => clearTimeout(timeoutId);
@@ -236,34 +256,57 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
     return null;
   }
 
+  const attr = filterData.attr;
+  const adapter = adapterOf(adapterFor, attr);
+  const domain = numberDomain(filterEmpty);
   const slider_min = filterEmpty.min;
   const slider_max = filterEmpty.max;
-  const range = slider_max - slider_min;
-  const slider_step = range > 0 ? +(range / 100).toPrecision(2) : 1;
+  const slider_step = stepFor(domain, { step: adapter?.step, integer: attr?.integer });
 
-  const handleInputChange = (index: number, value: string) => {
-    const newValue = parseFloat(value);
-    if (!isNaN(newValue) && newValue >= slider_min && newValue <= slider_max) {
-      const newRange = index === 0
-        ? { min: newValue, max: inputValue.max }
-        : { min: inputValue.min, max: newValue };
-      setInputValue(newRange);
-    }
+  // Typed text is a deliberate "apply": it goes to the table at once rather
+  // than through the debounce, and the debounce then has nothing left to send.
+  const commitNow = (next: NumberRange) => {
+    setInputValue(next);
+    if (sameRange(next, committedRef.current)) return;
+    committedRef.current = next;
+    context.change_filters(name, "value", next);
   };
+
+  const editText = (value: number) => formatEditable(value, { adapter });
+  const shown = (b: Bound) => draft[b] ?? editText(inputValue[b]);
+
+  const dropDraft = (b: Bound) => {
+    setDraft(({ [b]: _dropped, ...rest }) => rest);
+    setInvalid((prev) => ({ ...prev, [b]: false }));
+  };
+
+  /** Commit a box's draft. The range it leaves, or null when the text is unreadable. */
+  const commit = (b: Bound): NumberRange | null => {
+    const text = draft[b];
+    if (text === undefined) return inputValue;
+    if (text === seededRef.current[b]) {
+      dropDraft(b);
+      return inputValue;
+    }
+    // An emptied box is "no limit on this side": the end goes back to the edge.
+    // No attribute is passed on purpose: "3.5" is a fair bound on a count.
+    const parsed = parseNumber(text, undefined, { adapter });
+    if (!parsed.ok) {
+      setInvalid((prev) => ({ ...prev, [b]: true }));
+      return null;
+    }
+    const value = parsed.value ?? (b === "min" ? slider_min : slider_max);
+    const next = setBound(inputValue, b, value, domain);
+    commitNow(next);
+    dropDraft(b);
+    return next;
+  };
+
+  const step = (b: Bound, direction: 1 | -1, from: NumberRange = inputValue, times = 1) =>
+    setInputValue(nudge(from, b, direction, slider_step * times, domain));
 
   const handleSliderChange = (newValues: number[]) => {
     setInputValue({ min: newValues[0], max: newValues[1] });
-  };
-
-  const nudge = (index: number, direction: 1 | -1) => {
-    const current = index === 0 ? inputValue.min : inputValue.max;
-    const newValue = +(current + direction * slider_step).toPrecision(10);
-    const clamped = Math.min(slider_max, Math.max(slider_min, newValue));
-    setInputValue(
-      index === 0
-        ? { min: clamped, max: inputValue.max }
-        : { min: inputValue.min, max: clamped }
-    );
   };
 
   const isAtMin = inputValue.min === slider_min;
@@ -278,6 +321,60 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
     : "text-[10px] font-medium text-muted-foreground hover:text-primary hover:bg-accent px-1 rounded transition-colors";
 
   const label = title ?? humanizeFieldName(name);
+  const spoken = (value: number) => formatNumber(value, attr, { adapter, unit: true });
+
+  const box = (b: Bound) => (
+    <Input
+      variant="background"
+      id={`${name}-${b}`}
+      aria-label={`${label} ${b === "min" ? "minimum" : "maximum"}`}
+      aria-invalid={invalid[b] || undefined}
+      name={`${name}-${b}`}
+      value={shown(b)}
+      onFocus={() => {
+        const seed = editText(inputValue[b]);
+        seededRef.current[b] = seed;
+        setDraft((prev) => ({ ...prev, [b]: prev[b] ?? seed }));
+      }}
+      onChange={(e) => {
+        const text = e.target.value;
+        setDraft((prev) => ({ ...prev, [b]: text }));
+        setInvalid((prev) => ({ ...prev, [b]: false }));
+      }}
+      onBlur={() => commit(b)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          commit(b);
+        } else if (e.key === "Escape") {
+          // Back to the value the table is filtering by.
+          dropDraft(b);
+          seededRef.current[b] = undefined;
+        } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+          // As a native number box: what was typed is applied, then one step.
+          e.preventDefault();
+          const from = commit(b);
+          if (from) step(b, e.key === "ArrowUp" ? 1 : -1, from, e.shiftKey ? 10 : 1);
+        }
+      }}
+      type="text"
+      inputMode="decimal"
+      className="flex-1 min-w-0 h-6 text-[11px] md:text-[11px] tabular-nums text-center [appearance:textfield] px-1 py-0"
+    />
+  );
+
+  // The +/− buttons are for the pointer: a keyboard nudges from inside the box
+  // with the arrow keys, so the buttons stay out of the tab order.
+  const stepButtons = (b: Bound) => {
+    const which = b === "min" ? "minimum" : "maximum";
+    const cls = "text-muted-foreground hover:text-foreground text-[11px] leading-none px-0.5 hover:bg-accent rounded";
+    return (
+      <div className="flex flex-col shrink-0">
+        <button type="button" tabIndex={-1} onClick={() => step(b, 1)} aria-label={`Raise ${label} ${which}`} className={cls}>+</button>
+        <button type="button" tabIndex={-1} onClick={() => step(b, -1)} aria-label={`Lower ${label} ${which}`} className={cls}>−</button>
+      </div>
+    );
+  };
 
   const slider = (
     <SliderPrimitive.Root
@@ -287,14 +384,15 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
       min={slider_min}
       max={slider_max}
       step={slider_step}
-      aria-label="Range"
+      aria-label={`${label} range`}
     >
       <SliderPrimitive.Track className="relative h-1 w-full grow overflow-hidden rounded-full bg-secondary">
         <SliderPrimitive.Range className="absolute h-full bg-primary" />
       </SliderPrimitive.Track>
-      {[inputValue.min, inputValue.max].map((_, index) => (
+      {[inputValue.min, inputValue.max].map((value, index) => (
         <SliderPrimitive.Thumb
           key={index}
+          aria-valuetext={spoken(value)}
           className="block h-3 w-3 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
         />
       ))}
@@ -317,7 +415,7 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
             selectedMin={inputValue.min}
             selectedMax={inputValue.max}
             onSelectRange={(min, max) => setInputValue({ min, max })}
-            attr={filterData.attr}
+            attr={attr}
           />
           {slider}
         </div>
@@ -331,50 +429,24 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
             type="button"
             onClick={() => setInputValue({ ...inputValue, min: slider_min })}
             className={minBtnClass}
-            title={`Set to ${formatNumber(slider_min, filterData.attr)}`}
+            title={`Set to ${formatNumber(slider_min, attr, { adapter })}`}
           >
             Min
           </button>
-          <div className="flex flex-col shrink-0">
-            <button type="button" onClick={() => nudge(0, 1)} aria-label={`Raise ${label} minimum`} className="text-muted-foreground hover:text-foreground text-[11px] leading-none px-0.5 hover:bg-accent rounded">+</button>
-            <button type="button" onClick={() => nudge(0, -1)} aria-label={`Lower ${label} minimum`} className="text-muted-foreground hover:text-foreground text-[11px] leading-none px-0.5 hover:bg-accent rounded">−</button>
-          </div>
-          <Input
-            variant="background"
-            id={`${name}-min`}
-            aria-label={`${label} minimum`}
-            name={name}
-            value={inputValue.min}
-            onChange={(e) => handleInputChange(0, e.target.value)}
-            type="text"
-            inputMode="decimal"
-            className="flex-1 min-w-0 h-6 text-[11px] md:text-[11px] tabular-nums text-center [appearance:textfield] px-1 py-0"
-          />
+          {stepButtons("min")}
+          {box("min")}
         </div>
 
         <span className="text-muted-foreground text-xs shrink-0">—</span>
 
         <div className="flex items-center gap-0.5 flex-1 min-w-0">
-          <Input
-            variant="background"
-            id={`${name}-max`}
-            aria-label={`${label} maximum`}
-            name={name}
-            value={inputValue.max}
-            onChange={(e) => handleInputChange(1, e.target.value)}
-            type="text"
-            inputMode="decimal"
-            className="flex-1 min-w-0 h-6 text-[11px] md:text-[11px] tabular-nums text-center [appearance:textfield] px-1 py-0"
-          />
-          <div className="flex flex-col shrink-0">
-            <button type="button" onClick={() => nudge(1, 1)} aria-label={`Raise ${label} maximum`} className="text-muted-foreground hover:text-foreground text-[11px] leading-none px-0.5 hover:bg-accent rounded">+</button>
-            <button type="button" onClick={() => nudge(1, -1)} aria-label={`Lower ${label} maximum`} className="text-muted-foreground hover:text-foreground text-[11px] leading-none px-0.5 hover:bg-accent rounded">−</button>
-          </div>
+          {box("max")}
+          {stepButtons("max")}
           <button
             type="button"
             onClick={() => setInputValue({ ...inputValue, max: slider_max })}
             className={maxBtnClass}
-            title={`Set to ${formatNumber(slider_max, filterData.attr)}`}
+            title={`Set to ${formatNumber(slider_max, attr, { adapter })}`}
           >
             Max
           </button>

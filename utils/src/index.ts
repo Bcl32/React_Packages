@@ -23,6 +23,7 @@ export * from "./RadioButton";
 export * from "./Slider";
 export * from "./Breadcrumb";
 export * from "./Stepper";
+export * from "./NumberAdapter";
 export * from "./useIsMobile";
 
 export * from "./StatusBanner";

@@ -26,7 +26,28 @@ export interface UnitAdapter {
   fromDisplay?: (value: number) => number;
   /** The whole text, for units that are not a number plus a suffix (6'10"). */
   format?: (value: number) => string;
+  /**
+   * Typed display text → stored value, for units whose text is not a plain
+   * number (6'10"). Replaces parseNumber's own reading when present; the text
+   * arrives trimmed and never empty.
+   */
+  parse?: (text: string, attr?: ModelAttribute) => ParseResult;
+  /**
+   * The text an editable box starts from: exact, and read back unchanged by
+   * `parse` (never compact). Without it a box shows the displayed number.
+   */
+  formatEditable?: (value: number) => string;
+  /** One nudge, in stored units (½″ as 1.27 cm). Overrides the range-derived step. */
+  step?: number;
 }
+
+/**
+ * What a typed number means. `null` is an empty box — "no value", which is
+ * neither 0 nor "" — and an unreadable one is an error, never a silent clear.
+ */
+export type ParseResult =
+  | { ok: true; value: number | null }
+  | { ok: false; reason: "invalid" | "fraction" };
 
 export interface FormatNumberOptions {
   /** Abbreviate for browsing (default false: exact). */
@@ -121,4 +142,69 @@ export function formatNumberRange(
   const text = lo === hi ? lo : `${lo} – ${hi}`;
   const suffix = text === BLANK || opts.adapter?.format ? undefined : unitSuffix(attr, opts);
   return suffix ? `${text} ${suffix}` : text;
+}
+
+// Plain decimal text: an optional sign, digits with at most one point, an
+// optional exponent. Narrower than Number(), which also reads "0x10", "0b1"
+// and "Infinity" — nothing anyone means in a measurement box.
+const DECIMAL = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
+// Thousands groups as formatNumber prints them in en-CA ("1,249,999.5").
+const GROUPED = /^[+-]?\d{1,3}(?:,\d{3})+(?:\.\d+)?$/;
+
+/**
+ * Text typed into a number box → the stored number. Pure and React-free, so
+ * forms, the number filter, the filter search and the apps share one reading.
+ *
+ * - "" (after trimming) is `{ok: true, value: null}`: the box was emptied.
+ * - An adapter with `parse` reads the text itself (inches, 6'10").
+ * - Thousands commas are accepted ("1,249,999", what formatNumber prints), and
+ *   a lone comma with no point is a decimal comma ("1,5" → 1.5).
+ * - A fraction on an `integer` field is refused, never rounded.
+ */
+export function parseNumber(
+  text: string,
+  attr?: ModelAttribute,
+  opts: { adapter?: UnitAdapter | null } = {},
+): ParseResult {
+  const t = text.trim();
+  if (t === "") return { ok: true, value: null };
+  if (opts.adapter?.parse) return opts.adapter.parse(t, attr);
+
+  let plain = t;
+  if (GROUPED.test(t)) plain = t.replace(/,/g, "");
+  else if (/^[^.,]*,[^.,]*$/.test(t)) plain = t.replace(",", ".");
+  if (!DECIMAL.test(plain)) return { ok: false, reason: "invalid" };
+
+  const typed = Number(plain);
+  if (!Number.isFinite(typed)) return { ok: false, reason: "invalid" };
+  const value = opts.adapter?.fromDisplay ? opts.adapter.fromDisplay(typed) : typed;
+  if (attr?.integer && !Number.isInteger(value)) return { ok: false, reason: "fraction" };
+  return { ok: true, value };
+}
+
+/**
+ * The text an editable box shows for a stored value: exact, unformatted and
+ * read back unchanged by parseNumber — never compact, no thousands commas, no
+ * unit. "" for no value. Through the adapter's `formatEditable`, else its
+ * `toDisplay` (rounded to 12 significant digits, so 203.2 cm reads 80, not
+ * 80.00000000000001), else the number itself.
+ */
+export function formatEditable(value: unknown, opts: { adapter?: UnitAdapter | null } = {}): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "";
+  const adapter = opts.adapter;
+  if (adapter?.formatEditable) return adapter.formatEditable(value);
+  const shown = adapter?.toDisplay ? +adapter.toDisplay(value).toPrecision(12) : value;
+  return String(shown + 0);
+}
+
+/**
+ * A loaded or default value → `number | null`: a row's 80, a Decimal's
+ * "12.50", a default's "0", or null / "" for none. What a form compares typed
+ * numbers against, so "12.50" and a retyped 12.5 are the same value.
+ */
+export function toNumberValue(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string") return null;
+  const parsed = parseNumber(value);
+  return parsed.ok ? parsed.value : null;
 }

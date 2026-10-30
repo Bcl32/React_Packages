@@ -13,6 +13,7 @@ import { getFormDefault, type ModelData } from "@bcl32/data-utils";
 
 import { toast } from "sonner";
 import { FormElement, type FormData } from "./FormElement";
+import { fieldErrors, normaliseNumbers, useParseErrors } from "./numberFields";
 
 interface AddModelFormProps {
   ModelData: ModelData;
@@ -31,7 +32,11 @@ export function AddModelForm(props: AddModelFormProps) {
     form_defaults[item.name] = getFormDefault(item);
   });
 
-  const [formData, setFormData] = React.useState<FormData>(form_defaults);
+  const [formData, setFormData] = React.useState<FormData>(() =>
+    normaliseNumbers(form_defaults, ModelData.model_attributes),
+  );
+  const { parseErrors, onFieldError } = useParseErrors();
+  const errors = fieldErrors(ModelData.model_attributes, formData, parseErrors);
 
   function change_datetime(value: Dayjs | null, name: string) {
     setFormData((prevFormData) => {
@@ -48,6 +53,10 @@ export function AddModelForm(props: AddModelFormProps) {
   }
 
   async function add_new_entry() {
+  if (Object.keys(errors).length > 0) {
+    toast.error("Fix the highlighted fields first");
+    return;
+  }
     props.processing_function?.();
     await mutation_add_entry.mutate();
   }
@@ -78,6 +87,8 @@ export function AddModelForm(props: AddModelFormProps) {
                 change_datetime={change_datetime}
                 formData={formData}
                 setFormData={setFormData}
+                fieldError={errors[entry.name]}
+                onFieldError={onFieldError}
               />
             );
           } else {

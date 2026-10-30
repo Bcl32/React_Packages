@@ -62,6 +62,19 @@ import { ColourField } from "@bcl32/forms/ColourField";
 | `BulkEditModelForm` | component | Lets the user enable individual fields to patch across multiple selected rows. POSTs `{ ids, data, merge_fields }` to `resolveBulkUpdateUrl(ModelData)`. Handles the `colour_array` paired `_ids` sibling, merge-vs-replace mode for `list`/`id_list` fields, and avoids the rowSelection-clear-before-`isSuccess` unmount bug via refs. | `(props: { ModelData: ModelData; query_invalidation: string[]; rowSelection: Record<string, boolean>; setRowSelection: Dispatch<SetStateAction<Record<string, boolean>>>; onSuccess?: (ids: string[], data: FormData) => void; onClose?: () => void }) => JSX.Element` |
 | `DeleteModelForm` | component | Confirms and POSTs deletion of selected row ids to `delete_api_url/bulk`. Handles `409` conflict responses with a structured skip-or-cascade resolution UI (internal `DeleteConflictView`). | `(props: { delete_api_url: string; query_invalidation: string[]; rowSelection: Record<string, boolean>; setRowSelection: Dispatch<SetStateAction<Record<string, boolean>>>; onClose?: () => void; onSuccess?: () => void }) => JSX.Element` |
 
+> **Number fields carry numbers.** `FieldInput`'s number box holds the typed
+> text itself and emits only what it means — a number, or `null` for an emptied
+> box — through `@bcl32/data-utils/numbers`' `parseNumber`, never the browser's
+> string. Unreadable text and a fraction on an `integer` field are reported
+> (`onInvalid`) and never emitted. `EditModelForm` normalises the loaded row
+> with `toNumberValue` and diffs against that, so a Decimal's `"12.50"` retyped
+> as 12.5 is no change; Add and Bulk normalise their defaults the same way. All
+> three show the reason under the field (`Width is required` for an emptied
+> number whose attribute is not `nullable`, `Whole numbers only`, `Not a
+> number`) and refuse to submit while one shows. Under a `NumberAdapterProvider`
+> (`@bcl32/utils/NumberAdapter`) the box shows and reads the display unit and
+> the form still holds stored units.
+
 > **`ButtonDatePicker` was removed in 3.0.0 (MAJOR).** The old MUI
 > `MobileDateTimePicker`-backed button (which required a parent
 > `@mui/x-date-pickers` `LocalizationProvider`) is gone; `FormElement`'s

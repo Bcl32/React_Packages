@@ -14,6 +14,7 @@ import type { ModelData } from "@bcl32/data-utils";
 import { toast } from "sonner";
 import { FormElement, canRenderFormElement, type FormData } from "./FormElement";
 import { changedFields } from "./_diff";
+import { fieldErrors, normaliseNumbers, useParseErrors } from "./numberFields";
 
 type EditModelData = ModelData & { update_api_url: string };
 
@@ -38,7 +39,15 @@ export function EditModelForm({
   onClose,
   ...props
 }: EditModelFormProps) {
-  const [formData, setFormData] = React.useState<FormData>(obj_data);
+  // Numbers as numbers on both sides of the diff: a Decimal loads as "12.50"
+  // and a retyped 12.5 must not count as a change.
+  const baseline = React.useMemo(
+    () => normaliseNumbers(obj_data, ModelData.model_attributes),
+    [obj_data, ModelData],
+  );
+  const [formData, setFormData] = React.useState<FormData>(baseline);
+  const { parseErrors, onFieldError } = useParseErrors();
+  const errors = fieldErrors(ModelData.model_attributes, formData, parseErrors);
 
   function change_datetime(value: Dayjs | null, name: string) {
     setFormData((prevFormData) => {
@@ -57,11 +66,15 @@ export function EditModelForm({
   // Only the attributes the user actually changed — keeps the PATCH minimal
   // and avoids re-sending unchanged (or heavy read-only) fields.
   const patchBody = React.useMemo(
-    () => changedFields(formData, obj_data),
-    [formData, obj_data],
+    () => changedFields(formData, baseline),
+    [formData, baseline],
   );
 
   async function update_entry() {
+  if (Object.keys(errors).length > 0) {
+    toast.error("Fix the highlighted fields first");
+    return;
+  }
     if (Object.keys(patchBody).length === 0) {
       toast.info("No changes to save");
       onClose?.();
@@ -98,6 +111,8 @@ export function EditModelForm({
               change_datetime={change_datetime}
               formData={formData}
               setFormData={setFormData}
+              fieldError={errors[entry.name]}
+              onFieldError={onFieldError}
             />
           ))}
       </form>

@@ -110,6 +110,10 @@
       "types": "./dist/Stepper.d.ts",
       "import": "./dist/Stepper.js"
     },
+    "./NumberAdapter": {
+      "types": "./dist/NumberAdapter.d.ts",
+      "import": "./dist/NumberAdapter.js"
+    },
     "./useIsMobile": {
       "types": "./dist/useIsMobile.d.ts",
       "import": "./dist/useIsMobile.js"
@@ -173,6 +177,7 @@
     "class-variance-authority": "^0.2.2"
   },
   "devDependencies": {
+    "@bcl32/data-utils": "workspace:^2.7.0",
     "@types/react": "^18.2.0",
     "dayjs": "^1.11.10",
     "tsup": "^8.3.5",

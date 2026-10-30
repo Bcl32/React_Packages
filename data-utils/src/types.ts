@@ -140,6 +140,11 @@ export interface ModelAttribute {
   searchAliases?: string[];
   /** The suffix formatNumber prints when asked for a unit. Nothing emits it yet. */
   unit_label?: string;
+  /**
+   * A `number` whose schema type is `integer` (a count, a rating). Written only
+   * when true. Planned: schema_utils folds integer and float into "number" today.
+   */
+  integer?: boolean;
   /** @deprecated Generated attributes carry `help_text`; nothing sets this. */
   description?: string;
   stats?: unknown;

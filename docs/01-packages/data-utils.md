@@ -53,6 +53,7 @@ The package also publishes per-module subpath exports for tree-shaking-friendly 
 | `@bcl32/data-utils/dayjs_sorter` | `dayjs_sorter` |
 | `@bcl32/data-utils/StringFunctions` | `Capitalize`, `Truncate` |
 | `@bcl32/data-utils/getFormDefault` | `getFormDefault` |
+| `@bcl32/data-utils/numbers` | `formatNumber`, `formatNumberRange`, `parseNumber`, `formatEditable`, `toNumberValue`, types `UnitAdapter`, `ParseResult`, `FormatNumberOptions` |
 | `@bcl32/data-utils/types` | All shared types (see caveat below) |
 
 ---
@@ -136,6 +137,10 @@ interface DoubleGroupEntry {
 | `Capitalize` | `util` | `(s: string \| null \| undefined) => string` | Uppercases the first character of a string; returns an empty string for null/undefined. |
 | `Truncate` | `util` | `(str: string, n: number) => string` | Truncates a string to `n` characters, appending `'...'` if longer. |
 | `getFormDefault` | `util` | `(attr: ModelAttribute) => unknown` | Derives a sensible default value from a `ModelAttribute`: returns `attr.default` if set, otherwise `''` for string, `false` for boolean, `[]` for list/id_list, `null` for id, `undefined` otherwise. |
+| `formatNumber` / `formatNumberRange` | `util` | `(value, attr?, opts?: { compact?, unit?, adapter?, locale? }) => string` | The one way a package prints a number (exact by default, `compact` for browsing; "—" for anything not a finite number). An `adapter` converts to the display unit. |
+| `parseNumber` | `util` | `(text: string, attr?, opts?: { adapter? }) => ParseResult` | Typed text → stored number. `""` is `{ok: true, value: null}` (an emptied box, never 0); unreadable text is `{ok: false, reason: "invalid"}`, never a silent null; a fraction on an `integer` field is `"fraction"`, never rounded. Accepts thousands commas and a lone decimal comma. With an adapter, its `parse` reads the text, else `fromDisplay` converts the typed number. |
+| `formatEditable` | `util` | `(value, opts?: { adapter? }) => string` | The text an editable box starts from: exact, no commas, no unit, read back unchanged by `parseNumber`; `""` for no value. |
+| `toNumberValue` | `util` | `(value: unknown) => number \| null` | A loaded or default value (`80`, a Decimal's `"12.50"`, `"0"`, `null`) as `number \| null`. What forms normalise rows with before diffing. |
 | `resolveBulkUpdateUrl` | `util` | `(ModelData: ModelData) => string \| null` | The bulk-update endpoint, or `null` when the entity has none. Reads the generated `bulk_update_api_url` and nothing else — the 2.3.0 fallback to `update_api_url + "/bulk-update"` was removed in **2.4.0**, so an absent key means "no route", not "unknown". `null` is the signal to render no bulk-edit affordance at all; see the caveat below. |
 
 #### `CalculateFeatureStats` per-field behaviour
