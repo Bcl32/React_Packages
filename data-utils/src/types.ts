@@ -118,7 +118,7 @@ export interface ModelAttribute {
   /**
    * The smallest and largest value the schema allows (`ge`/`le`, or `gt`/`lt`
    * with the matching `_exclusive` flag, written only when true). parseNumber
-   * refuses a value outside them. Planned: schema_utils emits them next.
+   * refuses a value outside them. Written by schema_utils 0.22.0 and later.
    */
   min?: number;
   max?: number;
@@ -126,7 +126,8 @@ export interface ModelAttribute {
   max_exclusive?: boolean;
   /**
    * Fractional digits the column stores (its SQL `Numeric` scale). parseNumber
-   * refuses more; formatNumber shows at most this many. Planned.
+   * refuses more; formatNumber shows at most this many. Written by schema_utils
+   * 0.22.0 and later.
    */
   decimals?: number;
   // Filters
