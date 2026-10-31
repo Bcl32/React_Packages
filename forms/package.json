@@ -54,6 +54,10 @@
       "types": "./dist/EditableStringList.d.ts",
       "import": "./dist/EditableStringList.js"
     },
+    "./EditableDetailItem": {
+      "types": "./dist/EditableDetailItem.d.ts",
+      "import": "./dist/EditableDetailItem.js"
+    },
     "./RelationCollectionField": {
       "types": "./dist/RelationCollectionField.d.ts",
       "import": "./dist/RelationCollectionField.js"
