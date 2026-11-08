@@ -163,10 +163,10 @@ importers:
   datatable:
     dependencies:
       '@bcl32/data-utils':
-        specifier: workspace:^2.7.0
+        specifier: workspace:^2.10.0
         version: link:../data-utils
       '@bcl32/forms':
-        specifier: workspace:^3.6.1
+        specifier: workspace:^3.10.0
         version: link:../forms
       '@bcl32/hooks':
         specifier: workspace:^4.2.4
@@ -218,7 +218,7 @@ importers:
         specifier: workspace:^3.2.1
         version: link:../charts
       '@bcl32/data-utils':
-        specifier: workspace:^2.9.0
+        specifier: workspace:^2.10.0
         version: link:../data-utils
       '@bcl32/hooks':
         specifier: workspace:^4.2.4
@@ -264,7 +264,7 @@ importers:
   forms:
     dependencies:
       '@bcl32/data-utils':
-        specifier: workspace:^2.9.0
+        specifier: workspace:^2.10.0
         version: link:../data-utils
       '@bcl32/hooks':
         specifier: workspace:^4.2.4

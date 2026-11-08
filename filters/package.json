@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/filters",
-  "version": "5.6.0",
+  "version": "5.7.0",
   "description": "Custom filters for data pulled from servers",
   "author": "",
   "license": "ISC",
@@ -185,7 +185,7 @@
   "dependencies": {
     "@bcl32/utils": "workspace:^2.16.0",
     "@bcl32/hooks": "workspace:^4.2.4",
-    "@bcl32/data-utils": "workspace:^2.9.0",
+    "@bcl32/data-utils": "workspace:^2.10.0",
     "@bcl32/charts": "workspace:^3.2.1",
     "lucide-react": "^0.447.0"
   },
