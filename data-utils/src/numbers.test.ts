@@ -1,9 +1,30 @@
 import { describe, expect, it } from "vitest";
 
-import { formatNumber, formatNumberRange } from "./numbers";
+import { displayUnit, formatNumber, formatNumberRange, labelWithUnit } from "./numbers";
 import type { ModelAttribute } from "./types";
 
 const height: ModelAttribute = { name: "ceiling_height_cm", type: "number", unit: "cm" };
+
+describe("the unit a field reads in", () => {
+  const labelled = { unit_label: "cm" };
+  const inches = { suffix: "in" };
+
+  it("is the field's label, or the adapter's in its place", () => {
+    expect(displayUnit(labelled)).toBe("cm");
+    expect(displayUnit(labelled, inches)).toBe("in");
+  });
+
+  it("is nothing for a UCUM code with no label, or a money adapter", () => {
+    expect(displayUnit(height)).toBeUndefined();
+    expect(displayUnit(undefined, { currency: "CAD" })).toBeUndefined();
+  });
+
+  it("joins a caption in parentheses, or leaves it alone", () => {
+    expect(labelWithUnit("Ceiling", labelled)).toBe("Ceiling (cm)");
+    expect(labelWithUnit("Ceiling", labelled, inches)).toBe("Ceiling (in)");
+    expect(labelWithUnit("Rating", undefined)).toBe("Rating");
+  });
+});
 
 describe("formatNumber — exact (the default)", () => {
   it.each([

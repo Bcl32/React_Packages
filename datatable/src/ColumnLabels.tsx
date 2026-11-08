@@ -4,6 +4,7 @@ import { flexRender } from "@tanstack/react-table";
 
 import { fieldLabel } from "@bcl32/forms/fieldLabel";
 import type { ModelData, RowData } from "@bcl32/data-utils";
+import { labelWithUnit } from "@bcl32/data-utils/numbers";
 
 /**
  * Turning a column into a human label.
@@ -11,6 +12,9 @@ import type { ModelData, RowData } from "@bcl32/data-utils";
  * Shared rather than card-specific: the card body labels its fields, and the
  * sort control — which serves both layouts — has to name the same columns in a
  * dropdown. Both want the same precedence, so it lives in one place.
+ *
+ * A field's title carries no unit, and an app's own cell prints the number as
+ * stored, so these labels add the stored unit ("Weight (g)").
  */
 
 /** Column ids injected by ColumnGenerator. They are controls rather than
@@ -66,7 +70,7 @@ export function columnLabelText<TData extends RowData>(
   const meta = getCardMeta(column);
   if (meta?.label) return meta.label;
   const attr = ModelData.model_attributes?.find((a) => a.name === column.id);
-  if (attr) return fieldLabel(attr);
+  if (attr) return labelWithUnit(fieldLabel(attr), attr);
   return humanizeId(column.id);
 }
 
@@ -83,7 +87,7 @@ export function columnCardLabel<TData extends RowData>(
   const meta = getCardMeta(column);
   if (meta?.label) return meta.label;
   const attr = ModelData.model_attributes?.find((a) => a.name === column.id);
-  if (attr) return fieldLabel(attr);
+  if (attr) return labelWithUnit(fieldLabel(attr), attr);
   const header = column.columnDef.header;
   if (typeof header === "string") return header;
   if (typeof header === "function") {

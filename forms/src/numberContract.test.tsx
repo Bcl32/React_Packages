@@ -93,6 +93,36 @@ describe("FieldInput number box", () => {
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(input.value).toBe("abc");
   });
+
+  it("names the adapter's unit inside the box, and nothing without one", () => {
+    const INCHES: UnitAdapter = { suffix: "in", toDisplay: (cm) => cm / 2.54, fromDisplay: (inches) => inches * 2.54 };
+    render(
+      <NumberAdapterProvider adapterFor={(attr) => (attr.unit === "cm" ? INCHES : null)}>
+        <FieldInput attr={width} value={203.2} onChange={vi.fn()} id="w" />
+        <FieldInput attr={height} value={75} onChange={vi.fn()} id="h" />
+      </NumberAdapterProvider>,
+    );
+    const unit = screen.getByText("in");
+    expect(document.getElementById("w")?.getAttribute("aria-describedby")).toContain(unit.id);
+    expect(document.getElementById("h")?.getAttribute("aria-describedby")).toBeNull();
+  });
+
+  it("names the field's own unit when nothing converts it", () => {
+    render(<FieldInput attr={{ ...width, unit_label: "cm" }} value={203.2} onChange={vi.fn()} id="w" />);
+    const unit = screen.getByText("cm");
+    expect(document.getElementById("w")?.getAttribute("aria-describedby")).toContain(unit.id);
+  });
+
+  it("names the adapter's unit in place of the stored one", () => {
+    const INCHES: UnitAdapter = { suffix: "in", toDisplay: (cm) => cm / 2.54, fromDisplay: (inches) => inches * 2.54 };
+    render(
+      <NumberAdapterProvider adapterFor={() => INCHES}>
+        <FieldInput attr={{ ...width, unit_label: "cm" }} value={203.2} onChange={vi.fn()} id="w" />
+      </NumberAdapterProvider>,
+    );
+    expect(screen.getByText("in")).toBeTruthy();
+    expect(screen.queryByText("cm")).toBeNull();
+  });
 });
 
 describe("EditModelForm", () => {

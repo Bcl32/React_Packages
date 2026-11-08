@@ -109,7 +109,10 @@ export interface ModelAttribute {
   options?: { value: string; label: string }[] | string[];
   reference?: ReferenceInfo;
   colour_presets?: ColourPresetsConfig;
+  /** What the number is measured in, as a UCUM code ("mm3"): for code to read, not to show. */
   unit?: string;
+  /** How `unit` reads beside a number ("mm³"). Written by schema_utils 0.23.0 and later. */
+  unit_label?: string;
   /**
    * How a `number` is shown; the type stays "number". `money` prints currency
    * at `decimals ?? 2` places (the currency comes from `NumberAdapterProvider`).
@@ -157,8 +160,6 @@ export interface ModelAttribute {
   accept?: string;
   /** Other words the filter search matches this field by. */
   searchAliases?: string[];
-  /** The suffix formatNumber prints when asked for a unit. Nothing emits it yet. */
-  unit_label?: string;
   /**
    * A `number` whose schema type is `integer` (a count, a rating). Written only
    * when true, by schema_utils 0.21.0 and later.

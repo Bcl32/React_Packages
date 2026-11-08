@@ -84,6 +84,7 @@ function formatRange(entry: FilterCatalogEntry, adapterFor: AdapterResolver): st
   return formatNumberRange(entry.min, entry.max, entry.attr, {
     compact: true,
     adapter: adapterOf(adapterFor, entry.attr),
+    unit: true,
   });
 }
 

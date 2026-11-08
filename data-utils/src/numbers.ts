@@ -83,8 +83,8 @@ export interface FormatNumberOptions {
   /** Abbreviate for browsing (default false: exact). */
   compact?: boolean;
   /**
-   * Print the unit after the number (default false). While titles still carry
-   * the unit ("Ceiling height (cm)"), a suffix would repeat it.
+   * Print the unit after the number (default false). A title carries no unit
+   * ("Ceiling height"), so text putting a number beside one asks for it.
    */
   unit?: boolean;
   adapter?: UnitAdapter | null;
@@ -145,14 +145,32 @@ function numeric(value: unknown): unknown {
 }
 
 /**
- * The suffix, or undefined. The attribute's `unit` is a UCUM code ("mm3",
- * "d"), not something to show, so only a display label counts: the adapter's
- * suffix, else the attribute's `unit_label`.
+ * The unit a field's numbers read in, or undefined. The attribute's `unit` is
+ * a UCUM code ("mm3", "d"), not something to show, so only a display label
+ * counts: the adapter's suffix, else the attribute's `unit_label`.
  */
+export function displayUnit(
+  attr: Pick<ModelAttribute, "unit_label"> | undefined,
+  adapter?: UnitAdapter | null,
+): string | undefined {
+  return adapter?.suffix || attr?.unit_label || undefined;
+}
+
+/**
+ * A caption with its unit, "Weight (g)", for a label with no number beside it
+ * to carry the unit: a filter card's header, a card or sort label.
+ */
+export function labelWithUnit(
+  label: string,
+  attr: Pick<ModelAttribute, "unit_label"> | undefined,
+  adapter?: UnitAdapter | null,
+): string {
+  const unit = displayUnit(attr, adapter);
+  return unit ? `${label} (${unit})` : label;
+}
+
 function unitSuffix(attr: ModelAttribute | undefined, opts: FormatNumberOptions): string | undefined {
-  if (!opts.unit) return undefined;
-  if (opts.adapter?.suffix) return opts.adapter.suffix;
-  return attr?.unit_label || undefined;
+  return opts.unit ? displayUnit(attr, opts.adapter) : undefined;
 }
 
 function body(raw: unknown, attr: ModelAttribute | undefined, opts: FormatNumberOptions): string {

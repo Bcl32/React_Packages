@@ -4,7 +4,7 @@ import type { ModelAttribute } from "@bcl32/data-utils";
  * The label shown above a form input.
  *
  * Prefers the schema-provided `title`, which the API humanizes properly
- * ("Volume (mm³)", "Source 3MF filename", "Object ID"). The fallback only
+ * ("Volume", "Source 3MF filename", "Object ID"). The fallback only
  * applies to hand-built attributes with no title, and mirrors what the filter
  * components do for the same case.
  *

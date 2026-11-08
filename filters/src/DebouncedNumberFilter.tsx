@@ -2,7 +2,7 @@ import * as React from "react";
 import { FilterContext } from "./FilterContext";
 import { FilterHeader } from "./FilterHeader";
 
-import { convertsUnits, formatEditable, formatNumber, numberDecimals, parseNumber } from "@bcl32/data-utils/numbers";
+import { convertsUnits, formatEditable, formatNumber, labelWithUnit, numberDecimals, parseNumber } from "@bcl32/data-utils/numbers";
 import { Input } from "@bcl32/utils/Input";
 import { useNumberAdapter } from "@bcl32/utils/NumberAdapter";
 import * as SliderPrimitive from "@radix-ui/react-slider";
@@ -410,7 +410,7 @@ export function DebouncedNumberFilter({ name, title, onRemove }: DebouncedNumber
     // line: it lets every filter card open with the same 16px caption, which is
     // what keeps the grid's rows even.
     <div className="space-y-1">
-      <FilterHeader label={label} onRemove={onRemove} />
+      <FilterHeader label={labelWithUnit(label, attr, adapter)} onRemove={onRemove} />
 
       {histogram ? (
         <div className="space-y-0.5">

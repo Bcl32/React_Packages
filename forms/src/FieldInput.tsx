@@ -8,6 +8,7 @@ import type { ModelAttribute } from "@bcl32/data-utils";
 import {
   convertsUnits,
   currencySymbol,
+  displayUnit,
   formatEditable,
   numberDecimals,
   parseNumber,
@@ -249,6 +250,9 @@ function NumberField({
       min={!converts && typeof attr.min === "number" && !attr.min_exclusive ? attr.min : undefined}
       max={!converts && typeof attr.max === "number" && !attr.max_exclusive ? attr.max : undefined}
       prefix={attr.format === "money" && adapter?.currency ? currencySymbol(adapter.currency) : undefined}
+      // The unit the box is in: a title carries none, and a converted value must
+      // never read as stored.
+      suffix={displayUnit(attr, adapter)}
       variant={compact ? undefined : "background"}
       size={compact ? undefined : "lg"}
       className={className}

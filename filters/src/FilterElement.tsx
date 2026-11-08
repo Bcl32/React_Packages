@@ -60,7 +60,7 @@ function get_chart_type(
   optionSize?: FilterOptionSize,
   optionIcon?: FilterOptionIcon,
 ): JSX.Element {
-  // Prefer the schema-provided `title` (e.g. "Size (mm)"); components fall back
+  // Prefer the schema-provided `title` (e.g. "Size"); components fall back
   // to a humanized field name when it's absent.
   const title = filter_data["title"];
   switch (filter_data["type"]) {

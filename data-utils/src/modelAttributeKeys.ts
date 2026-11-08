@@ -26,6 +26,7 @@ export const MODEL_ATTRIBUTE_KEYS = {
   title: "generated",
   stats: "generated",
   unit: "generated",
+  unit_label: "generated",
   format: "generated",
   options: "generated",
   nullable: "generated",
@@ -63,5 +64,4 @@ export const MODEL_ATTRIBUTE_KEYS = {
   description: "react-only",
   groupBy: "react-only",
   searchAliases: "react-only",
-  unit_label: "planned",
 } as const satisfies Record<keyof ModelAttribute, ModelAttributeKeyOrigin>;

@@ -71,7 +71,7 @@ export type FilterSearchAction =
 
 export interface FilterSuggestion {
   field: string;
-  /** Primary display text, e.g. `BaseMaterial: PLA` or `Weight (g) > 200`. */
+  /** Primary display text, e.g. `BaseMaterial: PLA` or `Weight > 200 g`. */
   label: string;
   /** Muted right-hand hint: row count, or what applying will do. */
   detail?: string;
@@ -264,6 +264,7 @@ function fieldDetail(entry: SearchFieldEntry, adapterFor?: AdapterResolver): str
     return formatNumberRange(entry.min, entry.max, entry.attr, {
       compact: true,
       adapter: adapterOf(adapterFor, entry.attr),
+      unit: true,
     });
   }
   if (entry.kind === "datetime" && entry.earliest && entry.latest) {
@@ -449,7 +450,7 @@ export function SearchFilterIndex(
               : { min: num, max: num };
         pool.push({
           field: entry.field,
-          label: `${entry.title} ${comparisonLabel(op)} ${formatNumber(num, entry.attr, { adapter })}`,
+          label: `${entry.title} ${comparisonLabel(op)} ${formatNumber(num, entry.attr, { adapter, unit: true })}`,
           detail: KIND_DETAIL.number,
           score: 90 + fieldScore * 3,
           action: { type: "number-range", field: entry.field, ...range },
@@ -513,7 +514,7 @@ export function SearchFilterIndex(
       const max = Math.max(a, b);
       pool.push({
         field: entry.field,
-        label: `${entry.title}: ${formatNumberRange(min, max, entry.attr, { adapter })}`,
+        label: `${entry.title}: ${formatNumberRange(min, max, entry.attr, { adapter, unit: true })}`,
         detail: KIND_DETAIL.number,
         score: 90 + fieldScore * 3,
         action: { type: "number-range", field: entry.field, min, max },
