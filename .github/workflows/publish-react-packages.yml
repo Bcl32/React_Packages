@@ -314,6 +314,14 @@ jobs:
         # may not match. An already-existing tag is a benign retry and is
         # skipped; only tags created here are pushed, by explicit ref, so a
         # push can never move or duplicate an existing tag.
+        #
+        # The push retries because GitHub very occasionally refuses it with a
+        # bare "[remote rejected] (failed)" and no reason (run 42491501428,
+        # 2026-11-08: 1 of 29 runs, same tags accepted by hand minutes later).
+        # Re-running the job cannot recover: it restarts from the commit before
+        # the version bump, and by now the packages and that bump are already
+        # out. Repeating the push is safe, since a tag that already landed
+        # with the same object is a no-op.
         run: |
           BUMPED_FILE="${RUNNER_TEMP}/publish-bumped.txt"
           if [ ! -s "$BUMPED_FILE" ]; then
@@ -333,8 +341,18 @@ jobs:
             echo "tagged ${spec} at $(git rev-parse --short HEAD)"
             created+=("refs/tags/${spec}")
           done < "$BUMPED_FILE"
-          if [ "${#created[@]}" -gt 0 ]; then
-            git push origin "${created[@]}"
-          else
+          if [ "${#created[@]}" -eq 0 ]; then
             echo "No new tags to push"
+            exit 0
           fi
+          max_attempts=5
+          for attempt in $(seq 1 "$max_attempts"); do
+            git push origin "${created[@]}" && exit 0
+            if [ "$attempt" -lt "$max_attempts" ]; then
+              delay=$((attempt * 10))
+              echo "::warning::tag push attempt ${attempt}/${max_attempts} failed — retrying in ${delay}s"
+              sleep "$delay"
+            fi
+          done
+          echo "::error::Release tags not pushed after ${max_attempts} attempts. The packages are published. Create these by hand at $(git rev-parse HEAD): ${created[*]#refs/tags/}"
+          exit 1
