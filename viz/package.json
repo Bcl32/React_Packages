@@ -1,0 +1,100 @@
+{
+  "name": "@bcl32/viz",
+  "version": "0.1.0",
+  "description": "Chart atoms on one validated palette: stat tiles, sparklines, stacked columns, ranked bars, meters, segmented bars, legends and table twins",
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./palette": {
+      "types": "./dist/palette.d.ts",
+      "import": "./dist/palette.js"
+    },
+    "./VizStyles": {
+      "types": "./dist/VizStyles.d.ts",
+      "import": "./dist/VizStyles.js"
+    },
+    "./format": {
+      "types": "./dist/format.d.ts",
+      "import": "./dist/format.js"
+    },
+    "./StatusIcon": {
+      "types": "./dist/StatusIcon.d.ts",
+      "import": "./dist/StatusIcon.js"
+    },
+    "./sparkline": {
+      "types": "./dist/sparkline.d.ts",
+      "import": "./dist/sparkline.js"
+    },
+    "./Spark": {
+      "types": "./dist/Spark.d.ts",
+      "import": "./dist/Spark.js"
+    },
+    "./StatTile": {
+      "types": "./dist/StatTile.d.ts",
+      "import": "./dist/StatTile.js"
+    },
+    "./stack": {
+      "types": "./dist/stack.d.ts",
+      "import": "./dist/stack.js"
+    },
+    "./StackedColumns": {
+      "types": "./dist/StackedColumns.d.ts",
+      "import": "./dist/StackedColumns.js"
+    },
+    "./BarSet": {
+      "types": "./dist/BarSet.d.ts",
+      "import": "./dist/BarSet.js"
+    },
+    "./Legend": {
+      "types": "./dist/Legend.d.ts",
+      "import": "./dist/Legend.js"
+    },
+    "./ScoreMeter": {
+      "types": "./dist/ScoreMeter.d.ts",
+      "import": "./dist/ScoreMeter.js"
+    },
+    "./SegmentedBar": {
+      "types": "./dist/SegmentedBar.d.ts",
+      "import": "./dist/SegmentedBar.js"
+    },
+    "./TableTwin": {
+      "types": "./dist/TableTwin.d.ts",
+      "import": "./dist/TableTwin.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "cd .. && vitest run viz/",
+    "prepublishOnly": "pnpm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bcl32/React_Packages.git",
+    "directory": "viz"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}

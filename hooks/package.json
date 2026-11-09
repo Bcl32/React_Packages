@@ -45,6 +45,10 @@
     "./useOptionsEnrichment": {
       "types": "./dist/useOptionsEnrichment.d.ts",
       "import": "./dist/useOptionsEnrichment.js"
+    },
+    "./useJobProgress": {
+      "types": "./dist/useJobProgress.d.ts",
+      "import": "./dist/useJobProgress.js"
     }
   },
   "files": [

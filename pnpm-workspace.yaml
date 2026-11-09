@@ -10,3 +10,4 @@ packages:
   - "forms"
   - "navigation"
   - "themes"
+  - "viz"
