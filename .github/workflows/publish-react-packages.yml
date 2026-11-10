@@ -23,7 +23,6 @@ on:
       - 'forms/**'
       - 'navigation/**'
       - 'themes/**'
-      - 'viz/**'
       - '.github/workflows/publish-react-packages.yml'
       - 'vitest.config.mts'
     branches:
@@ -135,7 +134,6 @@ jobs:
               - 'forms/**'
               - 'navigation/**'
               - 'themes/**'
-              - 'viz/**'
 
       - name: Guard — package source changed but no changeset is pending
         # A package-source push with no pending changeset publishes nothing,
