@@ -18,6 +18,7 @@ import {
 
 import { useAttributionRenderer, withAttributionColumns } from "./AttributionContext";
 import { TableView } from "./TableView";
+import type { TableDensity } from "./TableView";
 import {
   CardView,
   DEFAULT_CARD_SIZE,
@@ -130,6 +131,12 @@ interface DataTableProps<TData extends RowData> {
   renderSubComponent?: (props: { row: Row<TData> }) => React.ReactNode;
   expandOnRowClick?: boolean;
   cellClassName?: string;
+  /** Table row spacing: "comfortable" (default) or "compact" (tighter, text-xs).
+   *  `cellClassName` still applies after it. */
+  density?: TableDensity;
+  /** What the table view says with no rows. Default "No results."; pass
+   *  `null` when the page already explains the empty state itself. */
+  emptyMessage?: React.ReactNode;
   maxCellHeight?: number;
   pageSize?: number;
   virtualized?: boolean;
@@ -472,6 +479,7 @@ export function DataTable<TData extends RowData>(
   const sectionTone = activeView.sectionTone ?? props.sectionTone;
   const sectionsPacking = activeView.sectionsPacking ?? props.sectionsPacking;
   const cellClassName = activeView.cellClassName ?? props.cellClassName;
+  const density = activeView.density ?? props.density;
   const maxCellHeight = activeView.maxCellHeight ?? props.maxCellHeight;
   const estimatedCardHeight = activeView.estimatedCardHeight ?? props.estimatedCardHeight;
 
@@ -674,8 +682,11 @@ export function DataTable<TData extends RowData>(
                 virtualized={props.virtualized}
                 estimatedRowHeight={props.estimatedRowHeight}
                 cellClassName={cellClassName}
+                density={density}
+                emptyMessage={props.emptyMessage}
                 maxCellHeight={maxCellHeight}
                 rowClickFunction={handleRowClick}
+                rowsClickable={Boolean(props.rowClickFunction)}
                 expandOnRowClick={props.expandOnRowClick}
                 renderSubComponent={renderSubComponent}
                 scrollHandleRef={viewScrollRef}

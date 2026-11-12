@@ -39,6 +39,7 @@ import {
   scrollRenderedRowToTop,
 } from "./ViewScroll";
 import type { ScrollRestoreRef, ViewScrollHandle } from "./ViewScroll";
+import type { TableDensity } from "./TableView";
 
 /**
  * The layouts a DataTable can render its rows in.
@@ -160,6 +161,8 @@ export interface DataTableViewDef<TData extends RowData = RowData> {
    */
   columnVisibility?: VisibilityState;
   cellClassName?: string;
+  /** Table row spacing for this view; falls back to the table's `density`. */
+  density?: TableDensity;
   maxCellHeight?: number;
   /**
    * Per-view card slot remapping, merged over each column's own `meta.card`.

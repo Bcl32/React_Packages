@@ -72,6 +72,7 @@ An action that must exist in *both* the table and the card layouts is declared t
 TABLE      column.size          a RATIO, not pixels — width: size/totalSize %
            minSize / maxSize    the only absolute constraints
            maxCellHeight        per-cell scroll clamp (meta.noMaxHeight opts out)
+           density              row spacing: comfortable (default) / compact
 CARDS      cardMinWidth  ── overrides ──►  CARD_SIZE_WIDTHS {260, 320, 400}
               └─ measured: cols = floor((width + 12) / (min + 12))
                  …which drives BOTH the CSS grid and the virtualizer chunking
@@ -213,7 +214,9 @@ DataTable<TData extends RowData>(props: {
   rowClickFunction?: (data: TData) => void;
   renderSubComponent?: ({ row }) => ReactNode;
   expandOnRowClick?: boolean;
-  cellClassName?: string;
+  cellClassName?: string;                        // applied after density, so it still wins
+  density?: "comfortable" | "compact";           // table row spacing; compact also sets text-xs
+  emptyMessage?: ReactNode;                      // empty table text; default "No results.", null = no row
   maxCellHeight?: number;
   pageSize?: number;
   virtualized?: boolean;
@@ -511,6 +514,7 @@ interface DataTableViewDef<TData extends RowData = RowData> {
   estimatedCardHeight?: number;
   columnVisibility?: VisibilityState;
   cellClassName?: string;
+  density?: "comfortable" | "compact";   // falls back to the table's density
   maxCellHeight?: number;
   cardSlots?: CardSlotOverrides;   // see "Per-view slot remapping" below
 }
@@ -1017,6 +1021,8 @@ _(`@mui/material` and `@mui/icons-material` were removed in 2.8.0.)_
 - **`query_invalidation` keys.** This `string[]` is passed through to every CRUD form for TanStack Query cache invalidation after mutations. Coordinate these keys with your own query hooks so the table refreshes after add / edit / delete.
 - **Proportional column sizing.** Header and cell widths are computed as `(column.getSize() / totalSize) * 100%`. The `size`, `minSize`, and `maxSize` values in a `ColumnDef` therefore set **relative proportions**, not fixed pixel widths.
 - **`maxCellHeight` opt-out via column meta.** Setting `meta: { noMaxHeight: true }` on a `ColumnDef` exempts that column's cells from the table-level `maxCellHeight` scroll wrapper. `ColumnGenerator` already applies this to the select and expander columns.
+- **Alignment via column meta.** `meta: { align: "right" | "center" | "left" }` aligns a column's header (sort icon included), cells and footer. Use it for numbers rather than wrapping the cell in `text-right`: a header label is a flex item inside the sort button and shrinks to its text, so a `text-right` span there does nothing.
+- **Table furniture.** The table view draws a 3px rounded frame on the scroll wrapper, a muted header row, a `<button>` with `aria-sort` and a ⇅ / ↑ / ↓ icon on every sortable header, the pointer cursor on rows when `rowClickFunction` is passed, and a `<tfoot>` only when some column defines `footer`.
 - **Card placement via column meta.** Setting `meta: { card: { slot, label, hideLabel } }` on a `ColumnDef` controls where that column's cell lands in the card view (see [Card view](#card-view)). Unannotated columns become labeled body fields.
 - **Toolbar action handlers must use the ids they are passed.** `onClick(selectedIds)` receives the ids to act on. Closing over the outer `selectedIds` instead works for the toolbar but silently breaks the card affordance, which passes a single row's id — the card button would act on the selection rather than on its own card.
 - **Virtualization needs a bounded container.** `virtualized` is opt-in and requires the parent to give `DataTable` a bounded flex container so the internal `scrollRef` div can actually scroll. Without a bounded height context the virtualizer simply renders all rows (harmless, but no virtualization benefit).

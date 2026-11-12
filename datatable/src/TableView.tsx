@@ -1,7 +1,8 @@
 import React, { Fragment } from "react";
-import type { Row, Table as TanstackTable } from "@tanstack/react-table";
+import type { Column, Row, Table as TanstackTable } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 
 import { cn } from "@bcl32/utils/cn";
 import type { RowData } from "@bcl32/data-utils";
@@ -34,7 +35,13 @@ export interface TableViewProps<TData extends RowData> {
   cellClassName?: string;
   maxCellHeight?: number;
   rowClickFunction: (data: TData) => void;
+  /** The consumer passed a `rowClickFunction`: rows get the pointer cursor. */
+  rowsClickable?: boolean;
   expandOnRowClick?: boolean;
+  /** Row and header spacing; see `TableDensity`. */
+  density?: TableDensity;
+  /** What an empty table says. Default "No results."; `null` draws no row. */
+  emptyMessage?: React.ReactNode;
   renderSubComponent: (props: { row: Row<TData> }) => React.ReactNode;
   /** Filled with this layout's scroll handle so DataTable can read the
    *  position off it just before swapping layouts. */
@@ -42,6 +49,41 @@ export interface TableViewProps<TData extends RowData> {
   /** A row index left behind by the previous layout; consumed once on mount. */
   restoreRowIndex?: ScrollRestoreRef;
 }
+
+/**
+ * How tightly the table sets its rows. `comfortable` is the default; `compact`
+ * is for dense data (matrices, logs) and drops the text to `text-xs` as well.
+ * A consumer's `cellClassName` is applied after either and still wins.
+ */
+export type TableDensity = "comfortable" | "compact";
+
+const HEAD_DENSITY: Record<TableDensity, string> = {
+  comfortable: "h-10 px-4",
+  compact: "h-8 px-3 text-xs",
+};
+const CELL_DENSITY: Record<TableDensity, string> = {
+  comfortable: "px-4 py-2.5",
+  compact: "px-3 py-1.5 text-xs",
+};
+
+type ColumnAlign = "left" | "right" | "center";
+
+/** A column's `meta.align`, for both its header and its cells. */
+function alignOf<TData>(column: Column<TData, unknown>): ColumnAlign | undefined {
+  return (column.columnDef.meta as { align?: ColumnAlign } | undefined)?.align;
+}
+const ALIGN_TEXT: Record<ColumnAlign, string> = {
+  left: "text-left",
+  right: "text-right",
+  center: "text-center",
+};
+const ALIGN_FLEX: Record<ColumnAlign, string> = {
+  left: "justify-start",
+  right: "justify-end",
+  center: "justify-center",
+};
+
+const ARIA_SORT = { asc: "ascending", desc: "descending" } as const;
 
 /**
  * The classic <table> rendering of a DataTable's rows. Extracted verbatim from
@@ -106,6 +148,11 @@ export function TableView<TData extends RowData>(
       ? virtualTotalSize - virtualItems[virtualItems.length - 1].end
       : 0;
 
+  const density = props.density ?? "comfortable";
+  // Drawn only when a column has something to put in it; an always-on
+  // <tfoot> was an empty grey band under every table.
+  const hasFooter = tableInstance.getAllLeafColumns().some((c) => c.columnDef.footer != null);
+
   return (
     <>
       {/* `table-layout: fixed` is required when virtualizing. Under the default
@@ -115,8 +162,12 @@ export function TableView<TData extends RowData>(
           you scroll. Fixed layout derives widths solely from the declared
           sizes below, which are scroll-invariant. Non-virtualized tables render
           every row, so their auto layout is already stable — left alone. */}
+      {/* The frame is on the wrapper (see `Table`). No text size here: the
+          primitive's `text-sm` is the body size. A `text-md` used to sit on
+          this element; Tailwind has no such class, but tailwind-merge read it
+          as a size and dropped `text-sm`, so bodies fell back to 16px. */}
       <Table
-        className="text-md border-4 rounded-lg"
+        wrapperClassName="rounded-lg border-[3px] bg-card"
         style={props.virtualized ? { tableLayout: "fixed" } : undefined}
       >
         {/* `sticky top-0` does NOT stick, and the classes are kept only so the
@@ -133,11 +184,18 @@ export function TableView<TData extends RowData>(
             change to the `Table` primitive every consumer shares. */}
         <TableHeader className="sticky top-0 z-10 bg-card">
           {tableInstance.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
+            <TableRow key={headerGroup.id} className="bg-muted/40 hover:bg-muted/40">
+              {headerGroup.headers.map((header) => {
+                const align = alignOf(header.column);
+                const canSort = header.column.getCanSort();
+                const sorted = header.column.getIsSorted();
+                const SortIcon = sorted === "asc" ? ArrowUp : sorted === "desc" ? ArrowDown : ArrowUpDown;
+                return (
                 <TableHead
                   key={header.id}
                   colSpan={header.colSpan}
+                  aria-sort={canSort ? (sorted ? ARIA_SORT[sorted] : "none") : undefined}
+                  className={cn(HEAD_DENSITY[density], align && ALIGN_TEXT[align])}
                   style={{
                     width: `${(header.getSize() / totalSize) * 100}%`,
                     minWidth: header.column.columnDef.minSize,
@@ -145,37 +203,48 @@ export function TableView<TData extends RowData>(
                       ? header.column.columnDef.maxSize : undefined,
                   }}
                 >
-                  {header.isPlaceholder ? null : (
-                    <div
-                      className={
-                        header.column.getCanSort()
-                          ? "cursor-pointer select-none flex min-w-[36px]"
-                          : ""
-                      }
+                  {header.isPlaceholder ? null : canSort ? (
+                    // A real button, so sorting is reachable from the keyboard.
+                    // Every sortable header shows a faint ⇅ so the affordance is
+                    // visible before the first click, not only after it.
+                    <button
+                      type="button"
+                      className={cn(
+                        "group flex w-full min-w-[36px] cursor-pointer select-none items-center gap-1.5 rounded-sm font-medium hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        align && ALIGN_FLEX[align],
+                      )}
                       onClick={header.column.getToggleSortingHandler()}
                     >
                       {flexRender(header.column.columnDef.header, header.getContext())}
-                      {{
-                        asc: <span className="pl-2">↑</span>,
-                        desc: <span className="pl-2">↓</span>,
-                      }[header.column.getIsSorted() as string] ?? null}
+                      <SortIcon
+                        size={14}
+                        aria-hidden
+                        className={cn("shrink-0", sorted ? "text-foreground" : "opacity-30 group-hover:opacity-70")}
+                      />
+                    </button>
+                  ) : (
+                    <div className={cn(align && cn("flex", ALIGN_FLEX[align]))}>
+                      {flexRender(header.column.columnDef.header, header.getContext())}
                     </div>
                   )}
                 </TableHead>
-              ))}
+                );
+              })}
             </TableRow>
           ))}
         </TableHeader>
-        <TableBody ref={bodyRef} {...{ [ROW_SCOPE_ATTR]: "" }}>
+        <TableBody ref={bodyRef} className="tabular-nums" {...{ [ROW_SCOPE_ATTR]: "" }}>
           {rows.length === 0 ? (
-            <TableRow>
-              <TableCell
-                colSpan={props.columnsCount}
-                className="h-24 text-center"
-              >
-                No results.
-              </TableCell>
-            </TableRow>
+            props.emptyMessage === null ? null : (
+              <TableRow className="hover:bg-transparent">
+                <TableCell
+                  colSpan={props.columnsCount}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  {props.emptyMessage ?? "No results."}
+                </TableCell>
+              </TableRow>
+            )
           ) : (
             <>
               {props.virtualized && paddingTop > 0 && (
@@ -192,7 +261,7 @@ export function TableView<TData extends RowData>(
                       [ROW_INDEX_ATTR]: props.virtualized ? virtualItems[idx].index : idx,
                     }}
                     ref={props.virtualized ? virtualizer.measureElement : undefined}
-                    className={props.expandOnRowClick ? "cursor-pointer" : undefined}
+                    className={props.expandOnRowClick || props.rowsClickable ? "cursor-pointer" : undefined}
                     {...{ [ROW_ID_ATTR]: row.id }}
                     onMouseDown={preventShiftTextSelection}
                     onClick={(e) => {
@@ -212,7 +281,12 @@ export function TableView<TData extends RowData>(
                         // Fixed layout won't widen a column to fit an unbroken
                         // token, so without this a long one spills into its
                         // neighbour instead.
-                        className={cn(props.virtualized && "break-words", props.cellClassName)}
+                        className={cn(
+                          CELL_DENSITY[density],
+                          alignOf(cell.column) && ALIGN_TEXT[alignOf(cell.column)!],
+                          props.virtualized && "break-words",
+                          props.cellClassName,
+                        )}
                         style={{
                           width: `${(cell.column.getSize() / totalSize) * 100}%`,
                           minWidth: cell.column.columnDef.minSize,
@@ -248,22 +322,27 @@ export function TableView<TData extends RowData>(
             </>
           )}
         </TableBody>
-        <TableFooter>
-          {tableInstance.getFooterGroups().map((footerGroup) => (
-            <TableRow key={footerGroup.id}>
-              {footerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.footer,
-                        header.getContext()
-                      )}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableFooter>
+        {hasFooter && (
+          <TableFooter>
+            {tableInstance.getFooterGroups().map((footerGroup) => (
+              <TableRow key={footerGroup.id}>
+                {footerGroup.headers.map((header) => {
+                  const align = alignOf(header.column);
+                  return (
+                    <TableHead key={header.id} className={cn(HEAD_DENSITY[density], align && ALIGN_TEXT[align])}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.footer,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableFooter>
+        )}
       </Table>
     </>
   );

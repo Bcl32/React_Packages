@@ -4,9 +4,14 @@ import { cn } from "@bcl32/utils/cn";
 
 const Table = React.forwardRef<
   HTMLTableElement,
-  React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-x-auto">
+  React.HTMLAttributes<HTMLTableElement> & {
+    /** Classes for the scrolling wrapper. A frame belongs here, not on the
+     *  `<table>`: collapsed borders ignore `border-radius`, a div does not,
+     *  and its `overflow` clips the header ground to the rounded corners. */
+    wrapperClassName?: string;
+  }
+>(({ className, wrapperClassName, ...props }, ref) => (
+  <div className={cn("relative w-full overflow-x-auto", wrapperClassName)}>
     <table
       ref={ref}
       className={cn("w-full caption-bottom text-sm", className)}
