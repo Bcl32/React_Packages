@@ -24,6 +24,9 @@ const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
+// The keydown handler accepts Ctrl or Cmd; the hint names the one this platform uses.
+const SIDEBAR_SHORTCUT_LABEL =
+  typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘B" : "Ctrl+B";
 
 type SidebarState = "expanded" | "collapsed";
 
@@ -272,6 +275,7 @@ const SidebarTrigger = React.forwardRef<HTMLButtonElement, SidebarTriggerProps>(
         variant="ghost"
         size="icon"
         className={cn("h-7 w-7", className)}
+        title={`Toggle Sidebar (${SIDEBAR_SHORTCUT_LABEL})`}
         onClick={(event) => {
           onClick?.(event);
           toggleSidebar();
