@@ -202,6 +202,10 @@ function FoldedNote({ note }: { note: string }) {
  * collection carries a `section` field, each box also folds into named
  * sections — the name its rows share — which drag, rename and ungroup.
  *
+ * `layout="stacked"` puts Notes under Links (and one note per row) for a
+ * column too narrow for the two boxes side by side; the default `"split"`
+ * draws them side by side from the `lg` breakpoint.
+ *
  * In **create mode** (no `baseUrl`, e.g. inside an Add modal where the parent
  * doesn't exist yet) it renders a disabled notice — resources are added from the
  * detail page once the parent is saved.
@@ -212,6 +216,7 @@ export function RelationCollectionField({
   entityLabel = "record",
   resolveAssetUrl = (path: string) => path,
   linkIcon,
+  layout = "split",
 }: {
   entry_data: ModelAttribute;
   baseUrl?: string;
@@ -223,6 +228,9 @@ export function RelationCollectionField({
   // Optional mark for a link with no thumbnail (a site's logo, say). Return
   // null to fall back to the category icon. Keeps brands out of this package.
   linkIcon?: (url: URL) => React.ReactNode;
+  // "split" (default): Links and Notes side by side from `lg`. "stacked": Notes
+  // under Links, for a half-width column.
+  layout?: "split" | "stacked";
   // Accepted for FormElement compatibility; unused (live editing is per-row).
   formData?: FormData;
   setFormData?: React.Dispatch<React.SetStateAction<FormData>>;
@@ -1128,6 +1136,7 @@ export function RelationCollectionField({
     );
   }
 
+  const stacked = layout === "stacked";
   const linkGroups = groupsFor("link");
   const noteGroups = groupsFor("note");
   const linkCount = linkGroups.reduce((n, g) => n + g.rows.length, 0);
@@ -1281,7 +1290,11 @@ export function RelationCollectionField({
   return (
     <div className="space-y-3">
       <h3 className="text-lg font-semibold">{title}</h3>
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+      <div
+        className={`grid items-start gap-4${
+          stacked ? "" : " lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]"
+        }`}
+      >
         <section aria-label="Links" className="min-w-0 rounded-xl border bg-card p-4 pl-5">
           {boxHeader(LinkIcon, "Links", linkCount, () => pasteRef.current?.focus(), "Add a link")}
           <div className="mb-2 space-y-1">
@@ -1359,7 +1372,7 @@ export function RelationCollectionField({
                   <div key={g.name || "\u0000"} className="space-y-2">
                     {g.name && sectionHeader("note", g)}
                     {open && g.rows.length > 0 && (
-                      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                      <div className={`grid grid-cols-1 gap-3${stacked ? "" : " xl:grid-cols-2"}`}>
                         {g.rows.map(renderNote(g))}
                       </div>
                     )}
