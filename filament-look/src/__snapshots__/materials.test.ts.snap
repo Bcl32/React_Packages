@@ -1,0 +1,308 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`generated GLSL per finish > basic: snapshot, and every piece lands in three's shader 1`] = `
+{
+  "diffuse": "",
+  "header": "",
+  "light": "",
+}
+`;
+
+exports[`generated GLSL per finish > galaxy: snapshot, and every piece lands in three's shader 1`] = `
+{
+  "diffuse": "
+  {
+    vec3 nebP = vFinishPos / FINISH_SCALE;
+    float neb1 = finishFbm(nebP * 2.1);
+    float neb2 = finishFbm(nebP * 3.3 + 11.7);
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.45, 0.25, 0.65), 0.4 * smoothstep(0.55, 0.8, neb1));
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.2, 0.4, 0.7), 0.35 * smoothstep(0.6, 0.85, neb2));
+  }
+",
+  "header": "#define FINISH_SCALE 42.000000
+#define FINISH_ZMIN -7.500000
+#define FINISH_ZRANGE 15.000000
+uniform float uFinishTime;
+varying vec3 vFinishPos;
+",
+  "light": "
+  {
+    vec3 sparkP = vFinishPos * 1.666667 + 0.000000;
+    vec3 sparkCell = floor(sparkP);
+    vec3 sparkRnd = finishHash3(sparkCell);
+    // Facet orientation from a second, decorrelated hash so a fleck's angle is
+    // independent of whether it exists and how big it is.
+    vec3 sparkFacet = finishHash3(sparkCell + 5.3);
+    vec3 sparkOff = fract(sparkP) - 0.5 - (sparkRnd - 0.5) * 0.55;
+    float sparkRad = 0.130000 + 0.090000 * sparkRnd.y;
+    // Flat core with a soft rim: the fleck reads as a solid round dot, and the
+    // rim is just enough anti-aliasing to keep it from crawling.
+    float sparkDisc = step(0.280000, sparkRnd.x)
+      * (1.0 - smoothstep(sparkRad * 0.78, sparkRad, length(sparkOff)));
+    vec3 sparkDir = normalize(vViewPosition);
+    vec3 sparkNormal = normalize(normalize(normal) + (sparkFacet * 2.0 - 1.0) * 1.500000);
+    // Thresholded rather than pow()-falloff: a facet is either catching the
+    // light or it isn't, which is what makes a field of flecks read as glitter
+    // instead of a soft specular haze. A tight pow() exponent would leave
+    // almost every fleck dark on surfaces angled away from the camera.
+    float sparkGlint = smoothstep(0.580000, 0.880000, max(dot(sparkDir, sparkNormal), 0.0));
+    float sparkTwinkle = 0.750000 + 0.250000 * sin(uFinishTime * 3.1 + sparkRnd.y * 6.2831);
+    vec3 sparkTint = mix(vec3(0.6, 0.8, 1.0), vec3(1.0, 0.6, 0.9), sparkRnd.z);
+    outgoingLight += sparkTint * sparkGlint * sparkDisc * sparkTwinkle
+      * 1.800000 * (0.6 + 0.8 * sparkFacet.z);
+  }
+
+  {
+    vec3 sparkP = vFinishPos * 0.619048 + 23.000000;
+    vec3 sparkCell = floor(sparkP);
+    vec3 sparkRnd = finishHash3(sparkCell);
+    // Facet orientation from a second, decorrelated hash so a fleck's angle is
+    // independent of whether it exists and how big it is.
+    vec3 sparkFacet = finishHash3(sparkCell + 5.3);
+    vec3 sparkOff = fract(sparkP) - 0.5 - (sparkRnd - 0.5) * 0.55;
+    float sparkRad = 0.150000 + 0.070000 * sparkRnd.y;
+    // Flat core with a soft rim: the fleck reads as a solid round dot, and the
+    // rim is just enough anti-aliasing to keep it from crawling.
+    float sparkDisc = step(0.820000, sparkRnd.x)
+      * (1.0 - smoothstep(sparkRad * 0.78, sparkRad, length(sparkOff)));
+    vec3 sparkDir = normalize(vViewPosition);
+    vec3 sparkNormal = normalize(normalize(normal) + (sparkFacet * 2.0 - 1.0) * 1.350000);
+    // Thresholded rather than pow()-falloff: a facet is either catching the
+    // light or it isn't, which is what makes a field of flecks read as glitter
+    // instead of a soft specular haze. A tight pow() exponent would leave
+    // almost every fleck dark on surfaces angled away from the camera.
+    float sparkGlint = smoothstep(0.620000, 0.900000, max(dot(sparkDir, sparkNormal), 0.0));
+    float sparkTwinkle = 0.750000 + 0.250000 * sin(uFinishTime * 3.1 + sparkRnd.y * 6.2831);
+    vec3 sparkTint = mix(vec3(0.6, 0.8, 1.0), vec3(1.0, 0.6, 0.9), sparkRnd.z);
+    outgoingLight += sparkTint * sparkGlint * sparkDisc * sparkTwinkle
+      * 2.600000 * (0.6 + 0.8 * sparkFacet.z);
+  }
+",
+}
+`;
+
+exports[`generated GLSL per finish > glow: snapshot, and every piece lands in three's shader 1`] = `
+{
+  "diffuse": "",
+  "header": "",
+  "light": "",
+}
+`;
+
+exports[`generated GLSL per finish > marble: snapshot, and every piece lands in three's shader 1`] = `
+{
+  "diffuse": "
+  {
+    // Hard-edged flecks: distance to a jittered per-cell centre, with a
+    // random subset stretched into ellipses (elongation along a random
+    // per-cell axis). The smoothstep band is kept to a whisker — just enough
+    // anti-aliasing — so specks read as crisp embedded bits, not blurry blobs.
+    // Dense micro-dust (~0.5mm cells).
+    vec3 sp1 = vFinishPos * 2.0;
+    vec3 sr1 = finishHash3(floor(sp1));
+    vec3 so1 = fract(sp1) - 0.5 - (sr1 - 0.5) * 0.5;
+    vec3 sa1 = normalize(sr1 - 0.5 + vec3(0.013));
+    float sel1 = 1.0 + 2.2 * step(0.55, sr1.z);
+    float spar1 = dot(so1, sa1);
+    float sd1 = sqrt(dot(so1, so1) - spar1 * spar1 + (spar1 / sel1) * (spar1 / sel1));
+    float ssz1 = 0.09 + 0.09 * sr1.y;
+    float sf1 = step(0.6, sr1.x) * (1.0 - smoothstep(ssz1 * 0.85, ssz1, sd1));
+    // Sparser, slightly larger bits (~1.3mm cells).
+    vec3 sp2 = vFinishPos * 0.75 + 31.0;
+    vec3 sr2 = finishHash3(floor(sp2));
+    vec3 so2 = fract(sp2) - 0.5 - (sr2 - 0.5) * 0.5;
+    vec3 sa2 = normalize(sr2 - 0.5 + vec3(0.017));
+    float sel2 = 1.0 + 1.8 * step(0.5, sr2.z);
+    float spar2 = dot(so2, sa2);
+    float sd2 = sqrt(dot(so2, so2) - spar2 * spar2 + (spar2 / sel2) * (spar2 / sel2));
+    float ssz2 = 0.12 + 0.1 * sr2.y;
+    float sf2 = step(0.88, sr2.x) * (1.0 - smoothstep(ssz2 * 0.85, ssz2, sd2));
+    float speck = clamp(sf1 * (0.55 + 0.45 * sr1.y) + sf2 * (0.6 + 0.4 * sr2.y), 0.0, 1.0);
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.709931, 0.739860, 0.881148), speck);
+  }
+",
+  "header": "#define FINISH_SCALE 42.000000
+#define FINISH_ZMIN -7.500000
+#define FINISH_ZRANGE 15.000000
+uniform float uFinishTime;
+varying vec3 vFinishPos;
+",
+  "light": "",
+}
+`;
+
+exports[`generated GLSL per finish > matte: snapshot, and every piece lands in three's shader 1`] = `
+{
+  "diffuse": "",
+  "header": "",
+  "light": "",
+}
+`;
+
+exports[`generated GLSL per finish > metal: snapshot, and every piece lands in three's shader 1`] = `
+{
+  "diffuse": "
+  {
+    vec3 mp = vFinishPos / FINISH_SCALE;
+    float streak = finishNoise(vec3(mp.x * 3.0, mp.y * 80.0, mp.z * 80.0));
+    diffuseColor.rgb *= 0.93 + 0.14 * streak;
+  }
+",
+  "header": "#define FINISH_SCALE 42.000000
+#define FINISH_ZMIN -7.500000
+#define FINISH_ZRANGE 15.000000
+uniform float uFinishTime;
+varying vec3 vFinishPos;
+",
+  "light": "",
+}
+`;
+
+exports[`generated GLSL per finish > silk: snapshot, and every piece lands in three's shader 1`] = `
+{
+  "diffuse": "",
+  "header": "#define FINISH_SCALE 42.000000
+#define FINISH_ZMIN -7.500000
+#define FINISH_ZRANGE 15.000000
+uniform float uFinishTime;
+varying vec3 vFinishPos;
+",
+  "light": "
+  {
+    vec3 silkDir = normalize(vViewPosition);
+    float silkFres = pow(1.0 - abs(dot(silkDir, normalize(normal))), 2.5);
+    float silkBand = 0.5 + 0.5 * sin(
+      (vFinishPos.x + vFinishPos.y + 2.0 * vFinishPos.z) / FINISH_SCALE * 9.0
+      + uFinishTime * 0.6);
+    outgoingLight += vec3(0.661587, 0.696504, 0.861340) * silkFres * (0.12 + 0.28 * silkBand);
+  }
+",
+}
+`;
+
+exports[`generated GLSL per finish > silk-multi: snapshot, and every piece lands in three's shader 1`] = `
+{
+  "diffuse": "
+  {
+    float gt = clamp((vFinishPos.z - FINISH_ZMIN) / FINISH_ZRANGE
+      + 0.2 * (vFinishPos.x / FINISH_SCALE)
+      + 0.12 * sin(uFinishTime * 0.5), 0.0, 1.0);
+  float seg = gt * 1.000000;
+  vec3 gradCol = vec3(0.973445, 0.361307, 0.520996);
+  gradCol = mix(gradCol, vec3(1.000000, 0.296138, 0.018500), clamp(seg - 0.000000, 0.0, 1.0));
+
+    diffuseColor.rgb *= gradCol;
+  }
+",
+  "header": "#define FINISH_SCALE 42.000000
+#define FINISH_ZMIN -7.500000
+#define FINISH_ZRANGE 15.000000
+uniform float uFinishTime;
+varying vec3 vFinishPos;
+",
+  "light": "
+  {
+    vec3 silkDir = normalize(vViewPosition);
+    float silkFres = pow(1.0 - abs(dot(silkDir, normalize(normal))), 2.5);
+    float silkBand = 0.5 + 0.5 * sin(
+      (vFinishPos.x + vFinishPos.y + 2.0 * vFinishPos.z) / FINISH_SCALE * 9.0
+      + uFinishTime * 0.6);
+    outgoingLight += vec3(0.661587, 0.696504, 0.861340) * silkFres * (0.12 + 0.28 * silkBand);
+  }
+",
+}
+`;
+
+exports[`generated GLSL per finish > sparkle: snapshot, and every piece lands in three's shader 1`] = `
+{
+  "diffuse": "",
+  "header": "#define FINISH_SCALE 42.000000
+#define FINISH_ZMIN -7.500000
+#define FINISH_ZRANGE 15.000000
+uniform float uFinishTime;
+varying vec3 vFinishPos;
+",
+  "light": "
+  {
+    vec3 sparkP = vFinishPos * 1.619048 + 0.000000;
+    vec3 sparkCell = floor(sparkP);
+    vec3 sparkRnd = finishHash3(sparkCell);
+    // Facet orientation from a second, decorrelated hash so a fleck's angle is
+    // independent of whether it exists and how big it is.
+    vec3 sparkFacet = finishHash3(sparkCell + 5.3);
+    vec3 sparkOff = fract(sparkP) - 0.5 - (sparkRnd - 0.5) * 0.55;
+    float sparkRad = 0.160000 + 0.030000 * sparkRnd.y;
+    // Flat core with a soft rim: the fleck reads as a solid round dot, and the
+    // rim is just enough anti-aliasing to keep it from crawling.
+    float sparkDisc = step(0.320000, sparkRnd.x)
+      * (1.0 - smoothstep(sparkRad * 0.78, sparkRad, length(sparkOff)));
+    vec3 sparkDir = normalize(vViewPosition);
+    vec3 sparkNormal = normalize(normalize(normal) + (sparkFacet * 2.0 - 1.0) * 1.450000);
+    // Thresholded rather than pow()-falloff: a facet is either catching the
+    // light or it isn't, which is what makes a field of flecks read as glitter
+    // instead of a soft specular haze. A tight pow() exponent would leave
+    // almost every fleck dark on surfaces angled away from the camera.
+    float sparkGlint = smoothstep(0.620000, 0.900000, max(dot(sparkDir, sparkNormal), 0.0));
+    float sparkTwinkle = 1.0;
+    vec3 sparkTint = vec3(1.0);
+    outgoingLight += sparkTint * sparkGlint * sparkDisc * sparkTwinkle
+      * 1.700000 * (0.6 + 0.8 * sparkFacet.z);
+  }
+
+  {
+    vec3 sparkP = vFinishPos * 1.190476 + 17.000000;
+    vec3 sparkCell = floor(sparkP);
+    vec3 sparkRnd = finishHash3(sparkCell);
+    // Facet orientation from a second, decorrelated hash so a fleck's angle is
+    // independent of whether it exists and how big it is.
+    vec3 sparkFacet = finishHash3(sparkCell + 5.3);
+    vec3 sparkOff = fract(sparkP) - 0.5 - (sparkRnd - 0.5) * 0.55;
+    float sparkRad = 0.115000 + 0.022000 * sparkRnd.y;
+    // Flat core with a soft rim: the fleck reads as a solid round dot, and the
+    // rim is just enough anti-aliasing to keep it from crawling.
+    float sparkDisc = step(0.450000, sparkRnd.x)
+      * (1.0 - smoothstep(sparkRad * 0.78, sparkRad, length(sparkOff)));
+    vec3 sparkDir = normalize(vViewPosition);
+    vec3 sparkNormal = normalize(normalize(normal) + (sparkFacet * 2.0 - 1.0) * 1.350000);
+    // Thresholded rather than pow()-falloff: a facet is either catching the
+    // light or it isn't, which is what makes a field of flecks read as glitter
+    // instead of a soft specular haze. A tight pow() exponent would leave
+    // almost every fleck dark on surfaces angled away from the camera.
+    float sparkGlint = smoothstep(0.640000, 0.910000, max(dot(sparkDir, sparkNormal), 0.0));
+    float sparkTwinkle = 1.0;
+    vec3 sparkTint = vec3(1.0);
+    outgoingLight += sparkTint * sparkGlint * sparkDisc * sparkTwinkle
+      * 1.800000 * (0.6 + 0.8 * sparkFacet.z);
+  }
+",
+}
+`;
+
+exports[`generated GLSL per finish > translucent: snapshot, and every piece lands in three's shader 1`] = `
+{
+  "diffuse": "",
+  "header": "",
+  "light": "",
+}
+`;
+
+exports[`generated GLSL per finish > wood: snapshot, and every piece lands in three's shader 1`] = `
+{
+  "diffuse": "
+  {
+    vec3 wp = vFinishPos / FINISH_SCALE;
+    float rings = sin((wp.x + 2.5 * finishFbm(wp * 6.0)) * 40.0);
+    float fibre = finishNoise(vec3(wp.x * 6.0, wp.y * 120.0, wp.z * 120.0));
+    diffuseColor.rgb *= mix(0.85, 1.08, smoothstep(-0.6, 0.6, rings));
+    diffuseColor.rgb *= 0.95 + 0.1 * fibre;
+  }
+",
+  "header": "#define FINISH_SCALE 42.000000
+#define FINISH_ZMIN -7.500000
+#define FINISH_ZRANGE 15.000000
+uniform float uFinishTime;
+varying vec3 vFinishPos;
+",
+  "light": "",
+}
+`;

@@ -2,7 +2,7 @@ import { useState, type Dispatch, type SetStateAction } from "react";
 import { AlertTriangle, Check, Copy } from "lucide-react";
 
 import { Card } from "@bcl32/utils/Card";
-import { SimpleDialog } from "@bcl32/utils";
+import { SimpleDialog } from "@bcl32/utils/DialogButton";
 import { ToggleGroup, ToggleGroupItem } from "@bcl32/utils/ToggleGroup";
 import { Input } from "@bcl32/utils/Input";
 

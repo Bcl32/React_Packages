@@ -15,6 +15,7 @@ Shared React component library for the web-app-monorepo. All packages are writte
 | `@bcl32/filters` | Filter context, 10+ filter/chart UI components, and data-processing utilities |
 | `@bcl32/datatable` | DataTable with sorting, pagination, row selection |
 | `@bcl32/navigation` | Navigation components (Breadcrumb, NavigationProvider) |
+| `@bcl32/filament-look` | What a filament looks like, subpaths only: `/finishes` (finish mapping, colour OVERRIDES, hex/alpha/Clear; pure, server-safe), `/swatch` + `/swatch.css` (finish-aware 2D swatch, server-safe), `/materials` (three.js finish materials and GLSL; `three` ~0.172 peer), `/geometry` (bake quantised meshes to millimetres for the shaders) |
 
 > Versions are intentionally not listed here — they change on every publish. The source of truth for each package's current version is its own `package.json` (mirrored by the GitHub Package Registry); cross-package version floors live in each package's `package.json` and the workspace is defined in `pnpm-workspace.yaml`.
 

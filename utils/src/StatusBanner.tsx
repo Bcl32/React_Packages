@@ -40,7 +40,9 @@ const StatusBanner = React.forwardRef<HTMLDivElement, StatusBannerProps>(
     },
     ref
   ) => {
-    const visible = show ?? import.meta.env.DEV;
+    // `?.`: outside a bundler that defines import.meta.env (plain Node, a
+    // prerender script) it is undefined, and the banner stays hidden.
+    const visible = show ?? Boolean(import.meta.env?.DEV);
 
     const [dismissed, setDismissed] = React.useState(() => {
       try {

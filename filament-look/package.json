@@ -1,0 +1,69 @@
+{
+  "name": "@bcl32/filament-look",
+  "version": "0.0.0",
+  "description": "What a 3D-printing filament looks like: finish mapping, colour overrides, a finish-aware 2D swatch and three.js finish materials",
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    "./finishes": {
+      "types": "./dist/finishes.d.ts",
+      "import": "./dist/finishes.js"
+    },
+    "./geometry": {
+      "types": "./dist/geometry.d.ts",
+      "import": "./dist/geometry.js"
+    },
+    "./swatch": {
+      "types": "./dist/swatch.d.ts",
+      "import": "./dist/swatch.js"
+    },
+    "./materials": {
+      "types": "./dist/materials.d.ts",
+      "import": "./dist/materials.js"
+    },
+    "./swatch.css": "./src/swatch.css"
+  },
+  "files": [
+    "dist",
+    "src/swatch.css"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bcl32/React_Packages.git",
+    "directory": "filament-look"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "three": "~0.172.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "three": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/three": "~0.172.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "three": "~0.172.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}
