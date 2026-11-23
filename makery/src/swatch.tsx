@@ -1,13 +1,13 @@
 /**
- * @bcl32/filament-look/swatch: the 2D finish-aware swatch.
+ * @bcl32/makery/swatch: the 2D finish-aware swatch.
  *
  * Silk sheens, sparkle flecks, marble, wood grain, metallic banding, glow
  * halo, translucency, driven by the filament's finish name. Scale-independent,
  * so it doubles as a spool icon. Ported from Print-Tracker's FilamentSwatch;
  * the look is swatch.css, which the caller imports once:
  *
- *   import { FilamentSwatch } from "@bcl32/filament-look/swatch";
- *   import "@bcl32/filament-look/swatch.css";
+ *   import { FilamentSwatch } from "@bcl32/makery/swatch";
+ *   import "@bcl32/makery/swatch.css";
  *   <FilamentSwatch {...swatchProps(filament)} size="2rem" />
  *
  * Server-safe: no theme provider, no router, no context, nothing read from

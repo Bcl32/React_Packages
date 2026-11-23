@@ -1,8 +1,8 @@
-/* @bcl32/filament-look/swatch.css: finish-aware filament swatches.
+/* @bcl32/makery/swatch.css: finish-aware filament swatches.
  *
  * Import once, beside the component:
- *   import { FilamentSwatch } from "@bcl32/filament-look/swatch";
- *   import "@bcl32/filament-look/swatch.css";
+ *   import { FilamentSwatch } from "@bcl32/makery/swatch";
+ *   import "@bcl32/makery/swatch.css";
  * Ported unchanged from Print-Tracker's FilamentSwatch.css: only
  * .filament-swatch* (and .filament-glow-halo) classes, no theme tokens.
  *

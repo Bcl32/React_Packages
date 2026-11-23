@@ -1,5 +1,5 @@
 /**
- * @bcl32/filament-look/finishes: what a filament looks like, as plain data.
+ * @bcl32/makery/finishes: what a filament looks like, as plain data.
  *
  * Pure: no three.js, no DOM, no React. Safe to import during a server render
  * or a prerender, and in a worker.

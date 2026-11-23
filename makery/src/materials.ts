@@ -1,5 +1,5 @@
 /**
- * @bcl32/filament-look/materials: finish-aware three.js materials.
+ * @bcl32/makery/materials: finish-aware three.js materials.
  *
  * The WebGL counterpart of the swatch (`/swatch`). Each finish (silk, sparkle,
  * galaxy, ...) maps to a tuned MeshPhysicalMaterial plus, where the look needs

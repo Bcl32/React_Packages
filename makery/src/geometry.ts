@@ -1,5 +1,5 @@
 /**
- * @bcl32/filament-look/geometry: millimetre positions for the finish shaders.
+ * @bcl32/makery/geometry: millimetre positions for the finish shaders.
  *
  * The finish shaders (`/materials`) read each vertex's OBJECT-SPACE position
  * and assume it is in millimetres: marble's flecks are ~0.5 mm cells, sparkle's
