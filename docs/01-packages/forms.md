@@ -100,8 +100,8 @@ import { ColourField } from "@bcl32/forms/ColourField";
 
 | Name | Kind | Description | Signature / Props |
 | --- | --- | --- | --- |
-| `FormElement` | component | Single-field renderer dispatched on `ModelAttribute.type`. Supported types: `string`, `textarea`, `number`, `boolean`, `list` (freeSolo Combobox), `single_combobox` (single-select freeSolo Combobox over the schema's `options`, with a clear button that writes `null`; since 3.4.0), `id_list` (multi-select with value/label mapping), `select`, `datetime` (`@bcl32/utils/DateTimePicker`, since 3.0.0 — see caveat below), `colour`, `colour_array`, `relation_collection`, `id` (with `reference` → `IdReferenceField` Combobox), `file`. Returns `null` for unrecognised types. **Since 3.11.0** a renderer registry is consulted first: the `renderers` prop, then the nearest `FieldRegistryProvider` (`@bcl32/forms/fields`); a registered type is drawn through `FieldShell` with the admin `:` after its label, and overrides a built-in type of the same name. With neither, the switch runs exactly as before. | `(props: { entry_data: ModelAttribute; formData: FormData; setFormData: Dispatch<SetStateAction<FormData>>; change_datetime: (value: Dayjs \| null, name: string) => void; fieldError?; onFieldError?; renderers?: FieldRegistry<ModelAttribute> }) => JSX.Element \| null` |
-| `canRenderFormElement` | util | Predicate that mirrors `FormElement`'s non-null branches. Used by `BulkEditModelForm` and `EditModelForm` to filter out "ghost" cards for attributes that would render `null` (e.g. an `id` without `reference`, or unknown types). Since 3.11.0 it is also true for a type in `renderers`; both forms pass the context's registry, so a `FieldRegistryProvider` around a DataTable reaches its Edit and Bulk-edit dialogs. A second argument that is not an object is ignored, so `.filter(canRenderFormElement)` still works. | `(attr: ModelAttribute, renderers?: FieldRegistry \| null) => boolean` |
+| `FormElement` | component | Single-field renderer dispatched on `ModelAttribute.type`. Supported types: `string`, `textarea`, `number`, `boolean`, `list` (freeSolo Combobox), `single_combobox` (single-select freeSolo Combobox over the schema's `options`, with a clear button that writes `null`; since 3.4.0), `id_list` (multi-select with value/label mapping), `select`, `datetime` (`@bcl32/utils/DateTimePicker`, since 3.0.0 — see caveat below), `colour`, `colour_array`, `relation_collection`, `id` (with `reference` → `IdReferenceField` Combobox), `file`. Returns `null` for unrecognised types. **Since 3.11.0** a renderer registry is consulted first: the `renderers` prop, then the nearest `FieldRegistryProvider` (`@bcl32/forms/fields`); a registered type is drawn through `FieldShell` with the admin `:` after its label, and overrides a built-in type of the same name. A `resolve` prop (and the provider's) can pick a registry key per attribute instead. With neither, the switch runs exactly as before. | `(props: { entry_data: ModelAttribute; formData: FormData; setFormData: Dispatch<SetStateAction<FormData>>; change_datetime: (value: Dayjs \| null, name: string) => void; fieldError?; onFieldError?; renderers?: FieldRegistry<ModelAttribute>; resolve?: FieldResolver<ModelAttribute> }) => JSX.Element \| null` |
+| `canRenderFormElement` | util | Predicate that mirrors `FormElement`'s non-null branches. Used by `BulkEditModelForm` and `EditModelForm` to filter out "ghost" cards for attributes that would render `null` (e.g. an `id` without `reference`, or unknown types). Since 3.11.0 it is also true for a type in `renderers`; both forms pass the context's registry, so a `FieldRegistryProvider` around a DataTable reaches its Edit and Bulk-edit dialogs. A third argument, a `resolve`, counts the key it picks (both forms pass the context's). A second argument that is not an object, or a third that is not a function, is ignored, so `.filter(canRenderFormElement)` still works. | `(attr: ModelAttribute, renderers?: FieldRegistry \| null, resolve?: FieldResolver \| null) => boolean` |
 | `ColourField` | component | Single-colour picker button backed by `ColourPickerPopover`. When the field name matches `*_colour(s)` it writes a parallel `*_ids` array into `formData` for FK tracking. Colour presets are fetched via `useGroupedSwatches` using `ModelAttribute.colour_presets`. Since 3.11.0 it is that fetch plus `ColourFieldView`, takes `allowCustom` and `renderSwatchIcon` (passed to the popover), and its popover closes on Escape with focus back on the trigger. **Subpath-only export.** | `(props: { entry_data: ModelAttribute; formData: FormData; setFormData: Dispatch<SetStateAction<FormData>>; allowCustom?: boolean; renderSwatchIcon?: (s: ColourSwatch) => ReactNode }) => JSX.Element` |
 | `ColourFieldView` | component | The colour field with no fetch (since 3.11.0, subpath `@bcl32/forms/ColourFieldView`, also re-exported from `./ColourField`): swatches come in as a prop, so the module never imports `@bcl32/hooks` or react-query. Same label, trigger and popover as `ColourField`; closes on a pick, an outside mouse-down and Escape. | `(props: { attr: ModelAttribute; value: string; onSelect: (hex: string, id?: string) => void; swatchGroups: SwatchGroups; currentId?: string; allowCustom?: boolean; renderSwatchIcon?: (s: ColourSwatch) => ReactNode; id?: string }) => JSX.Element` |
 | `ColourArrayField` | component | Multi-colour swatch array editor. Each colour renders as a clickable circle with a remove badge; a `+` button adds new colours. Tracks a parallel `*_ids` FK array alongside the hex array. Edit/add each open a `ColourPickerPopover`. | `(props: { entry_data: ModelAttribute; formData: FormData; setFormData: Dispatch<SetStateAction<FormData>> }) => JSX.Element` |
@@ -116,33 +116,37 @@ on a prerendered page. Neither entry is in the barrel. `./fields` never imports
 `@bcl32/hooks`, react-query, sonner, dayjs, `Combobox`, `DateTimePicker`, `Tooltip`,
 `RelationCollectionField` or `ColourField` (`fields.imports.test.ts` walks its import graph),
 and renders with `renderToString` in plain Node with no providers. Measured (esbuild,
-minified, gzip -9, React external, utils and data-utils bundled): `./fields` 16.3 KB, of which
-tailwind-merge is about 6.6 KB; `./validate` 2.5 KB; `FormElement` 96.5 KB for comparison.
+minified, gzip -9, React external, utils and data-utils bundled): `./fields` 13.1 KB (16.3 KB
+before its checkbox went native), of which tailwind-merge is about 6.6 KB; `./validate` 2.6 KB;
+`FormElement` 96.5 KB for comparison. `fields.imports.test.ts` also keeps Radix's checkbox and
+presence out of `./fields`.
 
 **`@bcl32/forms/fields`**
 
 | Name | Kind | Description |
 | --- | --- | --- |
-| `FieldInput` | component | The bare widget for `string`, `textarea`, `number`, `boolean`, `select`, `date` (what FormElement, EditableDetailItem and RelationCollectionField draw). Public since 3.11.0, so its props are semver surface. New, both optional: `size` (`sm` = `compact`, `md` = today, `lg` = 48 px, text-base; wins over `compact` when set) and `classNames: { control?, input? }`. `invalid` / `describedBy` now set `aria-invalid` / `aria-describedby` on every type; unset, nothing is written. With none of the new props the markup is byte-identical. |
+| `FieldInput` | component | The bare widget for `string`, `textarea`, `number`, `boolean`, `select`, `date` (what FormElement, EditableDetailItem and RelationCollectionField draw). Public since 3.11.0, so its props are semver surface. New, all optional: `size` (`sm` = `compact`, `md` = today, `lg` = 48 px, text-base; wins over `compact` when set), `classNames: { control?, input? }` and `inputProps` (below). `invalid` / `describedBy` now set `aria-invalid` / `aria-describedby` on every type; unset, nothing is written. A `string` or `textarea` whose descriptor has `min_length` / `max_length` gets native `minLength` / `maxLength`. **`boolean` is a native `<input type="checkbox">` here** (`h-6 w-6 accent-primary`, `lg`: `h-7 w-7`), so the entry carries no Radix; FormElement, EditableDetailItem and RelationCollectionField draw the package's internal FieldInput, which keeps the Radix checkbox byte for byte. With none of the new props and no limits on the descriptor, the markup of every other type is byte-identical. |
+| `inputProps` | prop | `FieldInputHTMLProps`: extra attributes for the element FieldInput draws (the `<input>`, `<textarea>` or `<select>`): `autoComplete`, `spellCheck`, `enterKeyHint`, `inputMode`, `disabled`, a `maxLength` the descriptor lacks… The keys FieldInput owns are left out of the type and dropped at run time, so they never replace its own: `id`, `name`, `value`, `defaultValue`, `checked`, `onChange`, `onInput`, `onBlur`, `type`, `size`, `className`, every `aria-*`; and props it sets after them win too (a number's `step` / `min` / `max`, the descriptor's `minLength` / `maxLength`). Not passed to the admin path's Radix checkbox. |
 | `FieldShell` | component | Label, inline hint and error (`role="alert"`) around a control: a plain `<label>` (no Radix, no tooltip). `labelAs`: `label` (default), `legend` (a `<fieldset>`), `inline` (control first, a checkbox) or `none`. Takes `labelSuffix`, `size`, `classNames`, `optional` + `optionalMark`, `errorIcon`. |
-| `FieldSet` | component | Controlled group of fields for any descriptor type: `{ attrs, value, onChange(next, changed), errors?, showErrors?: "touched" \| "submitted" \| "always", submitted?, touched?, onBlur?, onParseError?, renderers?, filter?, idPrefix? = "input_", labelSuffix?, size?, classNames?, children?(fields) }`. `onChange` always gets a new object. No `<form>`, submit, fetch or toast. Renderer lookup: `renderers`, then the context, then `lightRenderers`; an attr with no renderer, or `editable: false`, is skipped. Errors are `FieldIssue`s (worded with `issueText`) or strings; "touched" (default) shows them after a change, blur or submit, so a server render never prints one. Hint and error ids are `${id}-hint` / `${id}-error`. |
+| `FieldSet` | component | Controlled group of fields for any descriptor type: `{ attrs, value, onChange(next, changed), errors?, showErrors?: "touched" \| "submitted" \| "always", submitted?, touched?, onBlur?, onParseError?, renderers?, resolve?, filter?, idPrefix? = "input_", labelSuffix?, size?, classNames?, children?(fields) }`. `onChange` always gets a new object. No `<form>`, submit, fetch or toast. Renderer lookup: the key `resolve` picks (this prop's, then the providers'), then `attr.type`, each through `renderers`, then the context, then `lightRenderers` (see [Choosing a renderer](#choosing-a-renderer-per-attribute)); an attr with no renderer, or `editable: false`, is skipped. The optional mark shows only on a field that may really be left empty (below). Errors are `FieldIssue`s (worded with `issueText`) or strings; "touched" (default) shows them after a change, blur or submit, so a server render never prints one. Hint and error ids are `${id}-hint` / `${id}-error`. |
 | `useFieldSetState` | hook | `useFieldSetState(initial)` → `{ value, setValue, touched, submitted, markSubmitted, parseErrors, onParseError, reset, bind }`; spread `bind` onto `FieldSet` and pass `parseErrors` to `validate`. |
-| `FieldRegistryProvider`, `useFieldRegistry`, `mergeRegistries` | component / hook / util | A registry in context, seen by every `FormElement` and `FieldSet` below it, including the forms `@bcl32/datatable` hosts. Nested providers merge (inner wins per type). A registered type overrides the built-in of the same name below the provider, so mount it as low as the page allows. |
-| `FieldRegistry`, `FieldRenderer`, `FieldRenderProps` | types | `FieldRenderer = { Control: (props: FieldRenderProps) => ReactNode; labelAs?; isEmpty?(value); validate?(attr, value, values) }`. `FieldRenderProps = { attr, id, name, value, onChange, onChangeMany(patch), values, onBlur?, invalid, describedBy?, onParseError?, size, classNames }`. |
-| `lightRenderers` | registry | FieldInput's six types as renderers (`boolean` is `labelAs: "inline"`). |
-| `FieldStyleProvider`, `useFieldStyle` | component / hook | `size`, `classNames`, `labelSuffix`, `optionalMark`, `errorIcon` for every FieldSet and registered field below it. Props win over it, it wins over the defaults. FieldInput never reads it. |
+| `FieldRegistryProvider`, `useFieldRegistry`, `useFieldResolver`, `mergeRegistries` | component / hook / util | `<FieldRegistryProvider registry? resolve?>`: a registry, and optionally a `resolve`, in context, seen by every `FormElement` and `FieldSet` below it, including the forms `@bcl32/datatable` hosts. Nested providers merge (inner wins per type; the inner `resolve` is asked first, the outer one when it gives no key). A registered type overrides the built-in of the same name below the provider, so mount it as low as the page allows, or register the control under its own key and pick it per field with `resolve`. `useFieldResolver()` returns the chained resolver, for hosts that filter with `canRenderFormElement`. |
+| `FieldRegistry`, `FieldRenderer`, `FieldRenderProps`, `FieldResolver`, `FieldInputHTMLProps` | types | `FieldRenderer = { Control: (props: FieldRenderProps) => ReactNode; labelAs?; isEmpty?(value); validate?(attr, value, values) }`. `FieldRenderProps = { attr, id, label, name, value, onChange, onChangeMany(patch), values, onBlur?, invalid, describedBy?, onParseError?, size, classNames }`; `label` is what the shell shows (`fieldLabel(attr)`, without the suffix or the optional mark), for a control that draws its own legend. `FieldResolver = (attr) => string \| null \| undefined`. |
+| `lightRenderers` | registry | FieldInput's six types as renderers (`boolean` is the native checkbox, `labelAs: "inline"`). |
+| `FieldStyleProvider`, `useFieldStyle` | component / hook | `size`, `classNames`, `labelSuffix`, `optionalMark`, `errorIcon` for every FieldSet and registered field below it. Props win over it, it wins over the defaults. FieldInput never reads it. `optionalMark` is shown only on a field that may really be left empty: not `required`, and either `nullable`, or with no non-empty `default` and nothing `validate` refuses empty (a non-nullable `number`, a string with `min_length >= 1`). So a choice with a default does not read "(optional)". |
 | `FieldSize`, `FieldClassNames`, `FieldStyle`, `FieldBase`, `FieldIssue`, `FieldIssueCode` | types | Slots: `root`, `label`, `legend`, `optional`, `hint`, `control`, `input`, `error`, merged over the defaults with tailwind-merge. |
 
 **`@bcl32/forms/validate`** (pure: no React, no DOM; imports only `@bcl32/data-utils/numbers`)
 
 | Name | Kind | Description |
 | --- | --- | --- |
-| `validate` | util | `(attrs, values, opts?) => Record<string, FieldIssue>`: each field's first issue. Order: the number box's parse error, then empty-and-required, then the type's rules, then the registry's `validate`, then `crossField` rules (which only fill fields with no issue yet). Skips `editable: false` and what `only` excludes. Options: `only`, `parseErrors`, `charsets`, `registry`, `crossField`, `skipUntouched`. |
+| `validate` | util | `(attrs, values, opts?) => Record<string, FieldIssue>`: each field's first issue. Order: the number box's parse error, then empty-and-required, then the type's rules, then the registry's `validate`, then `crossField` rules (which only fill fields with no issue yet). Skips `editable: false` and what `only` excludes. Options: `only`, `parseErrors`, `charsets`, `registry`, `resolve` (the registry key per attribute, as FieldSet's picks it, for the entry's `isEmpty` / `validate`; the generic rules still go by `attr.type`), `crossField`, `skipUntouched`, `trim`. |
 | `validateField` | util | The same for one field. |
-| `textLength` | util | Code points after NFC, as Python's `len()` and JSON Schema count (`"😀".length` is 2; this is 1). |
+| `trim` | option | Default `false`. When true, a string is stripped of leading and trailing whitespace before the required, length, charset and pattern checks (and the registry's `isEmpty` / `validate` see the stripped value), matching Pydantic's `str_strip_whitespace`. The set is Unicode White_Space, which is what Pydantic strips (it uses Rust's `trim`), not JS's `trim()`: U+0085 is stripped and U+FEFF is not. The form's value is never changed. |
+| `textLength` | util | Code points after NFC (`"😀".length` is 2; this is 1, and e + a combining accent is 1). JSON Schema counts code points; Python's `len()` and a plain Pydantic `max_length` do too but **do not normalise**, so Pydantic refuses `"A" * 23 + "e\u0301"` at `max_length=24`. See [Agreeing with the server](#agreeing-with-the-server). |
 | `isEmptyValue` | util | `undefined`, `null`, `""`, `[]`. |
 | `issueText` | util | `(label, issue, attr?, adapter?) => string`. The number reasons in exactly `fieldErrorText`'s words (which now delegates to it), plus `At least 3 characters`, `At most 20 characters`, `Not in the expected format`, `These characters can't be used: ★ ♥`, `Choose one of the options`, and an `x-` issue's own `message`. Uses Intl: show it after interaction on prerendered pages. |
-| `FieldBase`, `RuleSource`, `FieldIssue`, `ValidateOptions`, `CrossFieldRule`, `CharsetPolicy`, `RuleRegistry` | types | `RuleSource` is structural: a `ModelAttribute` fits, and a hand-written descriptor can carry `min_length`, `max_length`, `pattern`, `required`, `charset` and `normalise: "NFC"` today. |
+| `FieldBase`, `RuleSource`, `FieldIssue`, `ValidateOptions`, `CrossFieldRule`, `CharsetPolicy`, `RuleRegistry` | types | `RuleSource` is structural: a `ModelAttribute` fits with no cast (data-utils declares `required`, `min_length`, `max_length`, `pattern`, `charset`, `group` and `order`, which schema_utils 0.24.0 writes), and so does a hand-written descriptor, which may also carry `normalise: "NFC"`. |
 
 Rules: `required` is `attr.required`, a non-nullable `number` that is `null` (today's rule) or
 `""` on a string with `min_length >= 1`; `undefined` is untouched (empty for `required`
@@ -152,6 +156,62 @@ as an **unanchored search**, like Pydantic (`[a-z]+` accepts `"ABCd"`; anchor wi
 pattern JS cannot compile (with `u`, then without) is not checked and never throws. Numbers:
 the value itself against `integer`, `decimals` (money: 2) and `min`/`max`. A `select`'s value
 must be one of its `options`. An empty optional value passes the type rules.
+
+#### Agreeing with the server
+
+`validate` gives instant hints; the server stays the authority. For the two to agree on text:
+
+- **Normalise to NFC on the server, before the length check.** `textLength` counts NFC code
+  points; plain Pydantic counts raw code points. A `BeforeValidator` does it:
+
+  ```python
+  import unicodedata
+  from typing import Annotated
+  from pydantic import BeforeValidator, Field
+
+  def nfc(v):
+      return unicodedata.normalize("NFC", v) if isinstance(v, str) else v
+
+  LidText = Annotated[str, BeforeValidator(nfc), Field(max_length=24)]
+  ```
+
+- **Pass `trim: true`** when the model uses `str_strip_whitespace`.
+- **The browser's `maxLength`** (FieldInput sets it from `max_length`) counts UTF-16 units and
+  does not normalise: an emoji is 2, a decomposed accent is 2. It can refuse text the server
+  would take but never lets through text a raw or NFC code-point limit refuses, save the few
+  characters NFC itself expands (U+0344, U+0F73, U+FB2C: 1 unit, 2 or 3 code points after
+  NFC). `minLength` is looser for the same reason and only checked on submit.
+
+#### Choosing a renderer per attribute
+
+A registry is keyed by name. By default the name is `attr.type`, so registering `select`
+replaces every select below the provider. To draw only some, register the control under its
+own key and return that key from `resolve`:
+
+```tsx
+const registry = { "radio-cards": { Control: RadioCards, labelAs: "legend" } };
+const resolve = (attr) => (attr.type === "select" && attr.group === "Lid" ? "radio-cards" : undefined);
+
+<FieldRegistryProvider registry={registry} resolve={resolve}>
+  <FieldSet attrs={attrs} {...form.bind} />
+</FieldRegistryProvider>
+```
+
+Precedence, for each attribute:
+
+1. The key: the `resolve` prop (FieldSet, FormElement) is asked first, then the nearest
+   provider's, then outer providers'. The first that returns a string wins.
+2. That key is looked up through every registry in order: the `renderers` prop, the
+   provider's registry, then (FieldSet only) `lightRenderers`. A resolved key therefore beats
+   a registered `attr.type` even in an earlier registry.
+3. If no key was given, or no registry holds it, `attr.type` is looked up the same way, and
+   then FormElement falls back to its built-in switch. FormElement's built-in types are not a
+   registry, so resolving to `"textarea"` there finds nothing and falls back; on a FieldSet it
+   finds `lightRenderers.textarea`.
+
+`canRenderFormElement(attr, renderers?, resolve?)` follows the same rule, and `EditModelForm` /
+`BulkEditModelForm` pass the context's registry and resolver. Pass the same `resolve` to
+`validate` so a resolved entry's `isEmpty` / `validate` run.
 
 Nothing in the existing forms calls `validate` yet, so `fieldErrors` and every form behave as
 before (a parity test pins `fieldErrors` ≡ `validate` on number fields with in-range values).
@@ -167,7 +227,7 @@ before (a parity test pins `fieldErrors` ≡ `validate` on number fields with in
 | Name | Kind | Description | Signature |
 | --- | --- | --- | --- |
 | `FormData` | type | Plain index-signature type used as the state shape for all form components. | `export interface FormData { [key: string]: unknown }` |
-| `FormElementProps` | type | Props interface for `FormElement`, exported for consumers that build custom wrappers. | `export interface FormElementProps { entry_data: ModelAttribute; formData: FormData; setFormData: Dispatch<SetStateAction<FormData>>; change_datetime: (value: Dayjs \| null, name: string) => void; fieldError?: FieldError; onFieldError?: (name, reason) => void; renderers?: FieldRegistry<ModelAttribute> }` |
+| `FormElementProps` | type | Props interface for `FormElement`, exported for consumers that build custom wrappers. | `export interface FormElementProps { entry_data: ModelAttribute; formData: FormData; setFormData: Dispatch<SetStateAction<FormData>>; change_datetime: (value: Dayjs \| null, name: string) => void; fieldError?: FieldError; onFieldError?: (name, reason) => void; renderers?: FieldRegistry<ModelAttribute>; resolve?: FieldResolver<ModelAttribute> }` |
 | `EntryData` | type | **Deprecated** re-export alias for `ModelAttribute` from `@bcl32/data-utils` (JSDoc-marked `@deprecated`). Use `ModelAttribute` directly. | `export type EntryData = ModelAttribute` |
 
 ## Dependencies

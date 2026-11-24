@@ -64,7 +64,7 @@ The package also publishes per-module subpath exports for tree-shaking-friendly 
 
 | Name | Kind | Description |
 | --- | --- | --- |
-| `ModelAttribute` | `type` | Base field descriptor used across the monorepo's `ModelData` pattern. Carries `name`, a `type` discriminant (`string \| number \| boolean \| list \| select \| datetime \| colour \| colour_array \| id \| file`), `default`, `editable`, filter flags, a `stats` flag, `groupBy`, reference FK metadata, and an open index signature for app-specific extensions. |
+| `ModelAttribute` | `type` | Base field descriptor used across the monorepo's `ModelData` pattern. Carries `name`, a `type` discriminant (`string \| number \| boolean \| list \| select \| datetime \| colour \| colour_array \| id \| file`), `default`, `editable`, filter flags, a `stats` flag, `groupBy`, reference FK metadata, and an open index signature for app-specific extensions. Since 2.11.0 it also declares the keys schema_utils 0.24.0 writes: `required` (written only when true: required on create), `min_length` / `max_length` (code points), `pattern` (an unanchored search, like Pydantic) and the layout and charset extras `group`, `order`, `charset`; `MODEL_ATTRIBUTE_KEYS` tables each as `generated`. |
 | `ModelData` | `type` | Top-level model descriptor holding a `model_attributes` array and optional CRUD API URLs. Open index signature allows app-specific extra fields. |
 | `RowData` | `type` | Standard table row shape: required `id` (`string \| number`), optional `time_created` / `time_updated`, plus an open index signature. |
 | `ReferenceInfo` | `type` | FK metadata for `id`-type fields: `get_api_url` to fetch options, `display_field` to render the label. |
