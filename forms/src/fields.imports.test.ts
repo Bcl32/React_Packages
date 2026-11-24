@@ -20,8 +20,8 @@ const BANNED_FIELDS: RegExp[] = [
   /^@tanstack\/react-query/,
   /^sonner$/,
   /^dayjs(\/|$)/,
-  /^@bcl32\/utils\/(Combobox|DateTimePicker|Tooltip)$/,
-  /^@radix-ui\/react-tooltip/,
+  /^@bcl32\/utils\/(Combobox|DateTimePicker|Tooltip|Checkbox)$/,
+  /^@radix-ui\/react-(tooltip|checkbox|presence)/,
 ];
 const BANNED_LOCAL_FIELDS = /\/(RelationCollectionField|ColourField|ColourArrayField|FormElement|EditableDetailItem|useGroupedSwatches)\.tsx?$/;
 

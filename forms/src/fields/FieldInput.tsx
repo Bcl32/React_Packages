@@ -2,7 +2,6 @@ import * as React from "react";
 
 import { Input } from "@bcl32/utils/Input";
 import { Select } from "@bcl32/utils/Select";
-import { Checkbox } from "@bcl32/utils/Checkbox";
 import { cn } from "@bcl32/utils/cn";
 import { useNumberAdapter } from "@bcl32/utils/NumberAdapter";
 import type { ModelAttribute } from "@bcl32/data-utils";
@@ -164,7 +163,9 @@ export type NumberFieldError = Extract<ParseResult, { ok: false }>["reason"];
 /**
  * Public as `@bcl32/forms/fields` (since 3.11): these props are semver
  * surface. EditableDetailItem, RelationCollectionField and FormElement all
- * draw through it, so a change to its markup lands on every detail page.
+ * draw through it (through `../FieldInput`, which swaps in the Radix checkbox
+ * for `boolean`), so a change to its markup lands on every detail page. This
+ * one draws `boolean` as a native `<input type="checkbox">`.
  *
  * The bare input widget for a single field — no label, help text, or layout chrome.
  *
@@ -259,13 +260,20 @@ export function FieldInput({
       );
 
     case "boolean":
+      // A native checkbox: the light entry does not carry Radix's checkbox and
+      // presence (about 17 KB raw) onto a page. The admin path
+      // (`../FieldInput`, what FormElement, EditableDetailItem and
+      // RelationCollectionField draw) keeps the Radix one, unchanged.
       return (
-        <Checkbox
+        <input
+          {...(extra as React.InputHTMLAttributes<HTMLInputElement>)}
+          type="checkbox"
           id={id}
           name={name}
           checked={Boolean(value)}
-          onCheckedChange={(checked) => onChange(Boolean(checked))}
-          className={cls("w-6 h-6 border-2", "w-7 h-7", both)}
+          onChange={(e) => onChange(e.target.checked)}
+          onBlur={onBlur}
+          className={cn("h-6 w-6 shrink-0 accent-primary", large && "h-7 w-7", className, both)}
           {...aria}
         />
       );

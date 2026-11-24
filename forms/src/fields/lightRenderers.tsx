@@ -37,7 +37,8 @@ function FieldInputControl({
  * The types FieldInput owns, as renderers: string, textarea, number,
  * boolean, select and date. `FieldSet` falls back to these; register a type
  * of the same name to replace one. None of them pulls in react-query, dayjs,
- * a combobox, a date picker or a tooltip.
+ * a combobox, a date picker, a tooltip or Radix's checkbox: `boolean` is a
+ * native `<input type="checkbox">` (FormElement's stays Radix).
  */
 export const lightRenderers: FieldRegistry<FieldBase> = {
   string: { Control: FieldInputControl },

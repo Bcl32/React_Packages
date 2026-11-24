@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ModelAttribute } from "@bcl32/data-utils";
 
 import { FieldInput, FieldSet, type FieldBase, type FieldInputHTMLProps } from "@bcl32/forms/fields";
+import { FieldInput as AdminFieldInput } from "./FieldInput";
+import { FormElement } from "./FormElement";
 
 afterEach(cleanup);
 
@@ -165,5 +167,81 @@ describe("FieldInput: inputProps", () => {
     const props: FieldInputHTMLProps = { autoComplete: "street-address", maxLength: 3 };
     expect(typed).toBeTruthy();
     expect(props.maxLength).toBe(3);
+  });
+});
+
+describe("boolean: native on the light path, Radix on the admin path", () => {
+  const gift = { name: "gift", type: "boolean", title: "Gift wrap" };
+
+  it("./fields' FieldInput draws a native checkbox that emits booleans", () => {
+    const onChange = vi.fn();
+    const onBlur = vi.fn();
+    const el = one(
+      <FieldInput attr={gift} id="g" name="gift" value={false} onChange={onChange} onBlur={onBlur} invalid describedBy="e" inputProps={{ disabled: true }} />,
+    );
+    expect(el.tagName).toBe("INPUT");
+    expect(el.type).toBe("checkbox");
+    expect(el.checked).toBe(false);
+    expect(el.getAttribute("aria-invalid")).toBe("true");
+    expect(el.getAttribute("aria-describedby")).toBe("e");
+    expect(el.disabled).toBe(true);
+    cleanup();
+    const box = one(<FieldInput attr={gift} id="g" value={false} onChange={onChange} onBlur={onBlur} />);
+    fireEvent.click(box);
+    fireEvent.blur(box);
+    expect(onChange).toHaveBeenCalledWith(true);
+    expect(onBlur).toHaveBeenCalled();
+  });
+
+  it("native markup: no Radix classes; lg and the slots", () => {
+    expect(one(<FieldInput attr={gift} value onChange={() => {}} />).outerHTML).toBe(
+      '<input type="checkbox" class="h-6 w-6 shrink-0 accent-primary" checked="">',
+    );
+    cleanup();
+    const lg = one(<FieldInput attr={gift} value onChange={() => {}} size="lg" classNames={{ control: "rounded-none" }} />);
+    expect(lg.className).toBe("shrink-0 accent-primary h-7 w-7 rounded-none");
+    expect(lg.checked).toBe(true);
+  });
+
+  it("a FieldSet boolean is the native checkbox, labelled inline", () => {
+    render(<FieldSet attrs={[gift]} value={{ gift: true }} onChange={vi.fn()} />);
+    const el = document.getElementById("input_gift") as HTMLInputElement;
+    expect(el.type).toBe("checkbox");
+    expect(el.checked).toBe(true);
+    expect(el.closest("div")!.querySelector("label")!.htmlFor).toBe("input_gift");
+  });
+
+  it("the admin FieldInput and FormElement keep the Radix checkbox", () => {
+    const admin = render(<AdminFieldInput attr={gift} id="g" value onChange={() => {}} />).container.firstElementChild!;
+    expect(admin.tagName).toBe("BUTTON");
+    expect(admin.getAttribute("role")).toBe("checkbox");
+    cleanup();
+    render(<FormElement entry_data={gift} formData={{ gift: true }} setFormData={vi.fn()} change_datetime={vi.fn()} />);
+    expect(document.getElementById("input_gift")!.getAttribute("role")).toBe("checkbox");
+  });
+
+  it("the admin Radix checkbox takes size and slots as before", () => {
+    const at = (props: Record<string, unknown>) => {
+      const { container } = render(<AdminFieldInput attr={gift} value={false} onChange={() => {}} {...props} />);
+      const cls = container.firstElementChild!.className;
+      cleanup();
+      return cls;
+    };
+    const base = "peer shrink-0 rounded-sm border-primary";
+    expect(at({})).toContain(`${base}`);
+    expect(at({ size: "lg" }).endsWith("border-2 w-7 h-7")).toBe(true);
+    expect(at({ size: "sm" })).toBe(at({ compact: true }));
+    expect(at({ classNames: { control: "a", input: "b" } }).endsWith("a b")).toBe(true);
+  });
+
+  it("the admin FieldInput is ./fields' for every other type", () => {
+    for (const type of ["string", "textarea", "number", "select", "date"]) {
+      const attr = { name: "x", type, max_length: 3, options: [] } as ModelAttribute;
+      const a = render(<AdminFieldInput attr={attr} id="x" value="" onChange={() => {}} inputProps={{ autoComplete: "off" }} />).container.innerHTML;
+      cleanup();
+      const b = render(<FieldInput attr={attr} id="x" value="" onChange={() => {}} inputProps={{ autoComplete: "off" }} />).container.innerHTML;
+      cleanup();
+      expect(a.replace(/:r[0-9a-z]+:/g, "")).toBe(b.replace(/:r[0-9a-z]+:/g, ""));
+    }
   });
 });
