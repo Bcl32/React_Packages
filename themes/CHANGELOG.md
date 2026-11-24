@@ -1,5 +1,17 @@
 # @bcl32/themes
 
+## 5.2.0
+
+### Minor Changes
+
+- 1832e25: feat: opt-in server-safe modes for prerendered pages, defaults unchanged. themes: `ThemeProvider gated` reads localStorage and matchMedia after mount, not during render, and ThemeGenerator imports SimpleDialog by subpath instead of the utils barrel. utils: `useIsMobile({ ssr: true })` returns false on the first render; StatusBanner guards `import.meta.env?.DEV`. navigation and command-palette: the react-router-dom peer accepts `^6.22.0 || ^7.0.0` (no code change; server-render tests under both lines).
+
+### Patch Changes
+
+- Updated dependencies [4f00649]
+- Updated dependencies [1832e25]
+  - @bcl32/utils@2.17.0
+
 ## 5.1.2
 
 ### Patch Changes

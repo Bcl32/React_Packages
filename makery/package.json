@@ -1,6 +1,6 @@
 {
   "name": "@bcl32/makery",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "What Print-Tracker and the Almost Anything Makery shop share: how a filament looks (finish mapping, colour overrides, a finish-aware 2D swatch, three.js finish materials) and how a printed part is shown (millimetre geometry, scale objects, a dimension overlay)",
   "author": "",
   "license": "ISC",
