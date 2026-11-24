@@ -1,5 +1,7 @@
 import * as React from "react";
 
+import { useIsomorphicLayoutEffect } from "./fields/useIsomorphicLayoutEffect";
+
 export interface AutoGrowTextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   value: string;
@@ -32,8 +34,10 @@ export const AutoGrowTextarea = React.forwardRef<
     el.style.height = `${el.scrollHeight}px`;
   }, []);
 
-  // Re-measure when the value changes (incl. external updates).
-  React.useLayoutEffect(() => {
+  // Re-measure when the value changes (incl. external updates). A layout
+  // effect in the browser (no flash at the wrong height); a plain effect on a
+  // server, where there is nothing to measure and React would warn.
+  useIsomorphicLayoutEffect(() => {
     resize();
   }, [value, resize]);
 

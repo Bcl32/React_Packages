@@ -24,6 +24,7 @@ import type { ModelAttribute } from "@bcl32/data-utils";
 import { FieldInput } from "./FieldInput";
 import { NoteMarkdown, isLongNote } from "./NoteMarkdown";
 import { useDebouncedCallback } from "./useDebouncedCallback";
+import { useIsomorphicLayoutEffect } from "./fields/useIsomorphicLayoutEffect";
 import { type Group, flatten, groupRows, moveGroup, moveRow, sectionOf } from "./resourceSections";
 import type { FormData } from "./FormElement";
 
@@ -75,8 +76,11 @@ const LAID_OUT = new Set(["title", "note", "category", "url", "section"]);
 const FOLD_KEY = (baseUrl: string) => `bcl32-forms.sections:${baseUrl}`;
 const foldId = (box: Box, name: string) => `${box}\u0000${name}`;
 
+// Read synchronously in the state initialiser on the client, so a section
+// folded last visit is folded the moment the rows appear (no flash open). On a
+// server there is no storage: nothing is folded, and storage is never touched.
 function readFolded(baseUrl?: string): Set<string> {
-  if (!baseUrl) return new Set();
+  if (!baseUrl || typeof window === "undefined") return new Set();
   try {
     const raw = JSON.parse(localStorage.getItem(FOLD_KEY(baseUrl)) || "[]");
     return new Set(Array.isArray(raw) ? raw.filter((v) => typeof v === "string") : []);
@@ -154,7 +158,7 @@ function FoldedNote({ note }: { note: string }) {
   const [overflows, setOverflows] = React.useState(false);
   const [open, setOpen] = React.useState(false);
 
-  React.useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     const measure = () => setOverflows(el.scrollHeight > FOLD_PX + 8);

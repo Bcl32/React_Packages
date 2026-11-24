@@ -1,11 +1,8 @@
 import * as React from "react";
 
-import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
-import utc from "dayjs/plugin/utc";
-import timezone from "dayjs/plugin/timezone";
-dayjs.extend(utc);
-dayjs.extend(timezone);
+// dayjs with the utc/timezone plugins, set up once (see datetimeSetup.ts).
+import { dayjs } from "./datetimeSetup";
 
 import { HelpCircle, X } from "lucide-react";
 import { Input } from "@bcl32/utils/Input";
