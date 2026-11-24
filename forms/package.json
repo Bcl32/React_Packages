@@ -73,6 +73,10 @@
     "./validate": {
       "types": "./dist/validate.d.ts",
       "import": "./dist/validate.js"
+    },
+    "./fields": {
+      "types": "./dist/fields.d.ts",
+      "import": "./dist/fields.js"
     }
   },
   "files": [
@@ -97,6 +101,17 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "sonner": "^2.0.7"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-query": {
+      "optional": true
+    },
+    "dayjs": {
+      "optional": true
+    },
+    "sonner": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@bcl32/data-utils": "workspace:^2.10.0",

@@ -11,10 +11,11 @@ import { useDatabaseMutation } from "@bcl32/hooks/useDatabaseMutation";
 import { Button } from "@bcl32/utils/Button";
 import { Checkbox } from "@bcl32/utils/Checkbox";
 import { Label } from "@bcl32/utils/Label";
-import { getFormDefault, resolveBulkUpdateUrl, type ModelData } from "@bcl32/data-utils";
+import { getFormDefault, resolveBulkUpdateUrl, type ModelAttribute, type ModelData } from "@bcl32/data-utils";
 
 import { toast } from "sonner";
 import { FormElement, canRenderFormElement, type FormData } from "./FormElement";
+import { useFieldRegistry } from "./fields/registry";
 import { fieldErrors, normaliseNumbers, useParseErrors } from "./numberFields";
 
 interface RowSelection {
@@ -60,7 +61,8 @@ export function BulkEditModelForm({
   // paired-ids machinery (see pairedIdsKey below) needs filament_ids to exist
   // in formData so it can auto-include it when the user enables
   // filament_colours — hide the card, keep the data slot.
-  const visibleAttributes = editableAttributes.filter(canRenderFormElement);
+  const registry = useFieldRegistry<ModelAttribute>();
+  const visibleAttributes = editableAttributes.filter((attr) => canRenderFormElement(attr, registry));
 
   const form_defaults: FormData = {};
   editableAttributes.forEach((item) => {

@@ -21,6 +21,8 @@ import type { ModelAttribute, ReferenceInfo } from "@bcl32/data-utils";
 import { ColourField } from "./ColourField";
 import { ColourArrayField } from "./ColourArrayField";
 import { FieldInput, type NumberFieldError } from "./FieldInput";
+import { RegisteredField } from "./fields/RegisteredField";
+import { lookupRenderer, useFieldRegistry, type FieldRegistry } from "./fields/registry";
 import { fieldLabel } from "./fieldLabel";
 import { fieldErrorText, type FieldError } from "./numberFields";
 import { RelationCollectionField } from "./RelationCollectionField";
@@ -64,8 +66,12 @@ export interface FormData {
 // Mirrors the non-null branches of FormElement's switch. Consumers that render
 // their own scaffolding around FormElement (e.g. BulkEditModelForm's per-field
 // checkbox cards) can filter on this to avoid emitting wrappers for attributes
-// that would render nothing.
-export function canRenderFormElement(attr: ModelAttribute): boolean {
+// that would render nothing. A type in `renderers` (pass the context's, from
+// `useFieldRegistry()`, to see what a FieldRegistryProvider adds) renders too.
+// Anything but a registry object as the second argument is ignored, so
+// `.filter(canRenderFormElement)` keeps working.
+export function canRenderFormElement(attr: ModelAttribute, renderers?: FieldRegistry<ModelAttribute> | null): boolean {
+  if (lookupRenderer(attr.type, renderers)) return true;
   switch (attr.type) {
     case "string":
     case "date":
@@ -98,6 +104,12 @@ export interface FormElementProps {
   fieldError?: FieldError;
   /** A number field's parse error (or null once fixed), keyed by field name. */
   onFieldError?: (name: string, reason: NumberFieldError | null) => void;
+  /**
+   * Renderers by type, consulted before the built-in switch: this prop, then
+   * the nearest FieldRegistryProvider. A registered type replaces the
+   * built-in renderer of the same name. With neither, nothing changes.
+   */
+  renderers?: FieldRegistry<ModelAttribute>;
 }
 
 
@@ -166,6 +178,7 @@ export function FormElement({
   change_datetime,
   fieldError,
   onFieldError,
+  renderers,
 }: FormElementProps) {
   const name = entry_data.name;
   const label = fieldLabel(entry_data);
@@ -175,6 +188,29 @@ export function FormElement({
   // Set this field on formData by name — the onChange contract FieldInput expects.
   const setField = (value: unknown) =>
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+  const registered = lookupRenderer(type, renderers, useFieldRegistry<ModelAttribute>());
+  if (registered) {
+    return (
+      <RegisteredField
+        renderer={registered}
+        attr={entry_data}
+        id={"input_" + name}
+        label={label}
+        labelSuffix=":"
+        value={formData[name]}
+        values={formData}
+        onChange={setField}
+        onChangeMany={(patch) => setFormData((prev) => ({ ...prev, ...patch }))}
+        onParseError={
+          onFieldError
+            ? (reason) => onFieldError(name, (reason as NumberFieldError | null))
+            : undefined
+        }
+        error={fieldError ? fieldErrorText(label, fieldError, entry_data) : undefined}
+      />
+    );
+  }
 
   switch (type) {
     // `date` shares the string layout: it is a single-line control with a

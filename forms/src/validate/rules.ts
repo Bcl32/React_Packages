@@ -110,7 +110,8 @@ export function validateField<A extends RuleSource>(
   if (parsed) return parsed;
   if (value === undefined && opts.skipUntouched) return null;
 
-  const renderer = opts.registry?.[attr.type];
+  const registry = opts.registry;
+  const renderer = registry && Object.prototype.hasOwnProperty.call(registry, attr.type) ? registry[attr.type] : undefined;
   const empty = renderer?.isEmpty ? renderer.isEmpty(value) : isEmptyValue(value);
   if (empty) {
     if (attr.required) return { code: "required" };
