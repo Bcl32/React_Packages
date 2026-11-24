@@ -69,6 +69,10 @@
     "./useDebouncedCallback": {
       "types": "./dist/useDebouncedCallback.d.ts",
       "import": "./dist/useDebouncedCallback.js"
+    },
+    "./validate": {
+      "types": "./dist/validate.d.ts",
+      "import": "./dist/validate.js"
     }
   },
   "files": [

@@ -1,7 +1,9 @@
 import * as React from "react";
 
 import type { ModelAttribute } from "@bcl32/data-utils";
-import { formatNumber, numberDecimals, toNumberValue, type UnitAdapter } from "@bcl32/data-utils/numbers";
+import { toNumberValue, type UnitAdapter } from "@bcl32/data-utils/numbers";
+
+import { issueText } from "./validate/issueText";
 
 import type { NumberFieldError } from "./FieldInput";
 
@@ -17,7 +19,8 @@ export type FieldError = NumberFieldError | "required";
 /**
  * The inline message under a field. Bounds are printed the way the field
  * shows its numbers (its unit adapter, money as currency), so the message
- * names what the person can type.
+ * names what the person can type. The words live in `issueText`
+ * (`@bcl32/forms/validate`), which says the same for these reasons.
  */
 export function fieldErrorText(
   label: string,
@@ -25,30 +28,7 @@ export function fieldErrorText(
   attr?: ModelAttribute,
   adapter?: UnitAdapter | null,
 ): string {
-  if (error === "required") return `${label} is required`;
-  if (error === "fraction") return "Whole numbers only";
-  if (error === "decimals") {
-    const d = numberDecimals(attr) ?? 0;
-    return d === 0 ? "Whole numbers only" : `${d} decimal place${d === 1 ? "" : "s"} at most`;
-  }
-  if (error === "range") return rangeText(attr, adapter) ?? "Out of range";
-  return "Not a number";
-}
-
-/** "Between 1 and 5", "At least 0", "More than $0.00", "Less than 100"… */
-function rangeText(attr: ModelAttribute | undefined, adapter: UnitAdapter | null | undefined): string | undefined {
-  const show = (v: number) => formatNumber(v, attr, { adapter });
-  const hasMin = typeof attr?.min === "number";
-  const hasMax = typeof attr?.max === "number";
-  if (hasMin && hasMax && !attr.min_exclusive && !attr.max_exclusive) {
-    return `Between ${show(attr.min!)} and ${show(attr.max!)}`;
-  }
-  const parts: string[] = [];
-  if (hasMin) parts.push(`${attr.min_exclusive ? "more than" : "at least"} ${show(attr.min!)}`);
-  if (hasMax) parts.push(`${attr.max_exclusive ? "less than" : "at most"} ${show(attr.max!)}`);
-  if (parts.length === 0) return undefined;
-  const text = parts.join(" and ");
-  return text[0].toUpperCase() + text.slice(1);
+  return issueText(label, error, attr, adapter);
 }
 
 /**
