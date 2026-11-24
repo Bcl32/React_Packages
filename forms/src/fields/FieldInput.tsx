@@ -66,6 +66,93 @@ export interface FieldInputProps {
    * tailwind-merge, so they override the defaults.
    */
   classNames?: Pick<FieldClassNames, "control" | "input">;
+  /**
+   * More attributes for the element FieldInput draws (the `<input>`,
+   * `<textarea>` or `<select>`): `autoComplete`, `spellCheck`, `enterKeyHint`,
+   * `inputMode`, `maxLength`… They never replace what FieldInput sets itself
+   * (`id`, `name`, `value`, `onChange`, `onBlur`, `type`, the `aria-*` it
+   * writes, the class, a number's `step` / `min` / `max`, a limit taken from
+   * the descriptor): those keys are left out of the type and dropped at run
+   * time. Not passed to the admin path's Radix checkbox.
+   */
+  inputProps?: FieldInputHTMLProps;
+}
+
+/** The keys FieldInput owns. `aria-*` is FieldInput's too (`invalid` / `describedBy`). */
+type ReservedInputProp =
+  | "id"
+  | "name"
+  | "value"
+  | "defaultValue"
+  | "checked"
+  | "defaultChecked"
+  | "onChange"
+  | "onInput"
+  | "onBlur"
+  | "type"
+  | "size"
+  | "prefix"
+  | "className"
+  | "children"
+  | "dangerouslySetInnerHTML"
+  | `aria-${string}`;
+
+/** What `inputProps` may carry: an input's attributes, less the ones FieldInput owns. */
+export type FieldInputHTMLProps = Omit<
+  React.InputHTMLAttributes<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+  ReservedInputProp
+>;
+
+// The same list at run time (a JS caller, a cast), plus Input's own props.
+const RESERVED = new Set<string>([
+  "id",
+  "name",
+  "value",
+  "defaultValue",
+  "checked",
+  "defaultChecked",
+  "onChange",
+  "onInput",
+  "onBlur",
+  "type",
+  "size",
+  "prefix",
+  "suffix",
+  "className",
+  "inputClassName",
+  "variant",
+  "children",
+  "dangerouslySetInnerHTML",
+]);
+
+function passThrough(props: FieldInputHTMLProps | undefined): Record<string, unknown> | undefined {
+  if (!props) return undefined;
+  const out: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(props)) {
+    if (!RESERVED.has(key) && !key.startsWith("aria-")) out[key] = val;
+  }
+  return out;
+}
+
+/**
+ * The descriptor's `min_length` / `max_length` as native `minLength` /
+ * `maxLength`, only the ones it has (an empty object when it has neither, so
+ * the markup is unchanged).
+ *
+ * The browser counts UTF-16 units and does not normalise: "😀" is 2, and
+ * "é" typed as e + a combining accent is 2. A server counts code points (1
+ * each, and 1 for the accented e once it is NFC-normalised), so `maxLength`
+ * can refuse text the server would take but does not let through text it
+ * refuses. (The rare exception is a character that NFC itself expands, such
+ * as U+FB2C, which is 1 unit but 3 code points after NFC.) `minLength` is
+ * looser for the same reason, and browsers only check it on submit.
+ * `validate` (`textLength`) stays the check that agrees with the server.
+ */
+function textLimits(attr: { min_length?: unknown; max_length?: unknown }): { minLength?: number; maxLength?: number } {
+  const limits: { minLength?: number; maxLength?: number } = {};
+  if (typeof attr.min_length === "number") limits.minLength = attr.min_length;
+  if (typeof attr.max_length === "number") limits.maxLength = attr.max_length;
+  return limits;
 }
 
 // AutoGrowTextarea's own default: written again only when a size or slot
@@ -106,6 +193,7 @@ export function FieldInput({
   describedBy,
   size,
   classNames,
+  inputProps,
 }: FieldInputProps) {
   // Only set when the caller asks: an absent prop writes no attribute, so the
   // markup of every caller that passes neither is unchanged.
@@ -125,6 +213,9 @@ export function FieldInput({
       .join(" ");
   // A select, textarea or checkbox is its own input: both slots apply to it.
   const both = [control, inner].filter(Boolean).join(" ") || undefined;
+  // Spread first, so every prop FieldInput sets after it wins.
+  const extra = passThrough(inputProps);
+  const limits = textLimits(attr as { min_length?: unknown; max_length?: unknown });
   const textareaClass =
     dense || large || both
       ? cn(TEXTAREA, dense && "px-2 py-1", large && "px-3 py-3 text-base", both)
@@ -134,6 +225,7 @@ export function FieldInput({
     case "textarea":
       return (
         <AutoGrowTextarea
+          {...(extra as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
           id={id}
           name={name}
           value={(value as string) ?? ""}
@@ -141,6 +233,7 @@ export function FieldInput({
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
           className={textareaClass}
+          {...limits}
           {...aria}
         />
       );
@@ -161,6 +254,7 @@ export function FieldInput({
           onInvalid={onInvalid}
           invalid={invalid}
           describedBy={describedBy}
+          extra={extra}
         />
       );
 
@@ -179,6 +273,7 @@ export function FieldInput({
     case "select":
       return (
         <Select
+          {...(extra as React.SelectHTMLAttributes<HTMLSelectElement>)}
           id={id}
           name={name}
           value={(value as string) ?? ""}
@@ -206,6 +301,7 @@ export function FieldInput({
       // that one would introduce all three.)
       return (
         <Input
+          {...(extra as React.InputHTMLAttributes<HTMLInputElement>)}
           id={id}
           name={name}
           type="date"
@@ -223,6 +319,7 @@ export function FieldInput({
     case "string":
       return (
         <Input
+          {...(extra as React.InputHTMLAttributes<HTMLInputElement>)}
           id={id}
           name={name}
           type={inputType}
@@ -234,6 +331,7 @@ export function FieldInput({
           value={(value as string) ?? ""}
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
+          {...limits}
           {...aria}
         />
       );
@@ -264,7 +362,11 @@ function NumberField({
   invalid,
   describedBy,
   inputClassName,
-}: Omit<FieldInputProps, "inputType" | "size" | "classNames"> & { inputClassName?: string }) {
+  extra,
+}: Omit<FieldInputProps, "inputType" | "size" | "classNames" | "inputProps"> & {
+  inputClassName?: string;
+  extra?: Record<string, unknown>;
+}) {
   const adapterFor = useNumberAdapter();
   const adapter = adapterFor(attr);
   const stored = toNumberValue(value);
@@ -295,6 +397,7 @@ function NumberField({
   const decimals = numberDecimals(attr);
   return (
     <Input
+      {...(extra as React.InputHTMLAttributes<HTMLInputElement>)}
       id={id}
       name={name}
       type={converts ? "text" : "number"}

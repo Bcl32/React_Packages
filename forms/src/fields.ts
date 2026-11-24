@@ -8,7 +8,7 @@
  * import graph and fails if it does.
  */
 export { FieldInput } from "./fields/FieldInput";
-export type { FieldInputProps, NumberFieldError } from "./fields/FieldInput";
+export type { FieldInputHTMLProps, FieldInputProps, NumberFieldError } from "./fields/FieldInput";
 export { FieldShell } from "./fields/FieldShell";
 export type { FieldShellProps } from "./fields/FieldShell";
 export { FieldSet, useFieldSetState } from "./fields/FieldSet";
