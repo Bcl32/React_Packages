@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import { MODEL_ATTRIBUTE_KEYS } from "./modelAttributeKeys";
 
 // Every top-level key schema_utils writes onto an attribute: the golden
-// fixture's set (python-modules/schema_utils/tests/golden/modeldata.json, 39
-// keys) plus max_exclusive, which only an `lt` bound carries and the fixture
-// has none of. The cross-repo check against the generator itself lives in
-// tools/; this pins the table to the same list.
+// fixture's set (python-modules/schema_utils/tests/golden/modeldata.json, 41
+// keys since 0.24.0, which adds required and pattern) plus max_exclusive,
+// which only an `lt` bound carries, and min_length, max_length, group, order
+// and charset (0.24.0), which the fixture's models do not set. The
+// cross-repo check against the generator itself lives in tools/; this pins
+// the table to the same list.
 const GENERATED = [
   "name", "source", "type", "title", "stats", "unit", "unit_label", "format", "options",
   "nullable", "integer", "min", "max", "min_exclusive", "max_exclusive", "decimals", "help_text", "colour_presets", "editable", "default", "reference",
@@ -14,6 +16,8 @@ const GENERATED = [
   "cell_shape", "selection", "display", "value_key", "label_key", "primaryFilter",
   "checkedValue", "checkedLabel", "filterOrder", "options_source",
   "endpoint", "sortable", "thumbnail", "sub_fields",
+  // schema_utils 0.24.0
+  "required", "min_length", "max_length", "pattern", "group", "order", "charset",
 ];
 
 // Keys package code reads that the generator does not write.
@@ -29,8 +33,8 @@ function keysOf(origin: string): string[] {
 }
 
 describe("MODEL_ATTRIBUTE_KEYS", () => {
-  it("lists the 40 keys schema_utils writes", () => {
-    expect(GENERATED).toHaveLength(40);
+  it("lists the 47 keys schema_utils writes", () => {
+    expect(GENERATED).toHaveLength(47);
     expect(keysOf("generated")).toEqual([...GENERATED].sort());
   });
 

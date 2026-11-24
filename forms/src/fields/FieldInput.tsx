@@ -147,7 +147,7 @@ function passThrough(props: FieldInputHTMLProps | undefined): Record<string, unk
  * looser for the same reason, and browsers only check it on submit.
  * `validate` (`textLength`) stays the check that agrees with the server.
  */
-function textLimits(attr: { min_length?: unknown; max_length?: unknown }): { minLength?: number; maxLength?: number } {
+function textLimits(attr: Pick<ModelAttribute, "min_length" | "max_length">): { minLength?: number; maxLength?: number } {
   const limits: { minLength?: number; maxLength?: number } = {};
   if (typeof attr.min_length === "number") limits.minLength = attr.min_length;
   if (typeof attr.max_length === "number") limits.maxLength = attr.max_length;
@@ -216,7 +216,7 @@ export function FieldInput({
   const both = [control, inner].filter(Boolean).join(" ") || undefined;
   // Spread first, so every prop FieldInput sets after it wins.
   const extra = passThrough(inputProps);
-  const limits = textLimits(attr as { min_length?: unknown; max_length?: unknown });
+  const limits = textLimits(attr);
   const textareaClass =
     dense || large || both
       ? cn(TEXTAREA, dense && "px-2 py-1", large && "px-3 py-3 text-base", both)

@@ -15,13 +15,16 @@ export interface FieldBase {
   help_text?: string;
   nullable?: boolean;
   editable?: boolean;
+  /** Layout extras (schema_utils 0.24.0): the form section and the place in it. FieldSet's `children` reads them. */
+  group?: string;
+  order?: number;
 }
 
 /**
- * The keys the rules read. Numbers use the keys schema_utils already writes;
- * the string keys (`min_length`, `max_length`, `pattern`) and `required` /
- * `charset` / `normalise` are read when present, so a hand-written
- * descriptor can carry them today without any change to `ModelAttribute`.
+ * The keys the rules read. `ModelAttribute` declares all of them but
+ * `normalise` (schema_utils 0.24.0 writes `required`, `min_length`,
+ * `max_length`, `pattern` and `charset`), so a generated attribute is a
+ * RuleSource with no cast; a hand-written descriptor may carry them too.
  */
 export interface RuleSource extends FieldBase {
   // numbers (generated)
@@ -49,6 +52,8 @@ export interface RuleSource extends FieldBase {
   /** "NFC": the pattern is tested against the NFC form. Lengths and charsets always use it. */
   normalise?: "NFC";
   options?: readonly ({ value: string; label: string } | string)[];
+  /** The schema's default; a field with a non-empty one is not shown as optional. */
+  default?: unknown;
 }
 
 /** Today's number-box reasons, as `parseNumber` and `fieldErrors` report them. */

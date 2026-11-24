@@ -133,6 +133,33 @@ export interface ModelAttribute {
    * 0.22.0 and later.
    */
   decimals?: number;
+  /**
+   * The field must be sent when a row is created: it is in the Create
+   * schema's `required` list. Written only when true, by schema_utils 0.24.0
+   * and later. (An edit may still leave it out.)
+   */
+  required?: boolean;
+  /**
+   * The shortest and longest string the schema allows (`min_length` /
+   * `max_length`), in code points. Written by schema_utils 0.24.0 and later.
+   */
+  min_length?: number;
+  max_length?: number;
+  /**
+   * A regex the string must contain a match for: an unanchored search, like
+   * Pydantic's `pattern` (anchor it with ^…$ to match the whole value).
+   * Written by schema_utils 0.24.0 and later.
+   */
+  pattern?: string;
+  /**
+   * Layout and charset extras from the field's `json_schema_extra`: the
+   * section a form draws it in, its place there, and a named charset policy
+   * (`@bcl32/forms/validate`'s `charsets`). Written by schema_utils 0.24.0
+   * and later.
+   */
+  group?: string;
+  order?: number;
+  charset?: string;
   // Filters
   filter?: boolean;
   filter_type?: AttributeFilterType;

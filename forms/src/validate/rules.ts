@@ -45,7 +45,7 @@ export function isEmptyValue(value: unknown): boolean {
  * `min_length >= 1` are refused empty by `validateField`, so they are not
  * optional either.
  */
-export function mayBeEmpty(attr: RuleSource & { default?: unknown }): boolean {
+export function mayBeEmpty(attr: RuleSource): boolean {
   if (attr.required === true) return false;
   if (attr.nullable === true) return true;
   if (attr.type === "number") return false;

@@ -337,3 +337,25 @@ describe("trim", () => {
     expect(validateField(attr, "\u0085a", {}, { trim: true })).toBeNull();
   });
 });
+
+describe("a generated ModelAttribute is a RuleSource with no cast", () => {
+  it("reads schema_utils 0.24.0's keys", () => {
+    const attr: ModelAttribute = {
+      name: "lid_text",
+      type: "string",
+      required: true,
+      min_length: 1,
+      max_length: 24,
+      pattern: "^[A-Za-z ]+$",
+      group: "Lid",
+      order: 30,
+      charset: "latin-ext",
+      default: null,
+    };
+    const source: RuleSource = attr;
+    expect(validate([attr], { lid_text: "" })).toEqual({ lid_text: { code: "required" } });
+    expect(validateField(source, "A".repeat(25))).toEqual({ code: "too_long", max: 24 });
+    expect(validateField(source, "abc1")).toEqual({ code: "pattern" });
+    expect([source.group, source.order, source.charset]).toEqual(["Lid", 30, "latin-ext"]);
+  });
+});
