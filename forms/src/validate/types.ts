@@ -33,7 +33,10 @@ export interface RuleSource extends FieldBase {
   decimals?: number;
   format?: string;
   // strings
-  /** Counted in code points after NFC (`textLength`), as Python's `len()` counts. */
+  /**
+   * Counted in code points after NFC (`textLength`). Plain Pydantic counts code
+   * points without NFC, so the server must normalise first to agree.
+   */
   min_length?: number;
   max_length?: number;
   /** Searched, not anchored, like Pydantic and JSON Schema: anchor it with ^…$ to match whole values. */
@@ -115,4 +118,11 @@ export interface ValidateOptions<A extends FieldBase = RuleSource> {
    * (an edit form that sends only what changed).
    */
   skipUntouched?: boolean;
+  /**
+   * Strip leading and trailing whitespace from a string before the required,
+   * length, charset and pattern checks, as Pydantic's `str_strip_whitespace`
+   * does (Unicode White_Space, the set Rust's `trim` uses). Default false: the
+   * value is checked as typed. The value in the form is never changed.
+   */
+  trim?: boolean;
 }

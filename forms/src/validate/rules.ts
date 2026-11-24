@@ -3,14 +3,30 @@ import { toNumberValue, withinBounds } from "@bcl32/data-utils/numbers";
 import type { FieldBase, FieldIssue, RuleSource, ValidateOptions } from "./types";
 
 /**
- * A string's length the way Python's `len()`, Pydantic's `max_length` and
- * JSON Schema's `maxLength` count it: code points, after NFC normalisation.
- * JS's own `.length` counts UTF-16 units, so "😀".length is 2; this is 1.
- * NFC first, so "é" typed as e + a combining accent counts once.
+ * A string's length in code points after NFC normalisation. JS's own
+ * `.length` counts UTF-16 units, so "😀".length is 2; this is 1. NFC first,
+ * so "é" typed as e + a combining accent counts once.
+ *
+ * Python's `len()` and a plain Pydantic `max_length` also count code points,
+ * but they do NOT normalise: with `max_length=24`, Pydantic refuses
+ * `"A" * 23 + "e\u0301"` (25 code points) that this counts as 24. A server
+ * that must agree normalises first, before its length check, e.g.
+ * `Annotated[str, BeforeValidator(nfc), Field(max_length=24)]` with
+ * `nfc = lambda v: unicodedata.normalize("NFC", v) if isinstance(v, str) else v`.
  */
 export function textLength(s: string): number {
   // Array.from walks code points, not UTF-16 units.
   return Array.from(s.normalize("NFC")).length;
+}
+
+// Unicode White_Space, which Rust's `str::trim` strips: what Pydantic's
+// `str_strip_whitespace` removes (checked against pydantic 2.12). Not JS's
+// `trim()`, which also strips U+FEFF and keeps U+0085.
+const EDGE_SPACE = /^\p{White_Space}+|\p{White_Space}+$/gu;
+
+/** `s` without leading and trailing whitespace, as Pydantic's `str_strip_whitespace` strips it. */
+export function stripWhitespace(s: string): string {
+  return s.replace(EDGE_SPACE, "");
 }
 
 /**
@@ -98,7 +114,9 @@ function asIssue(found: FieldIssue | FieldIssue["code"] | null | undefined): Fie
  * number that is null; a string with `min_length` ≥ 1 that is ""), then the
  * type's rules (number bounds, string length / charset / pattern, a select's
  * options), then the registry's rule for the type. An empty optional value
- * passes the type rules: "" is "no value" here, as admin forms send it.
+ * passes the type rules: "" is "no value" here, as admin forms send it. With
+ * `trim`, a string is stripped first and every check (and the registry's
+ * `isEmpty` / `validate`) sees the stripped value.
  */
 export function validateField<A extends RuleSource>(
   attr: A,
@@ -109,6 +127,7 @@ export function validateField<A extends RuleSource>(
   const parsed = asIssue(opts.parseErrors?.[attr.name]);
   if (parsed) return parsed;
   if (value === undefined && opts.skipUntouched) return null;
+  if (opts.trim && typeof value === "string") value = stripWhitespace(value);
 
   const registry = opts.registry;
   const renderer = registry && Object.prototype.hasOwnProperty.call(registry, attr.type) ? registry[attr.type] : undefined;

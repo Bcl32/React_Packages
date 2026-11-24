@@ -267,3 +267,73 @@ describe("fieldErrors parity", () => {
     expect(codes).toEqual(fieldErrors(attrs, data, parseErrors, only));
   });
 });
+
+describe("textLength and plain Pydantic", () => {
+  it("counts NFC code points, which plain Pydantic does not normalise", () => {
+    const decomposed = "A".repeat(23) + "é";
+    // Pydantic `Field(max_length=24)` with no BeforeValidator counts 25 here and refuses.
+    expect(Array.from(decomposed).length).toBe(25);
+    expect(textLength(decomposed)).toBe(24);
+    expect(validateField({ name: "t", type: "string", max_length: 24 }, decomposed)).toBeNull();
+  });
+});
+
+describe("trim", () => {
+  const line: RuleSource = { name: "line", type: "string", max_length: 5, pattern: "^[a-z]+$" };
+
+  it("is off by default: the value is checked as typed", () => {
+    expect(validateField(line, " abcde ")).toEqual({ code: "too_long", max: 5 });
+    expect(validateField({ ...line, max_length: 10 }, " abc ")).toEqual({ code: "pattern" });
+    expect(validateField({ name: "r", type: "string", required: true }, "   ")).toBeNull();
+  });
+
+  it("strips before the length, required and pattern checks", () => {
+    expect(validateField(line, " abcde ", {}, { trim: true })).toBeNull();
+    expect(validateField({ ...line, max_length: 10 }, " abc ", {}, { trim: true })).toBeNull();
+    expect(validateField({ name: "r", type: "string", required: true }, " \t\n ", {}, { trim: true })).toEqual({ code: "required" });
+    expect(validateField({ name: "m", type: "string", min_length: 1 }, "  ", {}, { trim: true })).toEqual({ code: "required" });
+    expect(validateField({ name: "m", type: "string", min_length: 3 }, " ab ", {}, { trim: true })).toEqual({ code: "too_short", min: 3 });
+    // An optional field that is only spaces is empty, so it passes.
+    expect(validateField(line, "   ", {}, { trim: true })).toBeNull();
+  });
+
+  it("validate() passes it on, and leaves the values alone", () => {
+    const values = Object.freeze({ line: " abcde " });
+    expect(validate([line], values)).toEqual({ line: { code: "too_long", max: 5 } });
+    expect(validate([line], values, { trim: true })).toEqual({});
+    expect(values.line).toBe(" abcde ");
+  });
+
+  it("the registry's isEmpty and validate see the stripped value", () => {
+    const seen: unknown[] = [];
+    const registry = {
+      word: {
+        isEmpty: (v: unknown) => (seen.push(v), v === ""),
+        validate: (_a: RuleSource, v: unknown) => (seen.push(v), null),
+      },
+    };
+    validateField({ name: "w", type: "word" }, "  hi  ", {}, { trim: true, registry });
+    expect(seen).toEqual(["hi", "hi"]);
+  });
+
+  it("strips what Pydantic's str_strip_whitespace strips: Unicode White_Space, not JS trim()", () => {
+    // pydantic 2.12.5, every code point c tested as c + "a" + c.
+    const pydantic = [
+      0x9, 0xa, 0xb, 0xc, 0xd, 0x20, 0x85, 0xa0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006, 0x2007,
+      0x2008, 0x2009, 0x200a, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000,
+    ];
+    const attr: RuleSource = { name: "s", type: "string", max_length: 1 };
+    const stripped: number[] = [];
+    for (let cp = 0; cp <= 0xffff; cp++) {
+      if (cp >= 0xd800 && cp <= 0xdfff) continue;
+      const c = String.fromCodePoint(cp);
+      if (validateField(attr, c + "a" + c, {}, { trim: true }) === null) stripped.push(cp);
+    }
+    expect(stripped).toEqual(pydantic);
+    // The two places JS's own trim() differs.
+    expect("﻿a".trim()).toBe("a");
+    expect(validateField(attr, "﻿a", {}, { trim: true })).toEqual({ code: "too_long", max: 1 });
+    expect("\u0085a".trim()).toBe("\u0085a");
+    expect(validateField(attr, "\u0085a", {}, { trim: true })).toBeNull();
+  });
+});
