@@ -194,7 +194,7 @@ export function FormElement({
         attr={entry_data}
         id={"input_" + name}
         label={label}
-        labelSuffix=":"
+        style={{ labelSuffix: ":" }}
         value={formData[name]}
         values={formData}
         onChange={setField}

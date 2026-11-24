@@ -6,6 +6,7 @@ import type { FieldBase, FieldIssue, FieldIssueCode } from "../validate/types";
 import { lightRenderers } from "./lightRenderers";
 import { RegisteredField } from "./RegisteredField";
 import { lookupRenderer, useFieldRegistry, type FieldRegistry } from "./registry";
+import type { FieldClassNames, FieldSize } from "./style";
 
 export type ShowErrors = "always" | "touched" | "submitted";
 
@@ -34,8 +35,12 @@ export interface FieldSetProps<A extends FieldBase, V extends Record<string, unk
   filter?: (attr: A) => boolean;
   /** Control ids are idPrefix + name. Default "input_". */
   idPrefix?: string;
-  /** After each label; default "". */
+  /** After each label. Over a FieldStyleProvider's; default "". */
   labelSuffix?: string;
+  /** Control size. Over a FieldStyleProvider's; default "md" (today's admin size). */
+  size?: FieldSize;
+  /** Classes per part, added after a FieldStyleProvider's, over the defaults. */
+  classNames?: FieldClassNames;
   /** Layout: given the drawn fields in order. Default: a vertical stack. */
   children?: (fields: { attr: A; node: React.ReactNode }[]) => React.ReactNode;
 }
@@ -61,9 +66,12 @@ export function FieldSet<A extends FieldBase, V extends Record<string, unknown>>
   renderers,
   filter = defaultFilter,
   idPrefix = "input_",
-  labelSuffix = "",
+  labelSuffix,
+  size,
+  classNames,
   children,
 }: FieldSetProps<A, V>) {
+  const style = React.useMemo(() => ({ labelSuffix, size, classNames }), [labelSuffix, size, classNames]);
   const context = useFieldRegistry<A>();
   const [ownTouched, setOwnTouched] = React.useState<Record<string, boolean>>({});
   const touched = touchedProp ?? ownTouched;
@@ -97,7 +105,7 @@ export function FieldSet<A extends FieldBase, V extends Record<string, unknown>>
           attr={attr}
           id={idPrefix + name}
           label={label}
-          labelSuffix={labelSuffix}
+          style={style}
           value={value[name]}
           values={value}
           onChange={(next) => set({ [name]: next })}

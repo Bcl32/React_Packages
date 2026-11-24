@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import type { FieldBase, FieldIssue, FieldIssueCode } from "../validate/types";
+import type { FieldClassNames, FieldSize } from "./style";
 
 /**
  * What a registered control receives. `value` is this field's; `values` is a
@@ -23,6 +24,10 @@ export interface FieldRenderProps<A extends FieldBase = FieldBase, V = unknown> 
   describedBy?: string;
   /** For a control that holds text it cannot yet read (the number box's "1e"): why, or null once it can. */
   onParseError?: (reason: FieldIssueCode | null) => void;
+  /** Resolved: the FieldSet's prop, else the FieldStyleProvider's, else "md". */
+  size: FieldSize;
+  /** Resolved the same way; the control reads `control` and `input`. */
+  classNames: FieldClassNames;
 }
 
 export interface FieldRenderer<A extends FieldBase = FieldBase, V = unknown> {

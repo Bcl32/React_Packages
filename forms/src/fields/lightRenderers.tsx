@@ -3,7 +3,19 @@ import { FieldInput, type NumberFieldError } from "./FieldInput";
 import type { FieldRegistry, FieldRenderProps } from "./registry";
 
 /** FieldInput as a registered control: the same widget FormElement draws for these types. */
-function FieldInputControl({ attr, id, name, value, onChange, onBlur, invalid, describedBy, onParseError }: FieldRenderProps) {
+function FieldInputControl({
+  attr,
+  id,
+  name,
+  value,
+  onChange,
+  onBlur,
+  invalid,
+  describedBy,
+  onParseError,
+  size,
+  classNames,
+}: FieldRenderProps) {
   return (
     <FieldInput
       attr={attr}
@@ -15,6 +27,8 @@ function FieldInputControl({ attr, id, name, value, onChange, onBlur, invalid, d
       invalid={invalid}
       describedBy={describedBy}
       onInvalid={onParseError ? (reason: NumberFieldError | null) => onParseError(reason) : undefined}
+      size={size}
+      classNames={classNames.control || classNames.input ? { control: classNames.control, input: classNames.input } : undefined}
     />
   );
 }

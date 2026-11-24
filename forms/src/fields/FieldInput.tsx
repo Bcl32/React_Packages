@@ -3,6 +3,7 @@ import * as React from "react";
 import { Input } from "@bcl32/utils/Input";
 import { Select } from "@bcl32/utils/Select";
 import { Checkbox } from "@bcl32/utils/Checkbox";
+import { cn } from "@bcl32/utils/cn";
 import { useNumberAdapter } from "@bcl32/utils/NumberAdapter";
 import type { ModelAttribute } from "@bcl32/data-utils";
 import {
@@ -17,6 +18,7 @@ import {
 } from "@bcl32/data-utils/numbers";
 
 import { AutoGrowTextarea } from "../AutoGrowTextarea";
+import type { FieldClassNames, FieldSize } from "./style";
 
 interface SelectOption {
   value: string;
@@ -51,7 +53,24 @@ export interface FieldInputProps {
    */
   invalid?: boolean;
   describedBy?: string;
+  /**
+   * "sm" is `compact`; "md" today's default; "lg" 48 px controls in
+   * text-base. When set it wins over `compact`; unset, `compact` decides,
+   * exactly as before.
+   */
+  size?: FieldSize;
+  /**
+   * `control`: the box (added after `className`); `input`: the `<input>`
+   * inside it (Input's inputClassName). On a select, textarea or checkbox,
+   * which have no inner input, both go on the element. Merged with
+   * tailwind-merge, so they override the defaults.
+   */
+  classNames?: Pick<FieldClassNames, "control" | "input">;
 }
+
+// AutoGrowTextarea's own default: written again only when a size or slot
+// asks for different classes, so today's callers get today's markup.
+const TEXTAREA = "w-full resize-none overflow-hidden rounded-md border bg-background px-3 py-2 text-sm";
 
 export type NumberFieldError = Extract<ParseResult, { ok: false }>["reason"];
 
@@ -85,6 +104,8 @@ export function FieldInput({
   onInvalid,
   invalid,
   describedBy,
+  size,
+  classNames,
 }: FieldInputProps) {
   // Only set when the caller asks: an absent prop writes no attribute, so the
   // markup of every caller that passes neither is unchanged.
@@ -92,11 +113,22 @@ export function FieldInput({
     "aria-invalid": invalid || undefined,
     "aria-describedby": describedBy,
   };
-  // Compose the dense-context classes with any caller-supplied className.
-  const cls = (base: string) =>
-    [compact ? `h-8 text-sm ${base}`.trim() : base, className]
+  const dense = size ? size === "sm" : compact;
+  const large = size === "lg";
+  const control = classNames?.control;
+  const inner = classNames?.input;
+  // Compose the dense-context classes with any caller-supplied className,
+  // then the size's and the slot's (each only when set).
+  const cls = (base: string, lg = "", slot?: string) =>
+    [dense ? `h-8 text-sm ${base}`.trim() : base, large ? lg : "", className, slot]
       .filter(Boolean)
       .join(" ");
+  // A select, textarea or checkbox is its own input: both slots apply to it.
+  const both = [control, inner].filter(Boolean).join(" ") || undefined;
+  const textareaClass =
+    dense || large || both
+      ? cn(TEXTAREA, dense && "px-2 py-1", large && "px-3 py-3 text-base", both)
+      : undefined;
 
   switch (attr.type) {
     case "textarea":
@@ -108,6 +140,7 @@ export function FieldInput({
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
+          className={textareaClass}
           {...aria}
         />
       );
@@ -119,9 +152,10 @@ export function FieldInput({
           value={value}
           onChange={onChange}
           onBlur={onBlur}
-          compact={compact}
+          compact={dense}
           placeholder={placeholder}
-          className={cls("")}
+          className={cls("", "md:text-base", control)}
+          inputClassName={inner}
           id={id}
           name={name}
           onInvalid={onInvalid}
@@ -137,7 +171,7 @@ export function FieldInput({
           name={name}
           checked={Boolean(value)}
           onCheckedChange={(checked) => onChange(Boolean(checked))}
-          className={cls("w-6 h-6 border-2")}
+          className={cls("w-6 h-6 border-2", "w-7 h-7", both)}
           {...aria}
         />
       );
@@ -149,7 +183,7 @@ export function FieldInput({
           name={name}
           value={(value as string) ?? ""}
           onChange={(e) => onChange(e.target.value)}
-          className={cls("")}
+          className={cls("", "h-12 text-base", both)}
           {...aria}
         >
           <option value="" disabled>
@@ -175,9 +209,10 @@ export function FieldInput({
           id={id}
           name={name}
           type="date"
-          variant={compact ? undefined : "background"}
-          size={compact ? undefined : "default"}
-          className={cls("")}
+          variant={dense ? undefined : "background"}
+          size={dense ? undefined : large ? "lg" : "default"}
+          className={cls("", "md:text-base", control)}
+          inputClassName={inner}
           value={(value as string) ?? ""}
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
@@ -191,9 +226,10 @@ export function FieldInput({
           id={id}
           name={name}
           type={inputType}
-          variant={compact ? undefined : "background"}
-          size={compact ? undefined : "default"}
-          className={cls("")}
+          variant={dense ? undefined : "background"}
+          size={dense ? undefined : large ? "lg" : "default"}
+          className={cls("", "md:text-base", control)}
+          inputClassName={inner}
           placeholder={placeholder ?? ""}
           value={(value as string) ?? ""}
           onChange={(e) => onChange(e.target.value)}
@@ -227,7 +263,8 @@ function NumberField({
   onInvalid,
   invalid,
   describedBy,
-}: Omit<FieldInputProps, "inputType">) {
+  inputClassName,
+}: Omit<FieldInputProps, "inputType" | "size" | "classNames"> & { inputClassName?: string }) {
   const adapterFor = useNumberAdapter();
   const adapter = adapterFor(attr);
   const stored = toNumberValue(value);
@@ -275,6 +312,7 @@ function NumberField({
       variant={compact ? undefined : "background"}
       size={compact ? undefined : "lg"}
       className={className}
+      inputClassName={inputClassName}
       placeholder={placeholder ?? ""}
       value={draft}
       aria-invalid={invalid || error !== null || undefined}

@@ -16,4 +16,6 @@ export type { FieldSetProps, ShowErrors } from "./fields/FieldSet";
 export { FieldRegistryProvider, useFieldRegistry, mergeRegistries } from "./fields/registry";
 export type { FieldRegistry, FieldRenderer, FieldRenderProps } from "./fields/registry";
 export { lightRenderers } from "./fields/lightRenderers";
+export { FieldStyleProvider, useFieldStyle } from "./fields/style";
+export type { FieldClassNames, FieldSize, FieldStyle } from "./fields/style";
 export type { FieldBase, FieldIssue, FieldIssueCode } from "./validate/types";
