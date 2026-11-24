@@ -125,3 +125,13 @@ describe("@bcl32/forms/validate import graph", () => {
     expect(specs).toEqual(["@bcl32/data-utils/numbers"]);
   });
 });
+
+describe("@bcl32/forms/ColourFieldView import graph", () => {
+  const graph = walk(join(FORMS_SRC, "ColourFieldView.tsx"));
+
+  it("never reaches a fetch: no hooks, no react-query", () => {
+    const hits = graph.bare.filter(({ spec }) => /^@bcl32\/hooks(\/|$)|^@tanstack\/react-query/.test(spec));
+    expect(hits).toEqual([]);
+    expect(graph.files.filter((f) => f.endsWith("useGroupedSwatches.ts"))).toEqual([]);
+  });
+});

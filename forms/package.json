@@ -42,6 +42,10 @@
       "types": "./dist/ColourField.d.ts",
       "import": "./dist/ColourField.js"
     },
+    "./ColourFieldView": {
+      "types": "./dist/ColourFieldView.d.ts",
+      "import": "./dist/ColourFieldView.js"
+    },
     "./ColourArrayField": {
       "types": "./dist/ColourArrayField.d.ts",
       "import": "./dist/ColourArrayField.js"

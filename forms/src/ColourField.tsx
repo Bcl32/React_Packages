@@ -1,61 +1,37 @@
 import * as React from "react";
-import { HelpCircle } from "lucide-react";
-import { Label } from "@bcl32/utils/Label";
-import { CustomTooltip } from "@bcl32/utils/Tooltip";
 import type { ModelAttribute } from "@bcl32/data-utils";
-import { fieldLabel } from "./fieldLabel";
+import type { ColourSwatch } from "@bcl32/utils/ColourPickerPopover";
 import type { FormData } from "./FormElement";
-import { ColourPickerPopover } from "@bcl32/utils/ColourPickerPopover";
+import { ColourFieldView } from "./ColourFieldView";
 import { useGroupedSwatches } from "./useGroupedSwatches";
 
-function LabelWithHelp({
-  htmlFor,
-  children,
-  helpText,
-}: {
-  htmlFor: string;
-  children: React.ReactNode;
-  helpText?: string | null;
-}) {
-  return (
-    <div className="flex items-center gap-1 mb-2">
-      <Label htmlFor={htmlFor}>{children}</Label>
-      {helpText && (
-        <CustomTooltip content={helpText} delayDuration={200}>
-          <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-        </CustomTooltip>
-      )}
-    </div>
-  );
-}
+export { ColourFieldView } from "./ColourFieldView";
+export type { ColourFieldViewProps } from "./ColourFieldView";
 
+/**
+ * FormElement's `colour` field: fetches the attribute's `colour_presets`
+ * swatches and writes the pick into formData, with the swatch's id in the
+ * sibling `*_ids` key (`body_colours` → `body_ids`). The drawing is
+ * `ColourFieldView`; use that directly to pass swatches without a fetch.
+ */
 export function ColourField({
   entry_data,
   formData,
   setFormData,
+  allowCustom,
+  renderSwatchIcon,
 }: {
   entry_data: ModelAttribute;
   formData: FormData;
   setFormData: React.Dispatch<React.SetStateAction<FormData>>;
+  /** Show the Custom colour input (default true). */
+  allowCustom?: boolean;
+  /** Draws each swatch's dot; passed through to the popover. */
+  renderSwatchIcon?: (s: ColourSwatch) => React.ReactNode;
 }) {
   const name = entry_data.name;
-  const label = fieldLabel(entry_data);
-  const helpText = entry_data.help_text || entry_data.description || null;
-  const [open, setOpen] = React.useState(false);
-  const ref = React.useRef<HTMLDivElement>(null);
-
   const groupedSwatches = useGroupedSwatches(entry_data);
-
   const currentColour = (formData[name] as string) || "";
-
-  React.useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
 
   const handleSelect = (colour: string, presetId?: string) => {
     setFormData((prev) => {
@@ -66,33 +42,16 @@ export function ColourField({
       }
       return next;
     });
-    setOpen(false);
   };
 
   return (
-    <div className="flex">
-      <div>
-        <LabelWithHelp htmlFor={"input_" + name} helpText={helpText}>
-          {label}:
-        </LabelWithHelp>
-        <div className="relative inline-block" ref={ref}>
-          <button
-            type="button"
-            id={"input_" + name}
-            onClick={() => setOpen((o) => !o)}
-            className="w-8 h-8 rounded-full border-2 border-border cursor-pointer hover:scale-110 transition-transform"
-            style={{ backgroundColor: currentColour || "#94a3b8" }}
-            title={currentColour || "No colour — click to set"}
-          />
-          {open && (
-            <ColourPickerPopover
-              swatchGroups={groupedSwatches}
-              currentColour={currentColour}
-              onSelect={handleSelect}
-            />
-          )}
-        </div>
-      </div>
-    </div>
+    <ColourFieldView
+      attr={entry_data}
+      value={currentColour}
+      onSelect={handleSelect}
+      swatchGroups={groupedSwatches}
+      allowCustom={allowCustom}
+      renderSwatchIcon={renderSwatchIcon}
+    />
   );
 }
