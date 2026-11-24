@@ -1,3 +1,4 @@
+import { mayBeEmpty } from "../validate/rules";
 import type { FieldBase, FieldIssueCode } from "../validate/types";
 import { FieldShell } from "./FieldShell";
 import type { FieldRenderer } from "./registry";
@@ -7,7 +8,9 @@ import { resolveStyle, useFieldStyle, type FieldStyle } from "./style";
  * One registered field: its renderer's control inside a FieldShell. The one
  * path FormElement (for a registered type) and FieldSet both draw through.
  * Style: `style` (the caller's props) over the nearest FieldStyleProvider
- * over the defaults. Internal: not exported from `./fields`.
+ * over the defaults. The optional mark shows only on a field that may really
+ * be left empty (`mayBeEmpty`): not required, and nullable or with no
+ * default to keep. Internal: not exported from `./fields`.
  */
 export function RegisteredField<A extends FieldBase>({
   renderer,
@@ -55,13 +58,14 @@ export function RegisteredField<A extends FieldBase>({
       errorId={errorId}
       size={size}
       classNames={classNames}
-      optional={(attr as { required?: boolean }).required !== true}
+      optional={mayBeEmpty(attr)}
       optionalMark={optionalMark}
       errorIcon={errorIcon}
     >
       <Control
         attr={attr}
         id={id}
+        label={label}
         name={attr.name}
         value={value}
         onChange={onChange}

@@ -37,6 +37,22 @@ export function isEmptyValue(value: unknown): boolean {
   return value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0);
 }
 
+/**
+ * Whether a field may really be left empty, for the "(optional)" mark: it is
+ * not `required`, and either it is `nullable` or nothing refuses it empty and
+ * it has no default that a customer would be "leaving" (a choice with a
+ * default is answered already). A non-nullable number and a string with
+ * `min_length >= 1` are refused empty by `validateField`, so they are not
+ * optional either.
+ */
+export function mayBeEmpty(attr: RuleSource & { default?: unknown }): boolean {
+  if (attr.required === true) return false;
+  if (attr.nullable === true) return true;
+  if (attr.type === "number") return false;
+  if (typeof attr.min_length === "number" && attr.min_length >= 1) return false;
+  return !("default" in attr) || isEmptyValue(attr.default);
+}
+
 // A pattern compiles once. null: neither with nor without the `u` flag, so the
 // client does not check it (the server stays the authority) and never throws.
 const compiled = new Map<string, RegExp | null>();

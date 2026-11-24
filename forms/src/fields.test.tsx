@@ -25,8 +25,10 @@ import {
   type FieldRenderProps,
   type FieldResolver,
 } from "@bcl32/forms/fields";
-import { validate } from "@bcl32/forms/validate";
+import { validate, type RuleSource } from "@bcl32/forms/validate";
 import { FormElement, canRenderFormElement } from "./FormElement";
+import { FieldStyleProvider } from "./fields/style";
+import { mayBeEmpty } from "./validate/rules";
 import { EditModelForm } from "./EditModelForm";
 import { BulkEditModelForm } from "./BulkEditModelForm";
 
@@ -489,5 +491,83 @@ describe("resolve: a renderer per attribute, not only per type", () => {
     expect(validate(attrs, values, { registry: rules, resolve: lidCards })).toEqual({ lid_size: { code: "x-too-big" } });
     // The select's own options rule still runs by type.
     expect(validate(attrs, { lid_size: "zz" }, { registry: rules, resolve: lidCards })).toEqual({ lid_size: { code: "not_an_option" } });
+  });
+});
+
+describe("FieldRenderProps.label", () => {
+  it("is the resolved label, without the suffix or the optional mark", () => {
+    const seen: string[] = [];
+    const own: FieldRegistry = {
+      legendary: {
+        labelAs: "none",
+        Control: ({ id, label }) => {
+          seen.push(label);
+          return (
+            <fieldset id={id}>
+              <legend>{label}</legend>
+            </fieldset>
+          );
+        },
+      },
+    };
+    render(
+      <FieldStyleProvider labelSuffix=":" optionalMark=" (optional)">
+        <FieldSet
+          attrs={[
+            { name: "lid_colour", type: "legendary", title: "Lid colour" },
+            { name: "box_colour", type: "legendary" },
+          ]}
+          value={{}}
+          onChange={vi.fn()}
+          renderers={own}
+        />
+      </FieldStyleProvider>,
+    );
+    expect(seen).toEqual(["Lid colour", "Box colour"]);
+    expect(screen.getByText("Lid colour").tagName).toBe("LEGEND");
+  });
+
+  it("FormElement passes the same label (the admin colon stays in the shell)", () => {
+    let label = "";
+    const probe: FieldRegistry = { stars: { Control: (p) => ((label = p.label), null) } };
+    render(<FormElement entry_data={rating} formData={{}} setFormData={vi.fn()} change_datetime={vi.fn()} renderers={probe} />);
+    expect(label).toBe("Rating");
+    expect(screen.getByText("Rating:")).toBeTruthy();
+  });
+});
+
+describe("the optional mark: only on a field that may really be left empty", () => {
+  const cases: [string, FieldBase & Record<string, unknown>, boolean][] = [
+    ["required", { name: "a", type: "string", required: true }, false],
+    ["a choice with a default", { name: "a", type: "select", default: "medium" }, false],
+    ["a nullable choice with a default", { name: "a", type: "select", default: "medium", nullable: true }, true],
+    ["nullable text, default null", { name: "a", type: "string", nullable: true, default: null }, true],
+    ["text with no default", { name: "a", type: "string" }, true],
+    ["text with an empty default", { name: "a", type: "string", default: "" }, true],
+    ["text with min_length 1", { name: "a", type: "string", min_length: 1 }, false],
+    ["a non-nullable number (validate refuses it empty)", { name: "a", type: "number" }, false],
+    ["a nullable number", { name: "a", type: "number", nullable: true }, true],
+    ["a boolean with a default", { name: "a", type: "boolean", default: false }, false],
+  ];
+  it.each(cases)("%s", (_, attr, optional) => {
+    expect(mayBeEmpty(attr)).toBe(optional);
+    // and validate agrees: what is not optional is refused, or never empty, when left empty
+    if (!optional && !("default" in attr)) expect(validate([attr], { a: attr.type === "number" ? null : "" })).toHaveProperty("a");
+  });
+
+  it("FieldSet shows it by that rule; optionalMark still sets the words", () => {
+    const attrs = [
+      { name: "size", type: "select", title: "Size", options: [{ value: "m", label: "Medium" }], default: "m" },
+      { name: "text", type: "string", title: "Text", nullable: true, default: null },
+      { name: "name", type: "string", title: "Name", required: true },
+    ] satisfies (RuleSource & { default?: unknown })[];
+    render(
+      <FieldStyleProvider optionalMark=" — if you like">
+        <FieldSet attrs={attrs} value={{}} onChange={vi.fn()} />
+      </FieldStyleProvider>,
+    );
+    expect(screen.getByText("Size").textContent).toBe("Size");
+    expect(screen.getByText("Text", { exact: false }).closest("label")!.textContent).toBe("Text — if you like");
+    expect(screen.getByText("Name").textContent).toBe("Name");
   });
 });

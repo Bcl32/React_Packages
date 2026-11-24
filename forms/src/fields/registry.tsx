@@ -11,6 +11,12 @@ export interface FieldRenderProps<A extends FieldBase = FieldBase, V = unknown> 
   attr: A;
   /** The control's id, which the label names: "input_" + name by default. */
   id: string;
+  /**
+   * The field's label as the shell shows it (`fieldLabel(attr)`: the title,
+   * else the name in words), without the label suffix or optional mark: for
+   * a control that draws its own legend (`labelAs: "none"`).
+   */
+  label: string;
   name: string;
   value: V;
   onChange: (value: V) => void;
