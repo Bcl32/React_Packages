@@ -10,7 +10,7 @@ import { getFormDefault, resolveBulkUpdateUrl, type ModelAttribute, type ModelDa
 
 import { toast } from "sonner";
 import { FormElement, canRenderFormElement, type FormData } from "./FormElement";
-import { useFieldRegistry } from "./fields/registry";
+import { useFieldRegistry, useFieldResolver } from "./fields/registry";
 import { fieldErrors, normaliseNumbers, useParseErrors } from "./numberFields";
 
 interface RowSelection {
@@ -57,7 +57,8 @@ export function BulkEditModelForm({
   // in formData so it can auto-include it when the user enables
   // filament_colours — hide the card, keep the data slot.
   const registry = useFieldRegistry<ModelAttribute>();
-  const visibleAttributes = editableAttributes.filter((attr) => canRenderFormElement(attr, registry));
+  const resolve = useFieldResolver<ModelAttribute>();
+  const visibleAttributes = editableAttributes.filter((attr) => canRenderFormElement(attr, registry, resolve));
 
   const form_defaults: FormData = {};
   editableAttributes.forEach((item) => {

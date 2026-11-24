@@ -130,7 +130,9 @@ export function validateField<A extends RuleSource>(
   if (opts.trim && typeof value === "string") value = stripWhitespace(value);
 
   const registry = opts.registry;
-  const renderer = registry && Object.prototype.hasOwnProperty.call(registry, attr.type) ? registry[attr.type] : undefined;
+  const own = (key: string | null | undefined) =>
+    registry && typeof key === "string" && Object.prototype.hasOwnProperty.call(registry, key) ? registry[key] : undefined;
+  const renderer = own(opts.resolve?.(attr)) ?? own(attr.type);
   const empty = renderer?.isEmpty ? renderer.isEmpty(value) : isEmptyValue(value);
   if (empty) {
     if (attr.required) return { code: "required" };

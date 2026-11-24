@@ -5,7 +5,7 @@ import { issueText } from "../validate/issueText";
 import type { FieldBase, FieldIssue, FieldIssueCode } from "../validate/types";
 import { lightRenderers } from "./lightRenderers";
 import { RegisteredField } from "./RegisteredField";
-import { lookupRenderer, useFieldRegistry, type FieldRegistry } from "./registry";
+import { chainResolvers, resolveRenderer, useFieldRegistry, useFieldResolver, type FieldRegistry, type FieldResolver } from "./registry";
 import type { FieldClassNames, FieldSize } from "./style";
 
 export type ShowErrors = "always" | "touched" | "submitted";
@@ -31,6 +31,12 @@ export interface FieldSetProps<A extends FieldBase, V extends Record<string, unk
   onParseError?: (name: string, reason: FieldIssueCode | null) => void;
   /** Over the context registry, over `lightRenderers`. */
   renderers?: FieldRegistry<A>;
+  /**
+   * Per attribute, the registry key to draw it with; asked before the
+   * provider's `resolve`. Undefined, or a key no registry holds, falls back
+   * to `attr.type`.
+   */
+  resolve?: FieldResolver<A>;
   /** Which attrs to draw; default `attr.editable !== false`. An attr with no renderer is skipped. */
   filter?: (attr: A) => boolean;
   /** Control ids are idPrefix + name. Default "input_". */
@@ -49,7 +55,8 @@ const defaultFilter = (attr: FieldBase) => attr.editable !== false;
 
 /**
  * A controlled group of fields for any descriptor type: each attr's renderer
- * (props, then context, then `lightRenderers`) inside a label / hint / error
+ * (the resolved key, then `attr.type`, each looked up in props, then
+ * context, then `lightRenderers`) inside a label / hint / error
  * shell. No `<form>`, no submit, no fetch, no toast: the page owns those.
  * Renders on a server with no providers.
  */
@@ -64,6 +71,7 @@ export function FieldSet<A extends FieldBase, V extends Record<string, unknown>>
   onBlur,
   onParseError,
   renderers,
+  resolve,
   filter = defaultFilter,
   idPrefix = "input_",
   labelSuffix,
@@ -73,6 +81,7 @@ export function FieldSet<A extends FieldBase, V extends Record<string, unknown>>
 }: FieldSetProps<A, V>) {
   const style = React.useMemo(() => ({ labelSuffix, size, classNames }), [labelSuffix, size, classNames]);
   const context = useFieldRegistry<A>();
+  const pick = chainResolvers(resolve, useFieldResolver<A>());
   const [ownTouched, setOwnTouched] = React.useState<Record<string, boolean>>({});
   const touched = touchedProp ?? ownTouched;
   const touch = (names: string[]) => {
@@ -83,7 +92,7 @@ export function FieldSet<A extends FieldBase, V extends Record<string, unknown>>
   const fields: { attr: A; node: React.ReactNode }[] = [];
   for (const attr of attrs) {
     if (!filter(attr)) continue;
-    const renderer = lookupRenderer<A>(attr.type, renderers, context, lightRenderers);
+    const renderer = resolveRenderer<A>(attr, pick, renderers, context, lightRenderers);
     if (!renderer) continue;
     const name = attr.name;
     const label = fieldLabel(attr);

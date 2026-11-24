@@ -19,7 +19,14 @@ import { ColourField } from "./ColourField";
 import { ColourArrayField } from "./ColourArrayField";
 import { FieldInput, type NumberFieldError } from "./FieldInput";
 import { RegisteredField } from "./fields/RegisteredField";
-import { lookupRenderer, useFieldRegistry, type FieldRegistry } from "./fields/registry";
+import {
+  chainResolvers,
+  resolveRenderer,
+  useFieldRegistry,
+  useFieldResolver,
+  type FieldRegistry,
+  type FieldResolver,
+} from "./fields/registry";
 import { fieldLabel } from "./fieldLabel";
 import { fieldErrorText, type FieldError } from "./numberFields";
 import { RelationCollectionField } from "./RelationCollectionField";
@@ -66,9 +73,15 @@ export interface FormData {
 // that would render nothing. A type in `renderers` (pass the context's, from
 // `useFieldRegistry()`, to see what a FieldRegistryProvider adds) renders too.
 // Anything but a registry object as the second argument is ignored, so
-// `.filter(canRenderFormElement)` keeps working.
-export function canRenderFormElement(attr: ModelAttribute, renderers?: FieldRegistry<ModelAttribute> | null): boolean {
-  if (lookupRenderer(attr.type, renderers)) return true;
+// `.filter(canRenderFormElement)` keeps working. `resolve` (pass the context's,
+// from `useFieldResolver()`) counts a key it picks; a non-function is ignored,
+// so filter's third argument, the array, is too.
+export function canRenderFormElement(
+  attr: ModelAttribute,
+  renderers?: FieldRegistry<ModelAttribute> | null,
+  resolve?: FieldResolver<ModelAttribute> | null,
+): boolean {
+  if (resolveRenderer(attr, resolve, renderers)) return true;
   switch (attr.type) {
     case "string":
     case "date":
@@ -107,6 +120,13 @@ export interface FormElementProps {
    * built-in renderer of the same name. With neither, nothing changes.
    */
   renderers?: FieldRegistry<ModelAttribute>;
+  /**
+   * Per attribute, the registry key to draw it with: asked before the
+   * provider's `resolve`; the key is looked up in `renderers`, then the
+   * provider's registry. Undefined, or a key neither holds, falls back to
+   * `attr.type` (a registered type, else the built-in switch).
+   */
+  resolve?: FieldResolver<ModelAttribute>;
 }
 
 
@@ -176,6 +196,7 @@ export function FormElement({
   fieldError,
   onFieldError,
   renderers,
+  resolve,
 }: FormElementProps) {
   const name = entry_data.name;
   const label = fieldLabel(entry_data);
@@ -186,7 +207,9 @@ export function FormElement({
   const setField = (value: unknown) =>
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-  const registered = lookupRenderer(type, renderers, useFieldRegistry<ModelAttribute>());
+  const context = useFieldRegistry<ModelAttribute>();
+  const pick = chainResolvers(resolve, useFieldResolver<ModelAttribute>());
+  const registered = resolveRenderer(entry_data, pick, renderers, context);
   if (registered) {
     return (
       <RegisteredField

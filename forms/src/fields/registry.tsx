@@ -57,33 +57,78 @@ export type FieldRegistry<A extends FieldBase = FieldBase> = Readonly<
   Record<string, FieldRenderer<A, any> | undefined>
 >;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const FieldRegistryContext = React.createContext<FieldRegistry<any> | null>(null);
+/**
+ * Picks the registry key for one attribute, so a renderer can be chosen per
+ * field and not only per `attr.type` ("radio-cards" for the lid's selects,
+ * the built-in select for the rest). Return undefined (or null) to let the
+ * type decide; a key that no registry holds is ignored the same way.
+ */
+export type FieldResolver<A extends FieldBase = FieldBase> = (attr: A) => string | null | undefined;
+
+interface RegistryContextValue {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  registry: FieldRegistry<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  resolve?: FieldResolver<any>;
+}
+
+const FieldRegistryContext = React.createContext<RegistryContextValue | null>(null);
+
+/**
+ * `first`, then `second` when it gives no key. Either may be absent; a value
+ * that is not a function (an array from `.filter`) counts as absent.
+ */
+export function chainResolvers<A extends FieldBase>(
+  first?: FieldResolver<A> | null,
+  second?: FieldResolver<A> | null,
+): FieldResolver<A> | undefined {
+  const a = typeof first === "function" ? first : undefined;
+  const b = typeof second === "function" ? second : undefined;
+  if (a && b) return (attr) => a(attr) ?? b(attr);
+  return a ?? b;
+}
 
 /**
  * Makes a registry visible to every `FormElement` and `FieldSet` below it,
  * including the Add / Edit / Bulk-edit forms that `@bcl32/datatable` hosts,
  * with no change to the host. Nested providers merge: the inner one wins per
- * type.
+ * type, and the inner `resolve` is asked first (the outer one when it gives
+ * no key).
  *
  * A registered type overrides the built-in renderer of the same name for
- * everything below the provider, so mount it as low as the page allows.
+ * everything below the provider, so mount it as low as the page allows, or
+ * register the control under its own key and pick it per field with
+ * `resolve`.
  */
 export function FieldRegistryProvider<A extends FieldBase>({
   registry,
+  resolve,
   children,
 }: {
-  registry: FieldRegistry<A>;
+  registry?: FieldRegistry<A>;
+  /** Per attribute, the registry key to draw it with (see `FieldResolver`). */
+  resolve?: FieldResolver<A>;
   children: React.ReactNode;
 }) {
   const parent = React.useContext(FieldRegistryContext);
-  const merged = React.useMemo(() => (parent ? { ...parent, ...registry } : registry), [parent, registry]);
+  const merged = React.useMemo<RegistryContextValue>(
+    () => ({
+      registry: parent ? (registry ? { ...parent.registry, ...registry } : parent.registry) : (registry ?? {}),
+      resolve: chainResolvers<A>(resolve, parent?.resolve),
+    }),
+    [parent, registry, resolve],
+  );
   return <FieldRegistryContext.Provider value={merged}>{children}</FieldRegistryContext.Provider>;
 }
 
 /** The registry from the nearest `FieldRegistryProvider`, or null outside one. */
 export function useFieldRegistry<A extends FieldBase = FieldBase>(): FieldRegistry<A> | null {
-  return React.useContext(FieldRegistryContext);
+  return React.useContext(FieldRegistryContext)?.registry ?? null;
+}
+
+/** The nearest providers' `resolve` (inner first), or undefined. */
+export function useFieldResolver<A extends FieldBase = FieldBase>(): FieldResolver<A> | undefined {
+  return React.useContext(FieldRegistryContext)?.resolve;
 }
 
 /** One registry from several; later ones win per type. */
@@ -110,4 +155,23 @@ export function lookupRenderer<A extends FieldBase>(
     }
   }
   return undefined;
+}
+
+/**
+ * The renderer for one attribute. The key `resolve(attr)` gives is looked up
+ * first, through every registry in order; then `attr.type`, the same way. So
+ * a resolved key beats a registered type even in a later registry, and a key
+ * no registry holds falls back to the type.
+ */
+export function resolveRenderer<A extends FieldBase>(
+  attr: A,
+  resolve: FieldResolver<A> | null | undefined,
+  ...registries: (FieldRegistry<A> | null | undefined)[]
+): FieldRenderer<A> | undefined {
+  const key = typeof resolve === "function" ? resolve(attr) : undefined;
+  if (typeof key === "string" && key) {
+    const found = lookupRenderer(key, ...registries);
+    if (found) return found;
+  }
+  return lookupRenderer(attr.type, ...registries);
 }

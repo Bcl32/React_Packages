@@ -111,6 +111,12 @@ export interface ValidateOptions<A extends FieldBase = RuleSource> {
   charsets?: Readonly<Record<string, CharsetPolicy>>;
   /** Per-type `isEmpty` and `validate` (a `FieldRegistry` fits). */
   registry?: RuleRegistry<A>;
+  /**
+   * The registry key per attribute, as `FieldSet`'s `resolve` picks it: its
+   * entry's `isEmpty` / `validate` are used, else the one for `attr.type`.
+   * The generic rules (a select's options, say) still go by `attr.type`.
+   */
+  resolve?: (attr: A) => string | null | undefined;
   crossField?: readonly CrossFieldRule<A>[];
   /**
    * `undefined` is "untouched". By default a `required` field that is

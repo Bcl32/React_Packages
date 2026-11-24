@@ -8,7 +8,7 @@ import type { ModelAttribute, ModelData } from "@bcl32/data-utils";
 
 import { toast } from "sonner";
 import { FormElement, canRenderFormElement, type FormData } from "./FormElement";
-import { useFieldRegistry } from "./fields/registry";
+import { useFieldRegistry, useFieldResolver } from "./fields/registry";
 import { changedFields } from "./_diff";
 import { fieldErrors, normaliseNumbers, useParseErrors } from "./numberFields";
 
@@ -46,6 +46,7 @@ export function EditModelForm({
   const errors = fieldErrors(ModelData.model_attributes, formData, parseErrors);
   // A FieldRegistryProvider above (e.g. around a DataTable) can add types.
   const registry = useFieldRegistry<ModelAttribute>();
+  const resolve = useFieldResolver<ModelAttribute>();
 
   function change_datetime(value: Dayjs | null, name: string) {
     setFormData((prevFormData) => {
@@ -101,7 +102,7 @@ export function EditModelForm({
     <div className="space-y-6 max-h-[70vh] overflow-y-auto">
       <form className="grid grid-cols-2 gap-x-6 gap-y-3">
         {ModelData.model_attributes
-          .filter((entry) => entry.editable && canRenderFormElement(entry, registry))
+          .filter((entry) => entry.editable && canRenderFormElement(entry, registry, resolve))
           .map((entry) => (
             <FormElement
               key={entry.name}

@@ -18,10 +18,12 @@ import {
   lightRenderers,
   mergeRegistries,
   useFieldRegistry,
+  useFieldResolver,
   useFieldSetState,
   type FieldBase,
   type FieldRegistry,
   type FieldRenderProps,
+  type FieldResolver,
 } from "@bcl32/forms/fields";
 import { validate } from "@bcl32/forms/validate";
 import { FormElement, canRenderFormElement } from "./FormElement";
@@ -334,5 +336,158 @@ describe("FieldShell", () => {
     expect(screen.getByLabelText("B:").id).toBe("b");
     expect(container.querySelectorAll("label")).toHaveLength(2);
     expect(container.innerHTML).toMatchSnapshot();
+  });
+});
+
+describe("resolve: a renderer per attribute, not only per type", () => {
+  function Cards({ id, attr, value, onChange }: FieldRenderProps) {
+    const options = ((attr as { options?: { value: string; label: string }[] }).options ?? []);
+    return (
+      <div id={id} role="radiogroup">
+        {options.map((o) => (
+          <label key={o.value}>
+            <input type="radio" name={id} checked={value === o.value} onChange={() => onChange(o.value)} />
+            {o.label}
+          </label>
+        ))}
+      </div>
+    );
+  }
+  const cards: FieldRegistry = { cards: { Control: Cards, labelAs: "legend" } };
+  const options = [{ value: "s", label: "Small" }, { value: "l", label: "Large" }];
+  const lidSize = { name: "lid_size", type: "select", title: "Lid size", options } as FieldBase;
+  const boxSize = { name: "box_size", type: "select", title: "Box size", options } as FieldBase;
+  const lidCards: FieldResolver = (attr) => (attr.type === "select" && attr.name.startsWith("lid_") ? "cards" : undefined);
+
+  it("FieldSet: the provider's resolve picks cards for one select; the other stays a native select", () => {
+    render(
+      <FieldRegistryProvider registry={cards} resolve={lidCards}>
+        <FieldSet attrs={[lidSize, boxSize]} value={{}} onChange={vi.fn()} />
+      </FieldRegistryProvider>,
+    );
+    expect(document.getElementById("input_lid_size")!.getAttribute("role")).toBe("radiogroup");
+    expect(document.getElementById("input_box_size")!.tagName).toBe("SELECT");
+  });
+
+  it("FieldSet: its own resolve is asked first, then the provider's", () => {
+    const boxToo: FieldResolver = (attr) => (attr.name === "box_size" ? "cards" : undefined);
+    const never: FieldResolver = (attr) => (attr.name === "lid_size" ? "select" : undefined);
+    render(
+      <FieldRegistryProvider registry={cards} resolve={lidCards}>
+        <FieldSet attrs={[lidSize, boxSize]} value={{}} onChange={vi.fn()} resolve={(a) => boxToo(a) ?? never(a)} />
+      </FieldRegistryProvider>,
+    );
+    expect(document.getElementById("input_box_size")!.getAttribute("role")).toBe("radiogroup");
+    // The prop's "select" is lightRenderers' select: the prop won over the provider.
+    expect(document.getElementById("input_lid_size")!.tagName).toBe("SELECT");
+  });
+
+  it("a key no registry holds falls back to the type; null and undefined too", () => {
+    render(<FieldSet attrs={[lidSize, boxSize]} value={{}} onChange={vi.fn()} resolve={(a) => (a.name === "lid_size" ? "nope" : null)} />);
+    expect(document.getElementById("input_lid_size")!.tagName).toBe("SELECT");
+    expect(document.getElementById("input_box_size")!.tagName).toBe("SELECT");
+  });
+
+  it("a resolved key beats a type registered in an earlier registry", () => {
+    const own: FieldRegistry = { select: { Control: ({ id }) => <p id={id}>prop select</p> } };
+    render(
+      <FieldRegistryProvider registry={cards}>
+        <FieldSet attrs={[lidSize, boxSize]} value={{}} onChange={vi.fn()} renderers={own} resolve={lidCards} />
+      </FieldRegistryProvider>,
+    );
+    expect(document.getElementById("input_lid_size")!.getAttribute("role")).toBe("radiogroup");
+    expect(document.getElementById("input_box_size")!.textContent).toBe("prop select");
+  });
+
+  it("nested providers: the inner resolve first, the outer one when it gives no key", () => {
+    let seen: FieldResolver | undefined;
+    function Probe() {
+      seen = useFieldResolver();
+      return null;
+    }
+    render(
+      <FieldRegistryProvider registry={cards} resolve={lidCards}>
+        <FieldRegistryProvider resolve={(a) => (a.name === "box_size" ? "inner" : undefined)}>
+          <Probe />
+        </FieldRegistryProvider>
+      </FieldRegistryProvider>,
+    );
+    expect(seen!(boxSize)).toBe("inner");
+    expect(seen!(lidSize)).toBe("cards");
+    expect(seen!({ name: "x", type: "string" })).toBeUndefined();
+  });
+
+  it("a provider with only resolve keeps the outer registry", () => {
+    let reg: FieldRegistry | null = null;
+    function Probe() {
+      reg = useFieldRegistry();
+      return null;
+    }
+    render(
+      <FieldRegistryProvider registry={cards}>
+        <FieldRegistryProvider resolve={lidCards}>
+          <Probe />
+        </FieldRegistryProvider>
+      </FieldRegistryProvider>,
+    );
+    expect(reg).toBe(cards);
+  });
+
+  it("FormElement: the resolve prop and the provider's; others keep the built-in switch", () => {
+    const lid = lidSize as ModelAttribute;
+    const box = boxSize as ModelAttribute;
+    const { rerender } = render(
+      <FormElement entry_data={lid} formData={{}} setFormData={vi.fn()} change_datetime={vi.fn()} renderers={cards} resolve={lidCards} />,
+    );
+    expect(document.getElementById("input_lid_size")!.getAttribute("role")).toBe("radiogroup");
+    expect(screen.getByText("Lid size:").tagName).toBe("LEGEND");
+    rerender(
+      <FieldRegistryProvider registry={cards} resolve={lidCards}>
+        <FormElement entry_data={lid} formData={{}} setFormData={vi.fn()} change_datetime={vi.fn()} />
+        <FormElement entry_data={box} formData={{}} setFormData={vi.fn()} change_datetime={vi.fn()} />
+      </FieldRegistryProvider>,
+    );
+    expect(document.getElementById("input_lid_size")!.getAttribute("role")).toBe("radiogroup");
+    expect(document.getElementById("input_box_size")!.tagName).toBe("SELECT");
+  });
+
+  it("canRenderFormElement counts a resolved key; filter's array argument is ignored", () => {
+    const odd: ModelAttribute = { name: "odd", type: "mystery", title: "Odd" };
+    const toCards = () => "cards";
+    expect(canRenderFormElement(odd, cards)).toBe(false);
+    expect(canRenderFormElement(odd, cards, toCards)).toBe(true);
+    expect(canRenderFormElement(odd, null, toCards)).toBe(false);
+    const attrs: ModelAttribute[] = [odd, { name: "t", type: "string" }];
+    // @ts-expect-error filter passes (value, index, array)
+    expect(attrs.filter(canRenderFormElement).map((a) => a.name)).toEqual(["t"]);
+  });
+
+  it("EditModelForm and BulkEditModelForm see the provider's resolve", () => {
+    const ModelData = {
+      model_name: "Box",
+      model_attributes: [{ name: "odd", type: "mystery", title: "Odd", editable: true, options }] as ModelAttribute[],
+      update_api_url: "boxes/",
+      bulk_update_api_url: "boxes/bulk",
+    };
+    const toCards = () => "cards";
+    render(
+      <FieldRegistryProvider registry={cards} resolve={toCards}>
+        <EditModelForm ModelData={ModelData as never} query_invalidation={[]} obj_data={{ id: "1" }} />
+        <BulkEditModelForm ModelData={ModelData as never} query_invalidation={[]} rowSelection={{ "1": true }} setRowSelection={vi.fn()} />
+      </FieldRegistryProvider>,
+    );
+    expect(screen.getAllByRole("radiogroup")).toHaveLength(2);
+  });
+
+  it("validate's resolve picks the same entry's isEmpty and validate", () => {
+    const rules = {
+      cards: { validate: (_a: FieldBase, v: unknown) => (v === "l" ? { code: "x-too-big" as const } : null) },
+    };
+    const attrs = [lidSize, boxSize];
+    const values = { lid_size: "l", box_size: "l" };
+    expect(validate(attrs, values, { registry: rules })).toEqual({});
+    expect(validate(attrs, values, { registry: rules, resolve: lidCards })).toEqual({ lid_size: { code: "x-too-big" } });
+    // The select's own options rule still runs by type.
+    expect(validate(attrs, { lid_size: "zz" }, { registry: rules, resolve: lidCards })).toEqual({ lid_size: { code: "not_an_option" } });
   });
 });
