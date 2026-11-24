@@ -51,6 +51,12 @@ import { ColourField } from "@bcl32/forms/ColourField";
 > reachable through the `@bcl32/forms/ColourField` subpath. `ColourArrayField`, by contrast,
 > is available from both the barrel and the `@bcl32/forms/ColourArrayField` subpath.
 
+> **Since 3.11.0** there are three subpaths that are **not** in the barrel, on purpose,
+> because their point is what they do *not* pull in: `@bcl32/forms/fields` (the light field
+> layer, renders on a server), `@bcl32/forms/validate` (pure validation, Node-safe) and
+> `@bcl32/forms/ColourFieldView` (the colour field without its fetch). See
+> [Light entries](#light-entries-fields-and-validate-since-3110).
+
 ## Public Exports
 
 ### Form components
@@ -94,13 +100,61 @@ import { ColourField } from "@bcl32/forms/ColourField";
 
 | Name | Kind | Description | Signature / Props |
 | --- | --- | --- | --- |
-| `FormElement` | component | Single-field renderer dispatched on `ModelAttribute.type`. Supported types: `string`, `textarea`, `number`, `boolean`, `list` (freeSolo Combobox), `single_combobox` (single-select freeSolo Combobox over the schema's `options`, with a clear button that writes `null`; since 3.4.0), `id_list` (multi-select with value/label mapping), `select`, `datetime` (`@bcl32/utils/DateTimePicker`, since 3.0.0 — see caveat below), `colour`, `colour_array`, `relation_collection`, `id` (with `reference` → `IdReferenceField` Combobox), `file`. Returns `null` for unrecognised types. | `(props: { entry_data: ModelAttribute; formData: FormData; setFormData: Dispatch<SetStateAction<FormData>>; change_datetime: (value: Dayjs \| null, name: string) => void }) => JSX.Element \| null` |
-| `canRenderFormElement` | util | Predicate that mirrors `FormElement`'s non-null branches. Used by `BulkEditModelForm` and `EditModelForm` to filter out "ghost" cards for attributes that would render `null` (e.g. an `id` without `reference`, or unknown types). | `(attr: ModelAttribute) => boolean` |
-| `ColourField` | component | Single-colour picker button backed by `ColourPickerPopover`. When the field name matches `*_colour(s)` it writes a parallel `*_ids` array into `formData` for FK tracking. Colour presets are fetched via `useGroupedSwatches` using `ModelAttribute.colour_presets`. **Subpath-only export.** | `(props: { entry_data: ModelAttribute; formData: FormData; setFormData: Dispatch<SetStateAction<FormData>> }) => JSX.Element` |
+| `FormElement` | component | Single-field renderer dispatched on `ModelAttribute.type`. Supported types: `string`, `textarea`, `number`, `boolean`, `list` (freeSolo Combobox), `single_combobox` (single-select freeSolo Combobox over the schema's `options`, with a clear button that writes `null`; since 3.4.0), `id_list` (multi-select with value/label mapping), `select`, `datetime` (`@bcl32/utils/DateTimePicker`, since 3.0.0 — see caveat below), `colour`, `colour_array`, `relation_collection`, `id` (with `reference` → `IdReferenceField` Combobox), `file`. Returns `null` for unrecognised types. **Since 3.11.0** a renderer registry is consulted first: the `renderers` prop, then the nearest `FieldRegistryProvider` (`@bcl32/forms/fields`); a registered type is drawn through `FieldShell` with the admin `:` after its label, and overrides a built-in type of the same name. With neither, the switch runs exactly as before. | `(props: { entry_data: ModelAttribute; formData: FormData; setFormData: Dispatch<SetStateAction<FormData>>; change_datetime: (value: Dayjs \| null, name: string) => void; fieldError?; onFieldError?; renderers?: FieldRegistry<ModelAttribute> }) => JSX.Element \| null` |
+| `canRenderFormElement` | util | Predicate that mirrors `FormElement`'s non-null branches. Used by `BulkEditModelForm` and `EditModelForm` to filter out "ghost" cards for attributes that would render `null` (e.g. an `id` without `reference`, or unknown types). Since 3.11.0 it is also true for a type in `renderers`; both forms pass the context's registry, so a `FieldRegistryProvider` around a DataTable reaches its Edit and Bulk-edit dialogs. A second argument that is not an object is ignored, so `.filter(canRenderFormElement)` still works. | `(attr: ModelAttribute, renderers?: FieldRegistry \| null) => boolean` |
+| `ColourField` | component | Single-colour picker button backed by `ColourPickerPopover`. When the field name matches `*_colour(s)` it writes a parallel `*_ids` array into `formData` for FK tracking. Colour presets are fetched via `useGroupedSwatches` using `ModelAttribute.colour_presets`. Since 3.11.0 it is that fetch plus `ColourFieldView`, takes `allowCustom` and `renderSwatchIcon` (passed to the popover), and its popover closes on Escape with focus back on the trigger. **Subpath-only export.** | `(props: { entry_data: ModelAttribute; formData: FormData; setFormData: Dispatch<SetStateAction<FormData>>; allowCustom?: boolean; renderSwatchIcon?: (s: ColourSwatch) => ReactNode }) => JSX.Element` |
+| `ColourFieldView` | component | The colour field with no fetch (since 3.11.0, subpath `@bcl32/forms/ColourFieldView`, also re-exported from `./ColourField`): swatches come in as a prop, so the module never imports `@bcl32/hooks` or react-query. Same label, trigger and popover as `ColourField`; closes on a pick, an outside mouse-down and Escape. | `(props: { attr: ModelAttribute; value: string; onSelect: (hex: string, id?: string) => void; swatchGroups: SwatchGroups; currentId?: string; allowCustom?: boolean; renderSwatchIcon?: (s: ColourSwatch) => ReactNode; id?: string }) => JSX.Element` |
 | `ColourArrayField` | component | Multi-colour swatch array editor. Each colour renders as a clickable circle with a remove badge; a `+` button adds new colours. Tracks a parallel `*_ids` FK array alongside the hex array. Edit/add each open a `ColourPickerPopover`. | `(props: { entry_data: ModelAttribute; formData: FormData; setFormData: Dispatch<SetStateAction<FormData>> }) => JSX.Element` |
-| `AutoGrowTextarea` | component | A controlled `<textarea>` that auto-sizes its height to `scrollHeight` on every value change (via `useLayoutEffect`). Accepts a `ref`. No dependencies beyond React. | `React.ForwardRefExoticComponent<AutoGrowTextareaProps & React.RefAttributes<HTMLTextAreaElement>>`, where `AutoGrowTextareaProps` extends `TextareaHTMLAttributes` with a required `value: string` |
+| `AutoGrowTextarea` | component | A controlled `<textarea>` that auto-sizes its height to `scrollHeight` on every value change (via `useLayoutEffect` in the browser; since 3.11.0 a plain effect on a server, so a prerender prints no warning). Accepts a `ref`. No dependencies beyond React. | `React.ForwardRefExoticComponent<AutoGrowTextareaProps & React.RefAttributes<HTMLTextAreaElement>>`, where `AutoGrowTextareaProps` extends `TextareaHTMLAttributes` with a required `value: string` |
 | `EditableDetailItem` | component | Click-to-edit field for a detail grid (since 3.9.0; moved from Home Helper and Print Tracker). Shows the value under a small-caps label; a click swaps in its editor, blur or Enter saves through `onSave({ [field]: value })`, Escape cancels, a `select` saves on change, and nothing is sent when the value did not change. A `number` edits in `FieldInput`'s number box (unit adapter, money's currency inside the box, `min`/`max`/`decimals`/`integer`, `number \| null` out): refused text (badInput, fraction, decimals, range) keeps the editor open, `aria-invalid`, with `fieldErrorText`'s reason under it (`role="alert"`, also the box's `title`), and a Decimal's `"12.50"` retyped as 12.5 is no change. `list` edits as chips inline, `id_list` in a dialog (ids on the wire), `single_combobox` as a free-text combobox. Editable only when the field's attribute in `modelData` is `editable` and `onSave` is given. Spacing is `density` (`tight`, the default, or `comfortable`), set app-wide by `DetailDensityProvider` from the same subpath. Also from the barrel. | `(props: { label: string; value: unknown; field: string; onSave?: (patch: Record<string, unknown>) => unknown; saving?: boolean; modelData?: { model_attributes?: ModelAttribute[] } \| null; inputType?: string; children?: ReactNode; icon?: ComponentType<{ className?: string }>; valueClassName?: string; density?: "tight" \| "comfortable" }) => JSX.Element` |
 | `RelationCollectionField` | component | Inline-editable child-collection panel (`relation_collection` type). **Live mode** (`baseUrl` present): fetches rows via `useGetRequest`, renders each as a card with per-row debounced PATCH (in read mode a row's `note` is rendered as Markdown — GFM, raw HTML shown as text — and a long or multi-paragraph note spans the whole row), and supports add, delete, sort, and an optional thumbnail (fetch/upload/clear). **Create mode** (no `baseUrl`): shows a disabled notice. | `(props: { entry_data: ModelAttribute; baseUrl?: string; entityLabel?: string; resolveAssetUrl?: (path: string) => string; formData?: FormData; setFormData?: Dispatch<SetStateAction<FormData>> }) => JSX.Element` |
+
+### Light entries: `/fields` and `/validate` (since 3.11.0)
+
+One field contract and one validation semantics for the admin forms and for customer forms
+on a prerendered page. Neither entry is in the barrel. `./fields` never imports
+`@bcl32/hooks`, react-query, sonner, dayjs, `Combobox`, `DateTimePicker`, `Tooltip`,
+`RelationCollectionField` or `ColourField` (`fields.imports.test.ts` walks its import graph),
+and renders with `renderToString` in plain Node with no providers. Measured (esbuild,
+minified, gzip -9, React external, utils and data-utils bundled): `./fields` 16.3 KB, of which
+tailwind-merge is about 6.6 KB; `./validate` 2.5 KB; `FormElement` 96.5 KB for comparison.
+
+**`@bcl32/forms/fields`**
+
+| Name | Kind | Description |
+| --- | --- | --- |
+| `FieldInput` | component | The bare widget for `string`, `textarea`, `number`, `boolean`, `select`, `date` (what FormElement, EditableDetailItem and RelationCollectionField draw). Public since 3.11.0, so its props are semver surface. New, both optional: `size` (`sm` = `compact`, `md` = today, `lg` = 48 px, text-base; wins over `compact` when set) and `classNames: { control?, input? }`. `invalid` / `describedBy` now set `aria-invalid` / `aria-describedby` on every type; unset, nothing is written. With none of the new props the markup is byte-identical. |
+| `FieldShell` | component | Label, inline hint and error (`role="alert"`) around a control: a plain `<label>` (no Radix, no tooltip). `labelAs`: `label` (default), `legend` (a `<fieldset>`), `inline` (control first, a checkbox) or `none`. Takes `labelSuffix`, `size`, `classNames`, `optional` + `optionalMark`, `errorIcon`. |
+| `FieldSet` | component | Controlled group of fields for any descriptor type: `{ attrs, value, onChange(next, changed), errors?, showErrors?: "touched" \| "submitted" \| "always", submitted?, touched?, onBlur?, onParseError?, renderers?, filter?, idPrefix? = "input_", labelSuffix?, size?, classNames?, children?(fields) }`. `onChange` always gets a new object. No `<form>`, submit, fetch or toast. Renderer lookup: `renderers`, then the context, then `lightRenderers`; an attr with no renderer, or `editable: false`, is skipped. Errors are `FieldIssue`s (worded with `issueText`) or strings; "touched" (default) shows them after a change, blur or submit, so a server render never prints one. Hint and error ids are `${id}-hint` / `${id}-error`. |
+| `useFieldSetState` | hook | `useFieldSetState(initial)` → `{ value, setValue, touched, submitted, markSubmitted, parseErrors, onParseError, reset, bind }`; spread `bind` onto `FieldSet` and pass `parseErrors` to `validate`. |
+| `FieldRegistryProvider`, `useFieldRegistry`, `mergeRegistries` | component / hook / util | A registry in context, seen by every `FormElement` and `FieldSet` below it, including the forms `@bcl32/datatable` hosts. Nested providers merge (inner wins per type). A registered type overrides the built-in of the same name below the provider, so mount it as low as the page allows. |
+| `FieldRegistry`, `FieldRenderer`, `FieldRenderProps` | types | `FieldRenderer = { Control: (props: FieldRenderProps) => ReactNode; labelAs?; isEmpty?(value); validate?(attr, value, values) }`. `FieldRenderProps = { attr, id, name, value, onChange, onChangeMany(patch), values, onBlur?, invalid, describedBy?, onParseError?, size, classNames }`. |
+| `lightRenderers` | registry | FieldInput's six types as renderers (`boolean` is `labelAs: "inline"`). |
+| `FieldStyleProvider`, `useFieldStyle` | component / hook | `size`, `classNames`, `labelSuffix`, `optionalMark`, `errorIcon` for every FieldSet and registered field below it. Props win over it, it wins over the defaults. FieldInput never reads it. |
+| `FieldSize`, `FieldClassNames`, `FieldStyle`, `FieldBase`, `FieldIssue`, `FieldIssueCode` | types | Slots: `root`, `label`, `legend`, `optional`, `hint`, `control`, `input`, `error`, merged over the defaults with tailwind-merge. |
+
+**`@bcl32/forms/validate`** (pure: no React, no DOM; imports only `@bcl32/data-utils/numbers`)
+
+| Name | Kind | Description |
+| --- | --- | --- |
+| `validate` | util | `(attrs, values, opts?) => Record<string, FieldIssue>`: each field's first issue. Order: the number box's parse error, then empty-and-required, then the type's rules, then the registry's `validate`, then `crossField` rules (which only fill fields with no issue yet). Skips `editable: false` and what `only` excludes. Options: `only`, `parseErrors`, `charsets`, `registry`, `crossField`, `skipUntouched`. |
+| `validateField` | util | The same for one field. |
+| `textLength` | util | Code points after NFC, as Python's `len()` and JSON Schema count (`"😀".length` is 2; this is 1). |
+| `isEmptyValue` | util | `undefined`, `null`, `""`, `[]`. |
+| `issueText` | util | `(label, issue, attr?, adapter?) => string`. The number reasons in exactly `fieldErrorText`'s words (which now delegates to it), plus `At least 3 characters`, `At most 20 characters`, `Not in the expected format`, `These characters can't be used: ★ ♥`, `Choose one of the options`, and an `x-` issue's own `message`. Uses Intl: show it after interaction on prerendered pages. |
+| `FieldBase`, `RuleSource`, `FieldIssue`, `ValidateOptions`, `CrossFieldRule`, `CharsetPolicy`, `RuleRegistry` | types | `RuleSource` is structural: a `ModelAttribute` fits, and a hand-written descriptor can carry `min_length`, `max_length`, `pattern`, `required`, `charset` and `normalise: "NFC"` today. |
+
+Rules: `required` is `attr.required`, a non-nullable `number` that is `null` (today's rule) or
+`""` on a string with `min_length >= 1`; `undefined` is untouched (empty for `required`
+unless `skipUntouched`). Strings: `min_length` / `max_length` in NFC code points, then a
+named `charset` policy (reports the offending characters, never the value), then `pattern`
+as an **unanchored search**, like Pydantic (`[a-z]+` accepts `"ABCd"`; anchor with `^…$`). A
+pattern JS cannot compile (with `u`, then without) is not checked and never throws. Numbers:
+the value itself against `integer`, `decimals` (money: 2) and `min`/`max`. A `select`'s value
+must be one of its `options`. An empty optional value passes the type rules.
+
+Nothing in the existing forms calls `validate` yet, so `fieldErrors` and every form behave as
+before (a parity test pins `fieldErrors` ≡ `validate` on number fields with in-range values).
 
 ### Hooks
 
@@ -113,7 +167,7 @@ import { ColourField } from "@bcl32/forms/ColourField";
 | Name | Kind | Description | Signature |
 | --- | --- | --- | --- |
 | `FormData` | type | Plain index-signature type used as the state shape for all form components. | `export interface FormData { [key: string]: unknown }` |
-| `FormElementProps` | type | Props interface for `FormElement`, exported for consumers that build custom wrappers. | `export interface FormElementProps { entry_data: ModelAttribute; formData: FormData; setFormData: Dispatch<SetStateAction<FormData>>; change_datetime: (value: Dayjs \| null, name: string) => void }` |
+| `FormElementProps` | type | Props interface for `FormElement`, exported for consumers that build custom wrappers. | `export interface FormElementProps { entry_data: ModelAttribute; formData: FormData; setFormData: Dispatch<SetStateAction<FormData>>; change_datetime: (value: Dayjs \| null, name: string) => void; fieldError?: FieldError; onFieldError?: (name, reason) => void; renderers?: FieldRegistry<ModelAttribute> }` |
 | `EntryData` | type | **Deprecated** re-export alias for `ModelAttribute` from `@bcl32/data-utils` (JSDoc-marked `@deprecated`). Use `ModelAttribute` directly. | `export type EntryData = ModelAttribute` |
 
 ## Dependencies
@@ -130,13 +184,19 @@ import { ColourField } from "@bcl32/forms/ColourField";
 
 These must be supplied by the consuming app:
 
-| Package | Range |
-| --- | --- |
-| `react` | `^18.2.0` |
-| `react-dom` | `^18.2.0` |
-| `@tanstack/react-query` | `^5.18.1` |
-| `dayjs` | `^1.11.10` |
-| `sonner` | `^2.0.7` |
+| Package | Range | |
+| --- | --- | --- |
+| `react` | `^18.2.0` | |
+| `react-dom` | `^18.2.0` | |
+| `@tanstack/react-query` | `^5.18.1` | optional since 3.11.0 |
+| `dayjs` | `^1.11.10` | optional since 3.11.0 |
+| `sonner` | `^2.0.7` | optional since 3.11.0 |
+
+The three are `peerDependenciesMeta.optional`, so an app that imports only `./fields`,
+`./validate` or `./ColourFieldView` is not made to install them. Every other entry (the CRUD
+forms, `FormElement`, `ColourField`, `RelationCollectionField`, …) still needs them, as
+before. `@bcl32/hooks`, a dependency, still declares react-query as a required peer of its
+own.
 
 ### External (bundled) dependencies
 
@@ -190,18 +250,17 @@ Things a consumer **must** know to use this package correctly:
   return this shape for the cascade UI to appear.
 - **TanStack Query context is required.** A `QueryClientProvider` must wrap all consumers,
   since `useDatabaseMutation`, `useGetRequest`, and `DeleteModelForm`'s `useMutation` all
-  depend on it.
+  depend on it. (`./fields`, `./validate` and `./ColourFieldView` need no provider at all.)
 
 ## Known Smells & Caveats
 
 These are documented limitations and rough edges to be aware of (none are dead code):
 
-- **Duplicated `LabelWithHelp`.** Defined verbatim in `ColourField.tsx` (lines 10-29),
-  `ColourArrayField.tsx` (lines 10-29), and `FormElement.tsx` (lines 34-45). Should be a
-  shared internal module.
-- **Repeated dayjs plugin setup.** `dayjs.extend(utc)` / `dayjs.extend(timezone)` are called at
-  module scope in `AddModelForm.tsx`, `EditModelForm.tsx`, and `BulkEditModelForm.tsx` (lines
-  6-8 in each). No-op after the first call, but indicates copy-paste that could be centralized.
+- **Duplicated `LabelWithHelp`.** Defined verbatim in `ColourFieldView.tsx`,
+  `ColourArrayField.tsx`, and `FormElement.tsx`. Should be a shared internal module.
+- **dayjs plugin setup is in one place (since 3.11.0).** `datetimeSetup.ts` extends dayjs with
+  utc and timezone; only FormElement's datetime renderer imports it. The four module-scope
+  copies in FormElement and the CRUD forms are gone.
 - **Untyped bulk mutation payload.** `BulkEditModelForm` casts `(mutation.data as any)?.updated`
   in two places (lines 169 and 253) because `useDatabaseMutation` returns an untyped result,
   losing compile-time safety on the success payload.

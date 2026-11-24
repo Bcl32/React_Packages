@@ -331,7 +331,7 @@ in `@bcl32/data-utils/numbers`; utils imports the type only, so it installs no
 
 | Name | Kind | Signature / Props | Description |
 | --- | --- | --- | --- |
-| `ColourPickerPopover` | component | `({ swatchGroups: SwatchGroups, currentColour?, currentId?, selectedColours?, defaultCustomColour?, onSelect: (hex, id?) => void }) => JSX` | Fixed-position swatch grid + native color input. Accepts flat or nested `SwatchGroups` `Map`; normalises internally. **No portal** — renders inline at `z-50`. |
+| `ColourPickerPopover` | component | `({ swatchGroups: SwatchGroups, currentColour?, currentId?, selectedColours?, selectedIds?, defaultCustomColour?, onSelect: (hex, id?) => void, renderSwatchIcon?, size?: "md" \| "lg", allowCustom? = true, onClose? }) => JSX` | Fixed-position swatch grid + native color input. Accepts flat or nested `SwatchGroups` `Map`; normalises internally. **No portal** — renders inline at `z-50`. Since 2.18.0: `allowCustom={false}` hides the Custom input; `onClose`, when given, is called on Escape, which then stops there (a window capture listener, so a Radix dialog behind does not also close) and returns focus to whatever had it when the popover opened. Without `onClose` Escape is untouched, as before. No focus trap; dismissal on outside click stays the host's job. |
 | `ColourPickerPopoverProps` | type | — | Props interface for `ColourPickerPopover`. |
 | `ColourSwatch` | type | `{ id?: string; colour_hex: string; colour_name?: string }` | A single swatch. |
 | `SwatchGroups` | type | `Map<string, ColourSwatch[]> \| Map<string, Map<string, ColourSwatch[]>>` | Flat or nested grouping of swatches. |
